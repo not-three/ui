@@ -1,0 +1,10 @@
+ci: .github/workflows/*
+components: components/**
+server: server/**
+pages: pages/**
+public: public/**
+lib: lib/**
+docker: Dockerfile
+package:
+  - package.json
+  - pnpm-lock.yaml

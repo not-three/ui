@@ -1,0 +1,12 @@
+# Simple example of an !3 ui deployment using docker-compose
+# Please note: There is also a more advanced example in the main repository available
+# https://github.com/not-three/main#deployment
+
+services:
+  app:
+    image: ghcr.io/not-three/ui:latest
+    ports:
+      - 3000:3000
+    environment:
+      API_URL: http://localhost:4000
+      TERMS_OF_SERVICE_URL: https://example.com

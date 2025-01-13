@@ -1,0 +1,10 @@
+node_modules/
+.nuxt/
+.git/
+.output/
+.vscode/
+.github/
+dist/
+.gitignore
+docker-compose.override.yml
+docker-compose.yml

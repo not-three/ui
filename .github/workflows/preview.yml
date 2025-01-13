@@ -1,0 +1,54 @@
+name: Deploy PR previews
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+
+concurrency: preview-${{ github.ref }}
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        if: github.event.action != 'closed'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        if: github.event.action != 'closed'
+        run: npm install -g pnpm
+
+      - name: Label the PR
+        if: github.event.action != 'closed'
+        uses: actions/labeler@v4
+
+      - name: Install dependencies
+        if: github.event.action != 'closed'
+        run: pnpm install
+
+      - name: Generate static files
+        if: github.event.action != 'closed'
+        run: NUXT_APP_BASE_URL=/pr-preview/pr-${{ github.event.number }}/ pnpm generate
+        
+      - name: Updating config.json for not-th.re public
+        if: github.event.action != 'closed'
+        run: >
+          echo "{\"baseURL\": \"https://api.not-th.re/\", \"terms\":
+          \"https://scolasti.co/go/privacy\", \"pullRequest\":
+          \"https://github.com/not-three/main/pull/${{ github.event.number }}\"}" > .output/public/config.json
+
+      - name: Deploy preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          preview-branch: html-previews
+          source-dir: ./output/public
+          custom-url: beta.not-th.re
