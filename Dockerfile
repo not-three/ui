@@ -10,6 +10,7 @@ ENV NUXT_APP_BASE_URL=$NUXT_APP_BASE_URL
 RUN pnpm build
 
 FROM node:20-alpine
+RUN apk add --no-cache curl
 WORKDIR /app
 
 COPY --from=build-stage /app/.output /app
