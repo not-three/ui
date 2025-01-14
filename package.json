@@ -1,8 +1,10 @@
 {
   "name": "@not3/ui",
+  "description": "!3 is a simple, secure and open source paste sharing platform.",
+  "author": "Joschua Becker EDV <support@scolasti.co>",
   "private": true,
   "type": "module",
-  "license": "NPOSL-3.0",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "build": "nuxt build",
     "dev": "PROXY_URL=http://localhost:4000 nuxt dev",
