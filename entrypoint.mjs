@@ -6,7 +6,7 @@ let proc = null;
 [ 'SIGTERM', 'SIGINT' ].forEach((signal) => {
   process.on(signal, () => {
     if (proc) proc.kill(signal);
-    process.exit(0);
+    if (signal === 'SIGTERM') process.exit(0);
   });
 });
 
@@ -16,3 +16,4 @@ writeFileSync('public/config.json', JSON.stringify({
 }));
 
 proc = spawn('node', ['server/index.mjs'], { stdio: 'inherit' });
+proc.on('exit', (code) => process.exit(code));
