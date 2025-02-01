@@ -17,7 +17,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -69,6 +69,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: client-bundle
+          path: .output/public
 
       - name: Updating config.json for not-th.re public
         run: >
@@ -81,3 +82,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy .output/public/ --project-name=not-three --commit-dirty=true --branch=main
+          packageManager: npm
