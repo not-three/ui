@@ -1,17 +1,17 @@
-import * as monaco from 'monaco-editor';
-// @ts-ignore
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-// @ts-ignore
-import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
-// @ts-ignore
-import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
-// @ts-ignore
-import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
-// @ts-ignore
-import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
+import * as monaco from "monaco-editor";
+// @ts-expect-error This has to be loaded with the worker tag
+import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+// @ts-expect-error This has to be loaded with the worker tag
+import jsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
+// @ts-expect-error This has to be loaded with the worker tag
+import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
+// @ts-expect-error This has to be loaded with the worker tag
+import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
+// @ts-expect-error This has to be loaded with the worker tag
+import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 
-import { languageDefinitions } from './languages';
-import type { LanguageDefinition } from './types';
+import { languageDefinitions } from "./languages";
+import type { LanguageDefinition } from "./types";
 
 function registerLanguage(lang: LanguageDefinition) {
   monaco.languages.register({
@@ -27,46 +27,47 @@ function registerLanguage(lang: LanguageDefinition) {
   }
 
   // Set tokenizer if provided
-  if (lang.tokenizer) monaco.languages.setMonarchTokensProvider(lang.id, lang.tokenizer);
+  if (lang.tokenizer)
+    monaco.languages.setMonarchTokensProvider(lang.id, lang.tokenizer);
 }
 
 export async function setupMonaco() {
   (self as any).MonacoEnvironment = {
     getWorker(_moduleId: string, label: string) {
       switch (label) {
-        case 'json':
+        case "json":
           return new jsonWorker();
-        case 'css':
-        case 'scss':
-        case 'less':
+        case "css":
+        case "scss":
+        case "less":
           return new cssWorker();
-        case 'html':
+        case "html":
           return new htmlWorker();
-        case 'typescript':
-        case 'javascript':
+        case "typescript":
+        case "javascript":
           return new tsWorker();
         default:
           return undefined as any;
       }
-    }
+    },
   };
 
   for (const lang of languageDefinitions) registerLanguage(lang);
 
-  monaco.editor.defineTheme('custom-dark', {
-    base: 'vs-dark',
+  monaco.editor.defineTheme("custom-dark", {
+    base: "vs-dark",
     inherit: true,
     rules: [
-      { token: 'key', foreground: '9CDCFE' },
-      { token: 'string', foreground: 'CE9178' },
-      { token: 'number', foreground: 'B5CEA8' },
-      { token: 'keyword', foreground: '569CD6' },
-      { token: 'operators', foreground: 'D4D4D4' },
-      { token: 'comment', foreground: '6A9955' },
+      { token: "key", foreground: "9CDCFE" },
+      { token: "string", foreground: "CE9178" },
+      { token: "number", foreground: "B5CEA8" },
+      { token: "keyword", foreground: "569CD6" },
+      { token: "operators", foreground: "D4D4D4" },
+      { token: "comment", foreground: "6A9955" },
     ],
     colors: {
-      'editor.background': '#1E1E1E',
-    }
+      "editor.background": "#1E1E1E",
+    },
   });
 
   // Set compiler options for TypeScript

@@ -1,4 +1,4 @@
-import type * as monaco from 'monaco-editor';
+import type * as monaco from "monaco-editor";
 
 export interface EditorConfig {
   value: string;
@@ -16,14 +16,14 @@ export interface LanguageInfo {
 }
 
 export type EditorEvents = {
-  (event: 'update:modelValue', value: string): void;
-  (event: 'loaded'): void;
-  (event: 'save'): void;
-  (event: 'duplicate'): void;
-  (event: 'new'): void;
-  (event: 'loaded-languages', languages: LanguageInfo[]): void;
-  (event: 'language-detected', language: string): void;
-}
+  (event: "update:modelValue", value: string): void;
+  (event: "loaded"): void;
+  (event: "save"): void;
+  (event: "duplicate"): void;
+  (event: "new"): void;
+  (event: "loaded-languages", languages: LanguageInfo[]): void;
+  (event: "language-detected", language: string): void;
+};
 
 export interface LanguageMapping {
   extensions: string[];
@@ -31,26 +31,31 @@ export interface LanguageMapping {
   mimeTypes?: string[]; // Keep this for our internal use
 }
 
-export type TokenizerRuleAction = string | string[] | { 
-  token: string; 
-  next?: string; 
-  switchTo?: string;
-  nextEmbedded?: string;
-  log?: string;
-};
+export type TokenizerRuleAction =
+  | string
+  | string[]
+  | {
+      token: string;
+      next?: string;
+      switchTo?: string;
+      nextEmbedded?: string;
+      log?: string;
+    };
 
 // Using Monaco's types directly where possible
-export interface LanguageTokenizer extends Omit<monaco.languages.IMonarchLanguage, 'tokenizer'> {
+export interface LanguageTokenizer
+  extends Omit<monaco.languages.IMonarchLanguage, "tokenizer"> {
   tokenizer: {
     [stateName: string]: monaco.languages.IMonarchLanguageRule[];
   };
 }
 
-export interface LanguageConfiguration extends monaco.languages.LanguageConfiguration {
+export interface LanguageConfiguration
+  extends monaco.languages.LanguageConfiguration {
   // Add any additional configuration options here if needed
 }
 
-export interface LanguageDefinition extends Omit<LanguageMapping, 'mimeTypes'> {
+export interface LanguageDefinition extends Omit<LanguageMapping, "mimeTypes"> {
   id: string;
   configuration?: LanguageConfiguration;
   tokenizer?: LanguageTokenizer;

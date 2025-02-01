@@ -3,11 +3,10 @@
     "axios",
     "lucide",
     "Nuxt",
+    "scolastico",
     "typeorm"
   ],
-  "css.customData": [
-    ".vscode/tailwind.json"
-  ],
+  "css.customData": [".vscode/tailwind.json"],
   "editor.detectIndentation": false,
   "editor.tabSize": 2,
   "files.insertFinalNewline": true,
@@ -18,6 +17,7 @@
   },
   "files.exclude": {
     "dist": true,
-    ".nuxt": true
+    ".nuxt": true,
+    ".pnpm-store": true
   }
 }

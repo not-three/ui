@@ -8,3 +8,4 @@ dist/
 .gitignore
 docker-compose.override.yml
 docker-compose.yml
+.pnpm-store

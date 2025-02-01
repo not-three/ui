@@ -1,5 +1,7 @@
 <template>
-  <div class="fixed top-0 right-0 translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+  <div
+    class="fixed top-0 right-0 translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none"
+  >
     <div
       class="bg-white shadow-md p-2 select-none hover:opacity-100 opacity-40 transition-opacity duration-300 pointer-events-auto"
       :class="{
@@ -11,7 +13,9 @@
       <div class="my-2 py-1 border-dotted border-black border-y-2 px-[200px]">
         <div ref="container" class="text-black">
           <slot>
-            <p class="whitespace-pre text-center">{{ text || 'text missing' }}</p>
+            <p class="whitespace-pre text-center">
+              {{ text || "text missing" }}
+            </p>
           </slot>
         </div>
       </div>
@@ -20,13 +24,13 @@
 </template>
 
 <script lang="ts" setup>
-const emit = defineEmits(['click']);
+const emit = defineEmits(["click"]);
 const props = defineProps<{
   text?: string;
   to?: string | null;
 }>();
 
-const container = ref() as any as Ref<HTMLDivElement>;
+const container = ref() as Ref<HTMLDivElement>;
 const translate = ref(0);
 
 function calculateTranslation() {
@@ -41,13 +45,16 @@ onMounted(() => {
 });
 
 function click() {
-  emit('click');
-  if (props.to) window.open(props.to, '_blank');
+  emit("click");
+  if (props.to) window.open(props.to, "_blank");
 }
 
-watch(() => props.text, () => {
-  window.requestAnimationFrame(() => {
-    calculateTranslation();
-  });
-});
+watch(
+  () => props.text,
+  () => {
+    window.requestAnimationFrame(() => {
+      calculateTranslation();
+    });
+  },
+);
 </script>

@@ -1,5 +1,9 @@
 <template>
-  <img src="/assets/img/icon.svg" class="h-5 w-5 border-white border fixed m-4 select-none" alt="!3" />
+  <img
+    src="/assets/img/icon.svg"
+    class="h-5 w-5 border-white border fixed m-4 select-none"
+    alt="!3"
+  />
   <div class="fixed bottom-0 right-0 pointer-events-none select-none">
     <p class="text-[60vh] opacity-20 font-semibold translate-y-1/3">error</p>
   </div>
@@ -11,7 +15,10 @@
         Open the Developer Console for more information.
       </p>
       <div class="text-right mt-4">
-        <button @click="handleError" class="px-4 py-2 hover:text-black hover:bg-white transition-colors border-white border text-white">
+        <button
+          class="px-4 py-2 hover:text-black hover:bg-white transition-colors border-white border text-white"
+          @click="handleError"
+        >
           Go to Home
         </button>
       </div>
@@ -20,11 +27,11 @@
 </template>
 
 <script lang="ts" setup>
-import type { NuxtError } from '#app'
+import type { NuxtError } from "#app";
 
 defineProps({
-  error: Object as () => NuxtError
-})
+  error: Object as () => NuxtError,
+});
 
-const handleError = () => clearError({ redirect: '/' })
+const handleError = () => clearError({ redirect: "/" });
 </script>

@@ -2,7 +2,7 @@ name: Build and Publish Release
 
 on:
   release:
-    types: [ "created" ]
+    types: ["created"]
 
 jobs:
   build:
@@ -35,13 +35,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout
-        uses: actions/checkout@v3
-
       - name: Install node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install pnpm
         run: npm install -g pnpm
@@ -51,6 +48,12 @@ jobs:
 
       - name: Generate static files
         run: pnpm generate
+
+      - name: Upload client bundle to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: .output/public/**
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Updating config.json for not-th.re public
         run: >

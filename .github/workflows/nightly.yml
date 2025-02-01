@@ -1,8 +1,9 @@
 name: Build and Publish Nightly
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths-ignore:
       - ".vscode/**"
       - "README.md"
@@ -20,12 +21,14 @@ jobs:
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
+        if: github.event_name != 'workflow_dispatch'
         with:
           registry: ghcr.io
           username: ${{github.actor}}
           password: ${{secrets.GITHUB_TOKEN}}
 
       - uses: mr-smithers-excellent/docker-build-push@v6
+        if: github.event_name != 'workflow_dispatch'
         with:
           image: ui
           tags: nightly,${{ github.sha }}
@@ -36,13 +39,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout
-        uses: actions/checkout@v3
-
       - name: Install node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install pnpm
         run: npm install -g pnpm
@@ -59,3 +59,25 @@ jobs:
           name: client-bundle
           path: |
             .output/public
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Download client bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: client-bundle
+
+      - name: Updating config.json for not-th.re public
+        run: >
+          echo "{\"baseURL\": \"https://api.not-th.re/\", \"terms\":
+          \"https://scolasti.co/go/privacy\"}" > .output/public/config.json
+
+      - name: Upload client bundle to cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy .output/public/ --project-name=not-three --commit-dirty=true --branch=main

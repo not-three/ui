@@ -1,4 +1,1 @@
-{
-  "baseURL": "/api",
-  "terms": "https://example.com"
-}
+{"baseURL": "/api/"}

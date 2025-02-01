@@ -1,0 +1,24 @@
+name: not-three-ui
+
+services:
+  ui:
+    type: node:20
+    port: 3000
+    globals:
+      pnpm: latest
+    build:
+      - pnpm install
+    command: pnpm dev
+    overrides:
+      environment:
+        API_URL: http://not-three-api.local.scolastico.me
+    scanner:
+      okCodes: [200]
+
+proxy:
+  ui:
+    - not-three-ui.local.scolastico.me:3000
+
+tooling:
+  pnpm:
+    service: ui

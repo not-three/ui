@@ -1,10 +1,10 @@
-import type { LanguageDefinition } from '../types';
+import type { LanguageDefinition } from "../types";
 
 export const SqlDefinition: LanguageDefinition = {
-  id: 'sql',
-  extensions: ['.sql'],
-  aliases: ['SQL', 'sql'],
-  mimeTypes: ['application/sql', 'text/sql'],
+  id: "sql",
+  extensions: [".sql"],
+  aliases: ["SQL", "sql"],
+  mimeTypes: ["application/sql", "text/sql"],
   detectionPatterns: [
     { pattern: /SELECT\s+.*?\s+FROM\s+/i, weight: 2 },
     { pattern: /INSERT\s+INTO\s+.*?\s+VALUES\s+/i, weight: 2 },

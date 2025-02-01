@@ -1,10 +1,10 @@
-import type { LanguageDefinition } from '../types';
+import type { LanguageDefinition } from "../types";
 
 export const ShellDefinition: LanguageDefinition = {
-  id: 'shell',
-  extensions: ['.sh', '.bash', '.ksh', '.zsh'],
-  aliases: ['Sh', 'sh'],
-  mimeTypes: ['application/x-sh'],
+  id: "shell",
+  extensions: [".sh", ".bash", ".ksh", ".zsh"],
+  aliases: ["Sh", "sh"],
+  mimeTypes: ["application/x-sh"],
   detectionPatterns: [
     { pattern: /^#!\/bin\/sh/, weight: 2 },
     { pattern: /^#!\/usr\/bin\/env\s+sh/, weight: 2 },
