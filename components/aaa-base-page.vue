@@ -42,6 +42,7 @@ onMounted(async () => {
   const lastContent = store.keepContent ? store.content : "";
   store.$reset();
   store.content = lastContent;
+  store.id = props.openNote || "";
 
   if (window.location.hash === "#duplicate") {
     console.log("Duplicating content...");
