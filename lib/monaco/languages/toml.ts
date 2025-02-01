@@ -46,14 +46,14 @@ export const TomlDefinition: LanguageDefinition = {
         [/^\s*\[.*?\]/, "metatag"], // Standard Tables
 
         // Key-value pairs
-        [/([A-Za-z_][A-Za-z0-9_\-]*)(\s*=\s*)/, ["key", "delimiter"]],
+        [/([A-Za-z_][A-Za-z0-9_-]*)(\s*=\s*)/, ["key", "delimiter"]],
 
         // Strings
         [/"/, { token: "string.quote", next: "@string_double" }],
         [/'/, { token: "string.quote", next: "@string_single" }],
 
         // Numbers
-        [/-?\d+(\.\d+)?([eE][\-+]?\d+)?/, "number"],
+        [/-?\d+(\.\d+)?([eE][-+]?\d+)?/, "number"],
 
         // Booleans
         [/\b(true|false)\b/, "keyword"],

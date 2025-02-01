@@ -17,6 +17,7 @@ export const useAppStore = defineStore('app', {
       baseURL: '/api/',
     } as UiConfig,
     info: {} as InfoResponse,
+    id: '',
     keepContent: false,
     settings: false,
     readonly: false,

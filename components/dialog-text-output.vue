@@ -4,7 +4,7 @@
     type="text"
     :value="data.value"
     readonly
-    class="w-full"
+    class="w-full mt-2"
   >
   <div class="text-right mt-2">
     <button @click="onOk()">

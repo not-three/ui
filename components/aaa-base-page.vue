@@ -19,7 +19,7 @@ import { OkDialog, YesNoDialog } from "~/lib/dialog";
 import axios, { AxiosError } from "axios";
 import { DownloadDb } from "~/lib/download";
 
-const { baseURL: uiBaseURL } = useAppConfig();
+const { uiBaseURL } = useRuntimeConfig().public;
 const store = useAppStore();
 const settings = useSettingsStore();
 const loading = ref(2);
@@ -42,6 +42,7 @@ onMounted(async () => {
   const lastContent = store.keepContent ? store.content : "";
   store.$reset();
   store.content = lastContent;
+  store.id = props.openNote || "";
 
   if (window.location.hash === "#duplicate") {
     console.log("Duplicating content...");

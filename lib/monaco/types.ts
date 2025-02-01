@@ -15,16 +15,6 @@ export interface LanguageInfo {
   mimeTypes: string[];
 }
 
-export type EditorEvents = {
-  (event: "update:modelValue", value: string): void;
-  (event: "loaded"): void;
-  (event: "save"): void;
-  (event: "duplicate"): void;
-  (event: "new"): void;
-  (event: "loaded-languages", languages: LanguageInfo[]): void;
-  (event: "language-detected", language: string): void;
-};
-
 export interface LanguageMapping {
   extensions: string[];
   aliases?: string[];
@@ -50,14 +40,9 @@ export interface LanguageTokenizer
   };
 }
 
-export interface LanguageConfiguration
-  extends monaco.languages.LanguageConfiguration {
-  // Add any additional configuration options here if needed
-}
-
 export interface LanguageDefinition extends Omit<LanguageMapping, "mimeTypes"> {
   id: string;
-  configuration?: LanguageConfiguration;
+  configuration?: monaco.languages.LanguageConfiguration;
   tokenizer?: LanguageTokenizer;
   mimeTypes?: string[];
   detectionPatterns?: {

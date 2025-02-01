@@ -16,6 +16,13 @@
       </div>
       <div class="flex justify-center mt-4 gap-4">
         <button
+          v-if="!started"
+          class="border-white border-2 px-2 py-1 disabled:cursor-progress"
+          @click="showCurl"
+        >
+          Show cURL Command
+        </button>
+        <button
           :disabled="started && !finished"
           class="border-white border-2 px-2 py-1 disabled:cursor-progress"
           @click="startDownload"
@@ -35,9 +42,9 @@
 
 <script lang="ts" setup>
 import type { FileGetResponse } from '@not3/sdk';
-import { Not3Client, FileDownload, FragmentData } from '@not3/sdk';
+import { Not3Client, FileDownload, FragmentData, ShareGenerator } from '@not3/sdk';
 import { AxiosError } from 'axios';
-import { OkDialog, YesNoDialog } from '~/lib/dialog';
+import { OkDialog, TextOutputDialog, YesNoDialog } from '~/lib/dialog';
 import { DownloadDb } from '~/lib/download';
 
 const store = useAppStore();
@@ -60,6 +67,8 @@ const totalChunks = ref(0);
 const progress = ref(0);
 let canceled = false;
 let blobDownloadUrl: string|null = null;
+let apiUrl = "";
+let seed = "";
 
 onMounted(async () => {
   let errorMsg = "";
@@ -67,8 +76,13 @@ onMounted(async () => {
     store.loading = true;
     errorMsg = "Could not load cryptographic data from URL.";
     const fragment = FragmentData.fromURL(window.location.href);
+    seed = fragment.seed;
     errorMsg = "Could not load file data from the server.";
     const api = fragment.server ? new Not3Client({ baseUrl: fragment.server }) : store.api;
+    apiUrl = api.getOptions().baseUrl;
+    if (!apiUrl.toLowerCase().startsWith("http")) {
+      apiUrl = window.location.origin + apiUrl;
+    }
     download.value = new FileDownload(api.files(), props.file, fragment.seed);
     await download.value.prepare();
     meta.value = download.value.getFileMetadata();
@@ -133,5 +147,22 @@ async function startDownload() {
   blobDownloadUrl = URL.createObjectURL(await db.getFullBlob());
   window.clearInterval(cancelCheckInterval);
   startDownload();
+}
+
+function showCurl() {
+  const url = new ShareGenerator({apiUrl}).fileCurl(
+    props.file,
+    seed,
+    meta.value?.name || "file",
+  );
+  store.dialog = new TextOutputDialog(
+    "cURL Command",
+    [
+      "This command will download the file on the command line,",
+      "using openssl, curl, base64, xxd, head and tail to decrypt it.",
+    ].join(" "),
+    url,
+  );
+  navigator.clipboard.writeText(url);
 }
 </script>

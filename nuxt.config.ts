@@ -23,7 +23,11 @@ export default defineNuxtConfig({
       style: [{ innerHTML: "body { background-color: #000; color: #fff; }" }],
     },
   },
-
+  runtimeConfig: {
+    public: {
+      uiBaseURL: process.env.NUXT_APP_BASE_URL || '/',
+    },
+  },
   appConfig: {},
   modules: [
     "@nuxtjs/tailwindcss",

@@ -15,8 +15,8 @@ export const XmlDefinition: LanguageDefinition = {
     { pattern: /<\s*\w+:?\w*\s*.*?>/i, weight: 2 },
     { pattern: /<\s*\w+\s*.*?\/>/i, weight: 1 },
     { pattern: /<\s*\w+\s*.*?>[\s\S]*?<\/\s*\w+\s*>/i, weight: 2 },
-    { pattern: /<\s*\!DOCTYPE\s+[^>]*>/i, weight: 1 },
-    { pattern: /<\s*\!\[CDATA\[[\s\S]*?\]\]>/i, weight: 1 },
+    { pattern: /<\s*!DOCTYPE\s+[^>]*>/i, weight: 1 },
+    { pattern: /<\s*!\[CDATA\[[\s\S]*?\]\]>/i, weight: 1 },
     { pattern: /<\s*comment\s*.*?>[\s\S]*?<\/\s*comment\s*>/i, weight: 1 },
   ],
 };

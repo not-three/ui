@@ -22,10 +22,13 @@
 </template>
 
 <script lang="ts" setup>
-import { OkDialog, TimeDialog, YesNoDialog } from '~/lib/dialog';
+import { FragmentData, ShareGenerator } from '@not3/sdk';
+import { OkDialog, TextOutputDialog, TimeDialog, YesNoDialog } from '~/lib/dialog';
 import type { NavigationEntry } from '~/lib/navigation';
 const store = useAppStore();
 const settings = useSettingsStore();
+
+const copy = (text: string) => navigator.clipboard.writeText(text);
 
 const entries = computed<NavigationEntry[]>(() => [
   {
@@ -100,11 +103,33 @@ const entries = computed<NavigationEntry[]>(() => [
     name: "Share",
     entries: [
       {
-        name: "Copy URL",
-        onClick: () => {},
+        name: "Copy Link",
+        onClick: () => {
+          store.dialog = new TextOutputDialog(
+            "Share Link",
+            "Copy the following link to share the note.",
+            window.location.href,
+          );
+          copy(window.location.href);
+        },
       },
+      {
+        name: "Copy cURL Command",
+        onClick: () => {
+          const fragment = FragmentData.fromURL(window.location.href);
+          let apiUrl = fragment.server || store.config.baseURL;
+          if (!apiUrl.startsWith("http")) apiUrl = window.location.origin + apiUrl;
+          const cmd = new ShareGenerator({apiUrl}).noteCurl(store.id, fragment.seed);
+          store.dialog = new TextOutputDialog(
+            "cURL Command",
+            "Copy the following cURL command to share the note.",
+            cmd,
+          );
+          copy(cmd);
+        }
+      }
     ],
-    disabled: store.settings,
+    disabled: !store.readonly,
   },
   {
     name: "Tools",
