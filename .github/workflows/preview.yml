@@ -13,9 +13,11 @@ concurrency: preview-${{ github.ref }}
 jobs:
   deploy-preview:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install node
         if: github.event.action != 'closed'
@@ -29,7 +31,7 @@ jobs:
 
       - name: Label the PR
         if: github.event.action != 'closed'
-        uses: actions/labeler@v4
+        uses: actions/labeler@v5
 
       - name: Install dependencies
         if: github.event.action != 'closed'
@@ -60,7 +62,7 @@ jobs:
   dependabot:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      pull-requests: write
     if: ${{ github.actor == 'dependabot[bot]' }}
     env:
       PR_URL: ${{github.event.pull_request.html_url}}
