@@ -49,10 +49,13 @@ jobs:
       - name: Generate static files
         run: pnpm generate
 
+      - name: Zip client bundle
+        run: zip -r client-bundle.zip .output/public
+
       - name: Upload client bundle to release
         uses: softprops/action-gh-release@v2
         with:
-          files: .output/public/**
+          files: client-bundle.zip
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Updating config.json for not-th.re public
