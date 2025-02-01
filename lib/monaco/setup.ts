@@ -1,13 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as monaco from "monaco-editor";
-// @ts-expect-error This has to be loaded with the worker tag
-import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
-// @ts-expect-error This has to be loaded with the worker tag
+import "monaco-editor/esm/vs/editor/editor.worker?worker";
 import jsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
-// @ts-expect-error This has to be loaded with the worker tag
 import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
-// @ts-expect-error This has to be loaded with the worker tag
 import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
-// @ts-expect-error This has to be loaded with the worker tag
 import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 
 import { languageDefinitions } from "./languages";
