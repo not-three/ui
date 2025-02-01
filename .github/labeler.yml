@@ -1,17 +1,24 @@
 ci:
-  - .github/workflows/*
+- changed-files:
+  - any-glob-to-any-file: [.github/workflows/*]
 components:
-  - components/**
+- changed-files:
+  - any-glob-to-any-file: [components/**]
 server:
-  - server/**
+- changed-files:
+  - any-glob-to-any-file: [server/**]
 pages:
-  - pages/**
+- changed-files:
+  - any-glob-to-any-file: [pages/**]
 public:
-  - public/**
+- changed-files:
+  - any-glob-to-any-file: [public/**]
 lib:
-  - lib/**
+- changed-files:
+  - any-glob-to-any-file: [lib/**]
 docker:
-  - Dockerfile
+- changed-files:
+  - any-glob-to-any-file: [Dockerfile]
 package:
-  - package.json
-  - pnpm-lock.yaml
+- changed-files:
+  - any-glob-to-any-file: [package.json, pnpm-lock.yaml]
