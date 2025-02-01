@@ -19,7 +19,7 @@ import { OkDialog, YesNoDialog } from "~/lib/dialog";
 import axios, { AxiosError } from "axios";
 import { DownloadDb } from "~/lib/download";
 
-const { baseURL: uiBaseURL } = useAppConfig();
+const { uiBaseURL } = useRuntimeConfig().public;
 const store = useAppStore();
 const settings = useSettingsStore();
 const loading = ref(2);
