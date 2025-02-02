@@ -48,6 +48,7 @@ import { OkDialog, TextOutputDialog, YesNoDialog } from '~/lib/dialog';
 import { DownloadDb } from '~/lib/download';
 
 const store = useAppStore();
+const settings = useSettingsStore();
 const props = defineProps<{
   file: string;
 }>();
@@ -79,6 +80,38 @@ onMounted(async () => {
     seed = fragment.seed;
     errorMsg = "Could not load file data from the server.";
     const api = new Not3Client({ baseUrl: fragment.server || store.config.baseURL });
+    if (
+      fragment.server &&
+      settings.warnings.unknownServer &&
+      settings.customServer.url !== fragment.server &&
+      !settings.trustedServers.includes(fragment.server)
+    ) {
+      await new Promise<void>((resolve) => store.dialog = new YesNoDialog(
+        "Warning",
+        [
+          "This note is hosted on a private server:",
+          fragment.server + "\n",
+          "Do you trust this server?",
+          "(Your IP address will be sent to the server.)",
+        ].join("\n"),
+        () => {
+          settings.trustedServers.push(fragment.server!);
+          resolve();
+        },
+        () => store.pushToRouter("/", true),
+      ))
+    }
+    if (fragment.selfDestruct) {
+      await new Promise<void>((resolve) => store.dialog = new YesNoDialog(
+        "Warning",
+        [
+          "This note will self-destruct after reading.",
+          "Do you want to continue?",
+        ].join("\n"),
+        resolve,
+        () => store.pushToRouter("/", true),
+      ));
+    }
     apiUrl = api.getOptions().baseUrl;
     if (!apiUrl.toLowerCase().startsWith("http")) {
       apiUrl = window.location.origin + apiUrl;
