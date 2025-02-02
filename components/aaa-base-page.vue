@@ -88,7 +88,7 @@ onMounted(async () => {
     errorMsg = "Could not generate cryptographic key.";
     const key = await Crypto.generateKey(fragment.seed);
     errorMsg = "Could not load note data from the server.";
-    const api = fragment.server ? new Not3Client({ baseUrl: fragment.server }) : store.api;
+    const api = new Not3Client({ baseUrl: fragment.server || store.config.baseURL });
     if (
       fragment.server &&
       settings.warnings.unknownServer &&

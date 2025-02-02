@@ -78,7 +78,7 @@ onMounted(async () => {
     const fragment = FragmentData.fromURL(window.location.href);
     seed = fragment.seed;
     errorMsg = "Could not load file data from the server.";
-    const api = fragment.server ? new Not3Client({ baseUrl: fragment.server }) : store.api;
+    const api = new Not3Client({ baseUrl: fragment.server || store.config.baseURL });
     apiUrl = api.getOptions().baseUrl;
     if (!apiUrl.toLowerCase().startsWith("http")) {
       apiUrl = window.location.origin + apiUrl;
