@@ -58,7 +58,7 @@ jobs:
         with:
           preview-branch: html-previews
           source-dir: .output/public
-          custom-url: beta.not-th.re
+          pages-base-url: beta.not-th.re
 
   dependabot:
     runs-on: ubuntu-latest
