@@ -51,7 +51,7 @@ jobs:
         run: >
           echo "{\"baseURL\": \"https://api.not-th.re/\", \"termsURL\":
           \"https://scolasti.co/go/privacy\", \"pullRequest\":
-          \"https://github.com/not-three/main/pull/${{ github.event.number }}\"}" > .output/public/config.json
+          \"https://github.com/not-three/ui/pull/${{ github.event.number }}\"}" > .output/public/config.json
 
       - name: Deploy preview
         uses: rossjrw/pr-preview-action@v1
