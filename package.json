@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@not3/sdk": "^2.0.1",
-    "@nuxt/eslint": "^1.0.0",
+    "@nuxt/eslint": "^1.2.0",
     "@pinia/nuxt": "0.9.0",
     "@vscode/vscode-languagedetection": "^1.0.22",
     "axios": "^1.7.9",
