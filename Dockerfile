@@ -1,4 +1,4 @@
-FROM node:23-alpine as build-stage
+FROM node:24-alpine as build-stage
 WORKDIR /app
 RUN npm i -g pnpm
 COPY package.json ./
@@ -9,7 +9,7 @@ ARG NUXT_APP_BASE_URL=/
 ENV NUXT_APP_BASE_URL=$NUXT_APP_BASE_URL
 RUN pnpm build
 
-FROM node:23-alpine
+FROM node:24-alpine
 RUN apk add --no-cache curl
 WORKDIR /app
 
