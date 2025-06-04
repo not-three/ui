@@ -14,6 +14,7 @@ writeFileSync(
   "public/config.json",
   JSON.stringify({
     baseURL: process.env.API_URL || "/api/",
+    drawURL: process.env.DRAW_URL || "/api/draw/",
     termsURL: process.env.TERMS_OF_SERVICE_URL,
   }),
 );

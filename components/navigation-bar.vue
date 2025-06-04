@@ -9,7 +9,10 @@
     <h1 class="navigation-logo-text">not-th.re</h1>
     <navigation-entry v-for="entry in entries" :key="entry.name" :config="entry" />
     <div class="flex-grow" />
-    <navigation-language />
+    <navigation-language v-if="!store.excalidraw" />
+    <button v-if="store.excalidraw" class="border border-white px-2 py-0.5 -my-1" @click="store.excalidraw = false">
+      Close Excalidraw
+    </button>
     <navigation-expires />
   </div>
   <div v-if="store.settings" class="w-full px-2 py-1 bg-yellow-600 select-none">
@@ -156,6 +159,37 @@ const entries = computed<NavigationEntry[]>(() => [
         onClick: () => store.upload = true,
         disabled: !store.info.fileTransferEnabled,
       },
+      {
+        name: (store.excalidraw ? "Close" : "Open") + " Excalidraw",
+        onClick: () => {
+          if (store.excalidraw) {
+            store.excalidraw = false;
+            return;
+          }
+          let valid = true;
+          if (!store.content.startsWith('{"type":"EXCALIDRAW",')) valid = false;
+          else try {
+            JSON.parse(store.content);
+          } catch {
+            valid = false;
+          }
+          if (store.content === "" || store.content === "{}") valid = true;
+          if (!valid) store.dialog = new YesNoDialog(
+            "Excalidraw Error",
+            [
+              "The current note does not contain valid Excalidraw data.",
+              "Do you want to open Excalidraw anyway?",
+              ...(store.readonly ? [] : [
+                "Be aware that opening Excalidraw will overwrite the current note content.",
+              ]),
+            ].join(" "),
+            () => store.excalidraw = true,
+            () => store.excalidraw = false,
+          );
+          else store.excalidraw = true;
+        },
+        disabled: !store.config.drawURL,
+      }
     ],
   },
   {
