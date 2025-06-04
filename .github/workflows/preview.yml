@@ -50,7 +50,7 @@ jobs:
         if: github.event.action != 'closed'
         run: >
           echo "{\"baseURL\": \"https://api.not-th.re/\", \"termsURL\":
-          \"https://scolasti.co/go/privacy\", \"pullRequest\":
+          \"https://scolasti.co/go/privacy\", \"drawURL\": \"https://draw.not-th.re/\", \"pullRequest\":
           \"https://github.com/not-three/ui/pull/${{ github.event.number }}\"}" > .output/public/config.json
 
       - name: Deploy preview
