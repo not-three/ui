@@ -74,7 +74,7 @@ jobs:
       - name: Updating config.json for not-th.re public
         run: >
           echo "{\"baseURL\": \"https://api.not-th.re/\", \"termsURL\":
-          \"https://scolasti.co/go/privacy\"}" > .output/public/config.json
+          \"https://scolasti.co/go/privacy\", \"drawURL\": \"https://draw.not-th.re/\"}" > .output/public/config.json
 
       - name: Upload client bundle to cloudflare
         uses: cloudflare/wrangler-action@v3

@@ -1,6 +1,6 @@
 <template>
   <div class="border-l-2 border-white/20 h-full content-[''] print:hidden" />
-  <div ref="container" class="relative print:hidden">
+  <div ref="container" class="relative print:hidden z-20">
     <h2
       class="select-none underline-offset-2"
       :class="{

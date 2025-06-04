@@ -6,6 +6,7 @@ import type { LanguageDefinition } from "~/lib/monaco/types"
 
 type UiConfig = {
   baseURL: string
+  drawURL?: string
   termsURL?: string
   pullRequest?: string
 }
@@ -15,6 +16,7 @@ export const useAppStore = defineStore('app', {
     api: {} as Not3Client,
     config: {
       baseURL: '/api/',
+      drawURL: 'https://draw.not-th.re'
     } as UiConfig,
     info: {} as InfoResponse,
     id: '',
@@ -34,6 +36,7 @@ export const useAppStore = defineStore('app', {
       aliases: lang.aliases || [],
       mimeTypes: lang.mimeTypes || [],
     })).sort((a, b) => a.id.localeCompare(b.id)),
+    excalidraw: false,
   }),
   actions: {
     async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean) {

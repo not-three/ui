@@ -1,5 +1,7 @@
 <template>
-  <div ref="container" class="w-full flex-grow" />
+  <div ref="container" class="w-full flex-grow relative">
+    <excalidraw-frame v-if="store.excalidraw" />
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -111,7 +113,6 @@ watch(
   (newValue, oldValue) => {
     if (newValue === oldValue || newValue === editor?.getValue()) return;
     editor?.setValue(newValue);
-    console.log("Model value updated:", newValue);
     updateLanguage(newValue);
   },
 );

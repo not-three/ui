@@ -12,6 +12,7 @@ services:
     overrides:
       environment:
         API_URL: http://not-three-api.local.scolastico.me
+        DRAW_URL: http://not-three-draw.local.scolastico.me
     scanner:
       okCodes: [200]
 
