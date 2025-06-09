@@ -108,31 +108,39 @@ const entries = computed<NavigationEntry[]>(() => [
       {
         name: "Copy Link",
         onClick: () => {
-          store.dialog = new TextOutputDialog(
-            "Share Link",
-            "Copy the following link to share the note.",
-            window.location.href,
-          );
-          copy(window.location.href);
+          if (!store.readonly) {
+            store.saveEncryptedNote(undefined, undefined, 'url');
+          } else {
+            store.dialog = new TextOutputDialog(
+              "Share Link",
+              "Copy the following link to share the note.",
+              window.location.href,
+            );
+            copy(window.location.href);
+          }
         },
       },
       {
         name: "Copy cURL Command",
         onClick: () => {
-          const fragment = FragmentData.fromURL(window.location.href);
-          let apiUrl = fragment.server || store.config.baseURL;
-          if (!apiUrl.startsWith("http")) apiUrl = window.location.origin + apiUrl;
-          const cmd = new ShareGenerator({apiUrl}).noteCurl(store.id, fragment.seed);
-          store.dialog = new TextOutputDialog(
-            "cURL Command",
-            "Copy the following cURL command to share the note.",
-            cmd,
-          );
-          copy(cmd);
+          if (!store.readonly) {
+            store.saveEncryptedNote(undefined, undefined, 'curl');
+          } else {
+            const fragment = FragmentData.fromURL(window.location.href);
+            let apiUrl = fragment.server || store.config.baseURL;
+            if (!apiUrl.startsWith("http")) apiUrl = window.location.origin + apiUrl;
+            const cmd = new ShareGenerator({apiUrl}).noteCurl(store.id, fragment.seed);
+            store.dialog = new TextOutputDialog(
+              "cURL Command",
+              "Copy the following cURL command to share the note.",
+              cmd,
+            );
+            copy(cmd);
+          }
         }
       }
     ],
-    disabled: !store.readonly,
+    disabled: store.settings,
   },
   {
     name: "Tools",
@@ -157,7 +165,12 @@ const entries = computed<NavigationEntry[]>(() => [
       {
         name: "File Transfer",
         onClick: () => store.upload = true,
-        disabled: !store.info.fileTransferEnabled,
+        disabled: !store.info.fileTransferEnabled || store.settings,
+        title: !store.info.fileTransferEnabled
+          ? "File transfer is not enabled on this server"
+          : store.settings
+            ? "Cant open file transfer while settings editor is open"
+            : undefined,
       },
       {
         name: (store.excalidraw ? "Close" : "Open") + " Excalidraw",
@@ -188,7 +201,12 @@ const entries = computed<NavigationEntry[]>(() => [
           );
           else store.excalidraw = true;
         },
-        disabled: !store.config.drawURL,
+        disabled: !store.config.drawURL || store.settings,
+        title: !store.config.drawURL
+          ? "Excalidraw URL is not configured"
+          : store.settings
+            ? "Cant open Excalidraw while settings editor is open"
+            : undefined,
       }
     ],
   },
@@ -207,6 +225,7 @@ const entries = computed<NavigationEntry[]>(() => [
         name: "Privacy and Terms",
         onClick: () => window.open(store.config.termsURL, "_blank"),
         disabled: !store.config.termsURL,
+        title: !store.config.termsURL ? "Terms URL is not configured" : undefined,
       },
     ],
   }
