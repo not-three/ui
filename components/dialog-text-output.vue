@@ -5,6 +5,7 @@
     :value="data.value"
     readonly
     class="w-full mt-2"
+    @click="selectText"
   >
   <div class="text-right mt-2">
     <button @click="onOk()">
@@ -21,6 +22,12 @@ const props = defineProps<{
   data: TextOutputDialog;
 }>();
 const input = ref() as Ref<HTMLInputElement>;
+
+function selectText() {
+  if (!input.value) return;
+  input.value.select();
+  input.value.setSelectionRange(0, input.value.value.length);
+}
 
 function onOk() {
   emit('close');
@@ -43,6 +50,7 @@ function handleKeydown(event: KeyboardEvent) {
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
   input.value.focus();
+  selectText();
 });
 
 onBeforeUnmount(() => {
