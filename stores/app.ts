@@ -40,7 +40,14 @@ export const useAppStore = defineStore('app', {
   }),
   actions: {
     async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean, openShareDialog?: 'url' | 'curl') {
-      try {
+      if (this.settings) try {
+        const parsed = JSON.parse(this.content);
+        useSettingsStore().$patch(parsed);
+        this.pushToRouter("/", true);
+      } catch (e) {
+        console.error(e);
+        this.dialog = new OkDialog("Error", "Invalid JSON in settings editor.");
+      } else try {
         if (this.readonly) {
           const res = await new Promise<boolean>((resolve) => {
             this.dialog = new YesNoDialog(

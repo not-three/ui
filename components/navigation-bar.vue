@@ -39,16 +39,7 @@ const entries = computed<NavigationEntry[]>(() => [
     entries: [
       {
         name: "Save",
-        onClick: () => {
-          if (store.settings) try {
-            const parsed = JSON.parse(store.content);
-            settings.$patch(parsed);
-            store.pushToRouter("/", true);
-          } catch (e) {
-            console.error(e);
-            store.dialog = new OkDialog("Error", "Invalid JSON in settings editor.");
-          } else store.saveEncryptedNote();
-        },
+        onClick: () => store.saveEncryptedNote(),
       },
       {
         name: "Save for custom time",
