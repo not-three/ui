@@ -126,10 +126,20 @@ onMounted(async () => {
     store.content = await Crypto.decrypt(note.content, key);
     store.readonly = true;
     store.expires = new Date(note.expiresAt * 1000);
+
+    if (note.mime) setTimeout(() => {
+      const detected = store.languageDefinitions.find(x => x.id === store.detectedLanguage);
+      const selected = store.languageDefinitions.find(x => x.mimeTypes.includes(note.mime!));
+      if (!detected || !selected) return;
+      if (detected.id === selected.id) return;
+      store.selectedLanguage = selected.id;
+    }, 100);
+
     if (store.content.startsWith('{"type":"EXCALIDRAW",')) try {
       JSON.parse(store.content);
       store.excalidraw = true;
     } catch {/* ignored */}
+
     const share = new URL(window.location.href).searchParams.get('share');
     const copy = (t: string) => navigator.clipboard.writeText(t);
     if (share) {
@@ -156,6 +166,7 @@ onMounted(async () => {
       );
       copy(cmd);
     }
+
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response && error.response.status === 404) {
       errorMsg = "The note (probably) expired.";
