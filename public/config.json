@@ -1,1 +1,1 @@
-{"baseURL": "/api/"}
+{"baseURL": "/api/", "drawURL": "http://localhost:4500"}

@@ -1,11 +1,12 @@
 import type { InfoResponse, Not3Client } from "@not3/sdk"
 import { Crypto, FragmentData } from "@not3/sdk"
-import { YesNoDialog, type Dialog } from "~/lib/dialog"
+import { OkDialog, YesNoDialog, type Dialog } from "~/lib/dialog"
 import { languageDefinitions } from "~/lib/monaco/languages"
 import type { LanguageDefinition } from "~/lib/monaco/types"
 
 type UiConfig = {
   baseURL: string
+  drawURL?: string
   termsURL?: string
   pullRequest?: string
 }
@@ -15,6 +16,7 @@ export const useAppStore = defineStore('app', {
     api: {} as Not3Client,
     config: {
       baseURL: '/api/',
+      drawURL: 'https://draw.not-th.re'
     } as UiConfig,
     info: {} as InfoResponse,
     id: '',
@@ -34,9 +36,10 @@ export const useAppStore = defineStore('app', {
       aliases: lang.aliases || [],
       mimeTypes: lang.mimeTypes || [],
     })).sort((a, b) => a.id.localeCompare(b.id)),
+    excalidraw: false,
   }),
   actions: {
-    async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean) {
+    async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean, openShareDialog?: 'url' | 'curl') {
       try {
         if (this.readonly) {
           const res = await new Promise<boolean>((resolve) => {
@@ -48,6 +51,13 @@ export const useAppStore = defineStore('app', {
             )
           })
           if (!res) return
+        }
+        if (!this.content) {
+          this.dialog = new OkDialog(
+            'Empty content',
+            'You cannot save an empty note. Please add some content before saving.',
+          )
+          return;
         }
         this.loading = true
         if (!expiresIn) expiresIn = this.info.maxStorageTimeDays * 24 * 60 * 60 - 60
@@ -61,7 +71,7 @@ export const useAppStore = defineStore('app', {
         const server = options.baseUrl !== this.config.baseURL ? options.baseUrl : undefined
         const fragment = new FragmentData({ seed, selfDestruct, server })
         this.readonly = true
-        this.pushToRouter(`/q/${res.id}#${fragment.toString()}`, true)
+        this.pushToRouter(`/q/${res.id}${openShareDialog ? '?share=' + openShareDialog : ''}#${fragment.toString()}`, true)
       } finally {
         this.loading = false
       }

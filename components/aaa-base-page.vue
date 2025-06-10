@@ -14,8 +14,8 @@
 </template>
 
 <script lang="ts" setup>
-import { Crypto, FragmentData, Not3Client } from "@not3/sdk";
-import { OkDialog, YesNoDialog } from "~/lib/dialog";
+import { Crypto, FragmentData, Not3Client, ShareGenerator } from "@not3/sdk";
+import { OkDialog, TextOutputDialog, YesNoDialog } from "~/lib/dialog";
 import axios, { AxiosError } from "axios";
 import { DownloadDb } from "~/lib/download";
 
@@ -126,6 +126,36 @@ onMounted(async () => {
     store.content = await Crypto.decrypt(note.content, key);
     store.readonly = true;
     store.expires = new Date(note.expiresAt * 1000);
+    if (store.content.startsWith('{"type":"EXCALIDRAW",')) try {
+      JSON.parse(store.content);
+      store.excalidraw = true;
+    } catch {/* ignored */}
+    const share = new URL(window.location.href).searchParams.get('share');
+    const copy = (t: string) => navigator.clipboard.writeText(t);
+    if (share) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('share');
+      window.history.replaceState({}, '', url.toString());
+    }
+    if (share === 'url') {
+      store.dialog = new TextOutputDialog(
+        "Share Link",
+        "Copy the following link to share the note.",
+        window.location.href,
+      );
+      copy(window.location.href);
+    } else if (share === 'curl') {
+      const fragment = FragmentData.fromURL(window.location.href);
+      let apiUrl = fragment.server || store.config.baseURL;
+      if (!apiUrl.startsWith("http")) apiUrl = window.location.origin + apiUrl;
+      const cmd = new ShareGenerator({apiUrl}).noteCurl(store.id, fragment.seed);
+      store.dialog = new TextOutputDialog(
+        "cURL Command",
+        "Copy the following cURL command to share the note.",
+        cmd,
+      );
+      copy(cmd);
+    }
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response && error.response.status === 404) {
       errorMsg = "The note (probably) expired.";
