@@ -26,7 +26,7 @@
 
 <script lang="ts" setup>
 import { FragmentData, ShareGenerator } from '@not3/sdk';
-import { OkDialog, TextOutputDialog, TimeDialog, YesNoDialog } from '~/lib/dialog';
+import { TextOutputDialog, TimeDialog, YesNoDialog } from '~/lib/dialog';
 import type { NavigationEntry } from '~/lib/navigation';
 const store = useAppStore();
 const settings = useSettingsStore();
