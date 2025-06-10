@@ -1,1 +1,0 @@
-import{_ as e}from"./CGP_OLE7.js";import{_ as o,c as s,o as c}from"./TgVZOj1Y.js";import"./DiTUUfxZ.js";import"./DjbX8JPq.js";const n={};function r(_,a){const t=e;return c(),s(t,{"open-settings":!0})}const u=o(n,[["render",r]]);export{u as default};
