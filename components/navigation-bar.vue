@@ -10,7 +10,7 @@
     <navigation-entry v-for="entry in entries" :key="entry.name" :config="entry" />
     <div class="flex-grow" />
     <navigation-language v-if="!store.excalidraw" />
-    <button v-if="store.excalidraw" class="border border-white px-2 py-0.5 -my-1" @click="store.excalidraw = false">
+    <button v-if="store.excalidraw" class="border border-white px-2 py-0.5 -my-1 hidden sm:block" @click="store.excalidraw = false">
       Close Excalidraw
     </button>
     <navigation-expires />
