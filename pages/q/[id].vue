@@ -1,5 +1,5 @@
 <template>
-  <aaa-base-page :open-note="id" />
+  <base-page :open-note="id" />
 </template>
 
 <script lang="ts" setup>

@@ -1,6 +1,6 @@
 <template>
   <div ref="container" class="w-full flex-grow relative">
-    <excalidraw-frame v-if="store.excalidraw" />
+    <editor-excalidraw v-if="store.excalidraw" />
   </div>
 </template>
 
@@ -9,8 +9,9 @@ import { ref, watch, onMounted, onBeforeUnmount, type Ref } from "vue";
 import { buildWorkerDefinition } from "monaco-editor-workers";
 import { detectLanguageFromContent, debounce } from "~/lib/monaco/utils";
 import { setupMonaco } from "~/lib/monaco/setup";
-import * as monaco from "monaco-editor";
 import { YesNoDialog } from "~/lib/dialog";
+import * as Actions from "~/lib/actions";
+import * as monaco from "monaco-editor";
 
 const store = useAppStore();
 const emit = defineEmits(["loaded"]);
@@ -64,15 +65,9 @@ onMounted(async () => {
   });
 
   // Register keyboard shortcuts
-  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async () => {
-    await store.saveEncryptedNote()
-  });
-  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, () => {
-    // emit("duplicate");
-  });
-  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyN, () => {
-    // emit("new");
-  });
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, Actions.SAVE);
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, Actions.DUPLICATE);
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyN, Actions.NEW);
 
   // Handle content changes
   editor.onDidChangeModelContent(() => {
