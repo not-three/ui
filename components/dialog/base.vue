@@ -1,6 +1,6 @@
 <template>
   <transition-fade>
-    <overlay-container v-if="store.dialog" class="z-50">
+    <misc-overlay-container v-if="store.dialog" class="z-50">
       <transition-fade>
         <div :key="store.dialog.type" class="dialog-content">
           <h1 v-if="store.dialog.title" class="text-2xl whitespace-pre-wrap">{{ store.dialog.title }}</h1>
@@ -12,7 +12,7 @@
           <dialog-time v-if="store.dialog.type === DialogType.Time" :data="store.dialog" @close="close" />
         </div>
       </transition-fade>
-    </overlay-container>
+    </misc-overlay-container>
   </transition-fade>
 </template>
 

@@ -25,13 +25,11 @@
 </template>
 
 <script lang="ts" setup>
-import { FragmentData, ShareGenerator } from '@not3/sdk';
-import { TextOutputDialog, TimeDialog, YesNoDialog } from '~/lib/dialog';
+import { YesNoDialog } from '~/lib/dialog';
 import type { NavigationEntry } from '~/lib/navigation';
+import * as Actions from '~/lib/actions';
 const store = useAppStore();
 const settings = useSettingsStore();
-
-const copy = (text: string) => navigator.clipboard.writeText(text);
 
 const entries = computed<NavigationEntry[]>(() => [
   {
@@ -39,57 +37,31 @@ const entries = computed<NavigationEntry[]>(() => [
     entries: [
       {
         name: "Save",
-        onClick: () => store.saveEncryptedNote(),
+        onClick: Actions.SAVE,
       },
       {
         name: "Save for custom time",
-        onClick: () => store.dialog = new TimeDialog(
-          "Save for custom time",
-          "How long should the note be saved?",
-          24*60*60,
-          store.info.maxStorageTimeDays * 24*60*60,
-          (time) => store.saveEncryptedNote(time)
-        ),
+        onClick: Actions.SAVE_FOR_CUSTOM_TIME,
         disabled: store.settings,
         title: store.settings ? "Cant save settings for custom time" : undefined,
       },
       {
         name: "Save until read",
-        onClick: () => store.saveEncryptedNote(undefined, true),
+        onClick: Actions.SAVE_UNTIL_READ,
         disabled: store.settings,
         title: store.settings ? "Cant save settings until read" : undefined,
       },
       {
         name: "Download",
-        onClick: () => {
-          const lang = store.getCurrentLanguage();
-          const type = lang.mimeTypes ? lang.mimeTypes[0] : "text/plain";
-          const extension = lang.extensions ? lang.extensions[0] : ".txt";
-          const rand = Math.random().toString(36).substring(7);
-          const blob = new Blob([store.content], { type });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `not3-${rand}${extension}`;
-          a.click();
-        },
+        onClick: Actions.DOWNLOAD,
       },
       {
         name: "Duplicate",
-        onClick: () => {
-          const win = window.open("/#duplicate", "_blank");
-          win?.focus();
-          win?.addEventListener("message", (e) => {
-            if (e.data === "get-content") win.postMessage({
-              content: store.content,
-              tag: 'set-content',
-            }, "*");
-          });
-        },
+        onClick: Actions.DUPLICATE,
       },
       {
         name: "New",
-        onClick: () => store.pushToRouter("/"),
+        onClick: Actions.NEW,
       },
     ],
   },
@@ -98,37 +70,11 @@ const entries = computed<NavigationEntry[]>(() => [
     entries: [
       {
         name: "Copy Link",
-        onClick: () => {
-          if (!store.readonly) {
-            store.saveEncryptedNote(undefined, undefined, 'url');
-          } else {
-            store.dialog = new TextOutputDialog(
-              "Share Link",
-              "Copy the following link to share the note.",
-              window.location.href,
-            );
-            copy(window.location.href);
-          }
-        },
+        onClick: Actions.SHARE_LINK
       },
       {
         name: "Copy cURL Command",
-        onClick: () => {
-          if (!store.readonly) {
-            store.saveEncryptedNote(undefined, undefined, 'curl');
-          } else {
-            const fragment = FragmentData.fromURL(window.location.href);
-            let apiUrl = fragment.server || store.config.baseURL;
-            if (!apiUrl.startsWith("http")) apiUrl = window.location.origin + apiUrl;
-            const cmd = new ShareGenerator({apiUrl}).noteCurl(store.id, fragment.seed);
-            store.dialog = new TextOutputDialog(
-              "cURL Command",
-              "Copy the following cURL command to share the note.",
-              cmd,
-            );
-            copy(cmd);
-          }
-        }
+        onClick: Actions.SHARE_CURL,
       }
     ],
     disabled: store.settings,
@@ -138,7 +84,7 @@ const entries = computed<NavigationEntry[]>(() => [
     entries: [
       {
         name: "Edit Settings",
-        onClick: () => store.pushToRouter("/settings"),
+        onClick: Actions.OPEN_SETTINGS,
         disabled: store.settings,
         title: store.settings ? "Settings editor is already open" : undefined,
       },
@@ -155,7 +101,7 @@ const entries = computed<NavigationEntry[]>(() => [
       },
       {
         name: "File Transfer",
-        onClick: () => store.upload = true,
+        onClick: Actions.OPEN_FILE_TRANSFER,
         disabled: !store.info.fileTransferEnabled || store.settings,
         title: !store.info.fileTransferEnabled
           ? "File transfer is not enabled on this server"
@@ -165,33 +111,7 @@ const entries = computed<NavigationEntry[]>(() => [
       },
       {
         name: (store.excalidraw ? "Close" : "Open") + " Excalidraw",
-        onClick: () => {
-          if (store.excalidraw) {
-            store.excalidraw = false;
-            return;
-          }
-          let valid = true;
-          if (!store.content.startsWith('{"type":"EXCALIDRAW",')) valid = false;
-          else try {
-            JSON.parse(store.content);
-          } catch {
-            valid = false;
-          }
-          if (store.content === "" || store.content === "{}") valid = true;
-          if (!valid) store.dialog = new YesNoDialog(
-            "Excalidraw Error",
-            [
-              "The current note does not contain valid Excalidraw data.",
-              "Do you want to open Excalidraw anyway?",
-              ...(store.readonly ? [] : [
-                "Be aware that opening Excalidraw will overwrite the current note content.",
-              ]),
-            ].join(" "),
-            () => store.excalidraw = true,
-            () => store.excalidraw = false,
-          );
-          else store.excalidraw = true;
-        },
+        onClick: Actions.OPEN_EXCALIDRAW,
         disabled: !store.config.drawURL || store.settings,
         title: !store.config.drawURL
           ? "Excalidraw URL is not configured"

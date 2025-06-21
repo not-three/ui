@@ -1,5 +1,5 @@
 <template>
-  <aaa-base-page :open-file="id" />
+  <base-page :open-file="id" />
 </template>
 
 <script lang="ts" setup>

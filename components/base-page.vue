@@ -1,23 +1,24 @@
 <template>
   <div class="base-container">
-    <notification-box />
+    <misc-notification-box />
     <badge-pr />
     <dialog-base />
-    <loading-spinner :visible="loading > 0 || store.loading" />
+    <misc-loading-spinner :visible="loading > 0 || store.loading" />
     <file-upload />
     <transition-fade>
       <file-download v-if="openFile && loading <= 0" :file="openFile" />
     </transition-fade>
     <navigation-bar />
-    <monaco-editor @loaded="loading--" />
+    <editor-monaco @loaded="loading--" />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { Crypto, FragmentData, Not3Client, ShareGenerator } from "@not3/sdk";
-import { OkDialog, TextOutputDialog, YesNoDialog } from "~/lib/dialog";
+import { Crypto, FragmentData, Not3Client } from "@not3/sdk";
+import { OkDialog, YesNoDialog } from "~/lib/dialog";
 import axios, { AxiosError } from "axios";
 import { DownloadDb } from "~/lib/download";
+import * as Actions from "~/lib/actions";
 
 const { uiBaseURL } = useRuntimeConfig().public;
 const store = useAppStore();
@@ -141,32 +142,16 @@ onMounted(async () => {
     } catch {/* ignored */}
 
     const share = new URL(window.location.href).searchParams.get('share');
-    const copy = (t: string) => navigator.clipboard.writeText(t);
     if (share) {
       const url = new URL(window.location.href);
       url.searchParams.delete('share');
       window.history.replaceState({}, '', url.toString());
+      const map = {
+        'url': Actions.SHARE_LINK,
+        'curl': Actions.SHARE_CURL,
+      } as Record<string, () => void>;
+      if (map[share]) map[share]();
     }
-    if (share === 'url') {
-      store.dialog = new TextOutputDialog(
-        "Share Link",
-        "Copy the following link to share the note.",
-        window.location.href,
-      );
-      copy(window.location.href);
-    } else if (share === 'curl') {
-      const fragment = FragmentData.fromURL(window.location.href);
-      let apiUrl = fragment.server || store.config.baseURL;
-      if (!apiUrl.startsWith("http")) apiUrl = window.location.origin + apiUrl;
-      const cmd = new ShareGenerator({apiUrl}).noteCurl(store.id, fragment.seed);
-      store.dialog = new TextOutputDialog(
-        "cURL Command",
-        "Copy the following cURL command to share the note.",
-        cmd,
-      );
-      copy(cmd);
-    }
-
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response && error.response.status === 404) {
       errorMsg = "The note (probably) expired.";

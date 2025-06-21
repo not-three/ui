@@ -1,3 +1,3 @@
 <template>
-  <aaa-base-page :open-settings="true" />
+  <base-page :open-settings="true" />
 </template>

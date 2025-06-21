@@ -1,3 +1,3 @@
 <template>
-  <aaa-base-page />
+  <base-page />
 </template>

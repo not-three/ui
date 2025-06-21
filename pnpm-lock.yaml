@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@not3/sdk':
-        specifier: ^2.0.2
-        version: 2.0.2
+        specifier: ^2.0.3
+        version: 2.0.3
       '@nuxt/eslint':
         specifier: ^1.4.1
         version: 1.4.1(@typescript-eslint/utils@8.33.1(eslint@9.18.0(jiti@2.4.2))(typescript@5.8.3))(@vue/compiler-sfc@3.5.16)(eslint-import-resolver-node@0.3.9)(eslint@9.18.0(jiti@2.4.2))(magicast@0.3.5)(typescript@5.8.3)(vite@6.3.5(@types/node@24.0.0)(jiti@2.4.2)(terser@5.42.0)(yaml@2.8.0))
@@ -951,8 +951,8 @@ packages:
     resolution: {integrity: sha512-nIh/M6Kh3ZtOmlY00DaUYB4xeeV6F3/ts1l29iwl3/cfyY/OuCfUx+v08zgx8TKPTifXRcjjqVQ4KB2zOYSbyw==}
     engines: {node: '>=18.18.0'}
 
-  '@not3/sdk@2.0.2':
-    resolution: {integrity: sha512-Z3VC/4rD3LC3MTtNAKINi92erZlEYs03JwpPMSI3azclllG0ht47O8QHAUOWrhKIGTn43UxOuvcVSOSQRuIzSg==}
+  '@not3/sdk@2.0.3':
+    resolution: {integrity: sha512-oE7z6HA6AsD9X5SPS66wBZBjQpDhh0Zh2iq6XQhIN2dZngQxnOOkFaLGjavSItNUI2nSXgTVNS4yPcs4TRF4Pw==}
 
   '@nuxt/cli@3.25.1':
     resolution: {integrity: sha512-7+Ut7IvAD4b5piikJFSgIqSPbHKFT5gq05JvCsEHRM0MPA5QR9QHkicklyMqSj0D/oEkDohen8qRgdxRie3oUA==}
@@ -6104,7 +6104,7 @@ snapshots:
       '@nodelib/fs.scandir': 4.0.1
       fastq: 1.19.1
 
-  '@not3/sdk@2.0.2':
+  '@not3/sdk@2.0.3':
     dependencies:
       axios: 1.10.0
       semver: 7.7.2
