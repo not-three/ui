@@ -18,17 +18,17 @@
   },
   "dependencies": {
     "@not3/sdk": "^2.0.3",
-    "@nuxt/eslint": "^1.4.1",
+    "@nuxt/eslint": "^1.5.2",
     "@pinia/nuxt": "0.11.1",
     "@vscode/vscode-languagedetection": "^1.0.22",
     "axios": "^1.10.0",
     "monaco-editor": "^0.52.2",
     "monaco-editor-workers": "^0.45.0",
     "nanoid": "^5.1.5",
-    "nuxt": "^3.17.5",
+    "nuxt": "^3.17.6",
     "pinia": "^3.0.3",
-    "pinia-plugin-persistedstate": "^4.3.0",
-    "vue": "^3.5.16",
+    "pinia-plugin-persistedstate": "^4.4.1",
+    "vue": "^3.5.17",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
