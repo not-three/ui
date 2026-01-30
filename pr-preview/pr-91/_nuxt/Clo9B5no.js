@@ -1,1 +1,0 @@
-import{_ as n}from"./CoMBEQRW.js";import{d as a,u as t,o as s,c as _,a as p}from"./CDW_V1xf.js";const f=a({__name:"[id]",setup(c){const e=t().params.id;return(r,m)=>{const o=n;return s(),_(o,{"open-file":p(e)},null,8,["open-file"])}}});export{f as default};

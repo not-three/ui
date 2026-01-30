@@ -1,1 +1,0 @@
-import{_ as n}from"./CoMBEQRW.js";import{d as t,u as a,c as s,a as _,o as p}from"./CDW_V1xf.js";const d=t({__name:"[id]",setup(c){const e=a().params.id;return(r,m)=>{const o=n;return p(),s(o,{"open-note":_(e)},null,8,["open-note"])}}});export{d as default};
