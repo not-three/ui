@@ -1,5 +1,5 @@
 <template>
-  <overlay-container class="z-30">
+  <misc-overlay-container class="z-30">
     <div class="p-4 w-[80vw] max-w-xs">
       <div class="border-white border-8 aspect-square w-full flex justify-center items-center">
         <transition-fade>
@@ -37,7 +37,7 @@
         </button>
       </div>
     </div>
-  </overlay-container>
+  </misc-overlay-container>
 </template>
 
 <script lang="ts" setup>

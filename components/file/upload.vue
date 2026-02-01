@@ -1,6 +1,6 @@
 <template>
   <transition-fade>
-    <overlay-container v-if="store.upload" class="z-30" :file-drop="true" @file-drop="selectFile">
+    <misc-overlay-container v-if="store.upload" class="z-30" :file-drop="true" @file-drop="selectFile">
       <div class="p-4 w-[80vw] max-w-xs">
         <div class="border-white border-8 aspect-square w-full flex justify-center items-center">
           <transition-fade>
@@ -31,7 +31,7 @@
           </button>
         </div>
       </div>
-    </overlay-container>
+    </misc-overlay-container>
   </transition-fade>
 </template>
 
@@ -117,7 +117,7 @@ function sanitizeFileName(name: string) {
 async function recoverUploadHandler(event: Event, data: UploadRecoveryData): Promise<boolean> {
   if (!(event.target instanceof HTMLInputElement)) return false;
   const files = event.target.files;
-  if (!files || files.length === 0) return false;
+  if (!files || files.length === 0 || !files[0]) return false;
   const file = files[0];
   if (sanitizeFileName(file.name) !== data.name || file.size !== data.size) return false;
   fileName.value = data.name;
@@ -191,6 +191,7 @@ function selectFile(files: FileList) {
   if (upload.value) return;
   if (files.length === 0) return;
   if (files.length > 1) return notifications.show("Only one file can be uploaded at a time.");
+  if (!files[0]) throw new Error("No file found, which should be impossible here.");
   const fileSizeInMB = files[0].size / 1024 / 1024;
   if (fileSizeInMB > store.info.fileTransferMaxSize * 0.98) {
     return notifications.show(`File size exceeds the maximum limit of ${store.info.fileTransferMaxSize} MB.`);
