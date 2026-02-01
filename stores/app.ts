@@ -1,5 +1,6 @@
 import type { InfoResponse, Not3Client } from "@not3/sdk"
 import { Crypto, FragmentData } from "@not3/sdk"
+import { AxiosError } from "axios"
 import { OkDialog, YesNoDialog, type Dialog } from "~/lib/dialog"
 import { languageDefinitions } from "~/lib/monaco/languages"
 import type { LanguageDefinition } from "~/lib/monaco/types"
@@ -73,12 +74,19 @@ export const useAppStore = defineStore('app', {
         const key = await Crypto.generateKey(seed)
         const content = await Crypto.encrypt(this.content, key)
         const mime = this.languageDefinitions.find((lang) => lang.id === this.selectedLanguage)?.mimeTypes[0] || 'text/plain'
-        const res = await this.api.notes().create({ content, expiresIn, selfDestruct, mime})
+        const res = await this.api.notes().create({ content, expiresIn, selfDestruct, mime })
         const options = this.api.getOptions()
         const server = options.baseUrl !== this.config.baseURL ? options.baseUrl : undefined
         const fragment = new FragmentData({ seed, selfDestruct, server })
         this.readonly = true
         this.pushToRouter(`/q/${res.id}${openShareDialog ? '?share=' + openShareDialog : ''}#${fragment.toString()}`, true)
+      } catch (error) {
+        console.error(error)
+        if (error instanceof AxiosError && error.response?.status === 413) {
+          this.dialog = new OkDialog("Error", "The note is too large for this server (not enough tokens). Please try again later, as the server resets tokens periodically.")
+        } else {
+          this.dialog = new OkDialog("Error", "Failed to save note. Please try again later.")
+        }
       } finally {
         this.loading = false
       }
