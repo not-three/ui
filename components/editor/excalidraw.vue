@@ -13,6 +13,7 @@
 
 <script lang="ts" setup>
 import { OkDialog } from '~/lib/dialog';
+import * as Actions from "~/lib/actions";
 
 const iframe = ref<HTMLIFrameElement>();
 const store = useAppStore();
@@ -53,6 +54,16 @@ function onChildMessage(event: MessageEvent) {
         data: event.data.payload,
       });
       break;
+    case "not3/draw/save": {
+      if (event.data?.payload && !store.readonly) {
+        store.content = JSON.stringify({
+          type: "EXCALIDRAW",
+          data: event.data.payload,
+        });
+      }
+      Actions.SAVE();
+      break;
+    }
   }
 }
 
