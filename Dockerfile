@@ -7,14 +7,19 @@ RUN pnpm install
 COPY . .
 ARG NUXT_APP_BASE_URL=/
 ENV NUXT_APP_BASE_URL=$NUXT_APP_BASE_URL
-RUN pnpm build
+RUN pnpm generate
 
 FROM node:25-alpine
 RUN apk add --no-cache curl
 WORKDIR /app
 
-COPY --from=build-stage /app/.output /app
-COPY entrypoint.mjs /app
+# Copy the static export to /app/public
+COPY --from=build-stage /app/.output/public /app/public
+# Copy the entrypoint code
+COPY entrypoint /app/entrypoint
+
+WORKDIR /app/entrypoint
+RUN npm i -g pnpm && pnpm install
 
 EXPOSE 3000
 ENV NODE_ENV=production
@@ -24,4 +29,4 @@ LABEL org.opencontainers.image.description="!3 is a simple, secure and open sour
 LABEL org.opencontainers.image.authors="Joschua Becker EDV <support@scolasti.co>"
 STOPSIGNAL SIGINT
 
-CMD ["node", "entrypoint.mjs"]
+CMD ["node", "index.mjs"]
