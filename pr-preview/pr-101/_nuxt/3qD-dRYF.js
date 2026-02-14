@@ -1,1 +1,0 @@
-import{_ as t}from"./CfzVMkn8.js";import{_ as o,c as n,o as _}from"./CsiE-Pjk.js";const c={};function s(r,a){const e=t;return _(),n(e,{"open-settings":!0})}const m=o(c,[["render",s]]);export{m as default};
