@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as monaco from "monaco-editor";
-import "monaco-editor/esm/vs/editor/editor.worker?worker";
+import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import jsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
 import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
 import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
@@ -43,7 +43,7 @@ export async function setupMonaco() {
         case "javascript":
           return new tsWorker();
         default:
-          return undefined as any;
+          return new editorWorker();
       }
     },
   };

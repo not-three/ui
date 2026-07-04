@@ -6,7 +6,6 @@
 
 <script lang="ts" setup>
 import { ref, watch, onMounted, onBeforeUnmount, type Ref } from "vue";
-import { buildWorkerDefinition } from "monaco-editor-workers";
 import { detectLanguageFromContent, debounce } from "~/lib/monaco/utils";
 import { setupMonaco } from "~/lib/monaco/setup";
 import { YesNoDialog } from "~/lib/dialog";
@@ -37,12 +36,6 @@ const updateLanguage = debounce((content: string) => {
 }, 500);
 
 onMounted(async () => {
-  buildWorkerDefinition(
-    "../node_modules/monaco-editor-workers/dist/workers",
-    import.meta.url,
-    false,
-  );
-
   await setupMonaco();
 
   const initialDetectedLanguage = detectLanguageFromContent(store.content);
