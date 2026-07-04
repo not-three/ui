@@ -46,6 +46,8 @@ import { Not3Client, FileDownload, FragmentData, ShareGenerator } from '@not3/sd
 import { AxiosError } from 'axios';
 import { OkDialog, TextOutputDialog, YesNoDialog } from '~/lib/dialog';
 import { DownloadDb } from '~/lib/download';
+import { runDownload } from '~/lib/transfer/download-runner';
+import { describeTransferError } from '~/lib/transfer/errors';
 
 const store = useAppStore();
 const props = defineProps<{
@@ -98,9 +100,21 @@ onMounted(async () => {
   }
 })
 
+let cancelCheckInterval: number | null = null;
+
+function cleanupDownloadRun() {
+  if (cancelCheckInterval !== null) {
+    window.clearInterval(cancelCheckInterval);
+    cancelCheckInterval = null;
+  }
+  localStorage.removeItem("running-download");
+  window.removeEventListener("beforeunload", DownloadDb.reset);
+}
+
 async function doCloseOrCancel() {
   if (started.value && !finished.value) {
     canceled = true;
+    cleanupDownloadRun();
     DownloadDb.reset();
     window.location.reload();
   } else {
@@ -108,13 +122,16 @@ async function doCloseOrCancel() {
   }
 }
 
+function saveBlob() {
+  if (!blobDownloadUrl) return;
+  const a = document.createElement("a");
+  a.href = blobDownloadUrl;
+  a.download = meta.value?.name || "file";
+  a.click();
+}
+
 async function startDownload() {
-  if (blobDownloadUrl) {
-    const a = document.createElement("a");
-    a.href = blobDownloadUrl;
-    a.download = meta.value?.name || "file";
-    a.click();
-  }
+  if (blobDownloadUrl) return saveBlob();
   if (!download.value || started.value) return;
   if (localStorage.getItem("running-download")) {
     store.dialog = new YesNoDialog("Warning", "Another download seems to be in progress. Do you want to cancel it?", async () => {
@@ -128,25 +145,39 @@ async function startDownload() {
   }
   window.addEventListener("beforeunload", DownloadDb.reset);
   localStorage.setItem("running-download", Date.now().toString());
-  const cancelCheckInterval = window.setInterval(() => {
+  cancelCheckInterval = window.setInterval(() => {
     if (!localStorage.getItem("running-download")) {
-      window.clearInterval(cancelCheckInterval);
       doCloseOrCancel();
     } else {
       localStorage.setItem("running-download", Date.now().toString());
     }
   }, 1000);
   started.value = true;
-  const db = await DownloadDb.open();
-  await download.value.start(async (buf, index) => {
+  try {
+    const db = await DownloadDb.open();
+    await runDownload(download.value, db, totalChunks.value, {
+      onChunk: (index) => { progress.value = index + 1; },
+      isCanceled: () => canceled,
+    });
     if (canceled) return;
-    progress.value = index + 1;
-    await db.write(index, buf);
-  });
-  finished.value = true;
-  blobDownloadUrl = URL.createObjectURL(await db.getFullBlob());
-  window.clearInterval(cancelCheckInterval);
-  startDownload();
+    blobDownloadUrl = URL.createObjectURL(await db.getFullBlob());
+    finished.value = true;
+    cleanupDownloadRun();
+    saveBlob();
+  } catch (e) {
+    if (canceled) return;
+    console.error("Download Error", e);
+    cleanupDownloadRun();
+    DownloadDb.reset();
+    started.value = false;
+    progress.value = 0;
+    const msg = describeTransferError(e, "The download failed.");
+    store.dialog = new YesNoDialog(
+      "Download failed",
+      `${msg}\n\nDo you want to retry?`,
+      () => startDownload(),
+    );
+  }
 }
 
 function showCurl() {

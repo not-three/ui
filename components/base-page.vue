@@ -167,13 +167,14 @@ onMounted(async () => {
 
   const runningDownload = localStorage.getItem("running-download");
   if (runningDownload) {
+    // An actively downloading tab refreshes this timestamp every second, so
+    // anything older than 10s is a leftover from a crashed or killed tab.
     const diff = Date.now() - parseInt(runningDownload);
-    const FIVE_MINUTES = 5 * 60 * 1000;
-    if (diff > FIVE_MINUTES) return;
-    console.warn("Found stale download in progress. Resetting...");
-    localStorage.removeItem("running-download");
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    DownloadDb.reset();
+    if (diff > 10_000) {
+      console.warn("Found stale download lock. Resetting...");
+      localStorage.removeItem("running-download");
+      DownloadDb.reset();
+    }
   }
 });
 
