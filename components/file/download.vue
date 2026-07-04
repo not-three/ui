@@ -108,7 +108,6 @@ function cleanupDownloadRun() {
     cancelCheckInterval = null;
   }
   localStorage.removeItem("running-download");
-  window.removeEventListener("beforeunload", DownloadDb.reset);
 }
 
 async function doCloseOrCancel() {
@@ -143,6 +142,8 @@ async function startDownload() {
     });
     return;
   }
+  // Registered for the tab's lifetime (duplicate adds are no-ops): closing the
+  // tab must wipe the decrypted chunks from IndexedDB.
   window.addEventListener("beforeunload", DownloadDb.reset);
   localStorage.setItem("running-download", Date.now().toString());
   cancelCheckInterval = window.setInterval(() => {
