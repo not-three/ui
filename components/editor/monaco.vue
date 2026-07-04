@@ -10,10 +10,12 @@ import { detectLanguageFromContent, debounce } from "~/lib/monaco/utils";
 import { detectLanguage } from "~/lib/monaco/detect";
 import { setupMonaco } from "~/lib/monaco/setup";
 import { YesNoDialog } from "~/lib/dialog";
-import * as Actions from "~/lib/actions";
+import { parseKeybinding } from "~/lib/monaco/keybindings";
+import { EDITOR_ACTIONS } from "~/lib/monaco/editor-actions";
 import * as monaco from "monaco-editor";
 
 const store = useAppStore();
+const settings = useSettingsStore();
 const emit = defineEmits(["loaded"]);
 const container = ref() as Ref<HTMLDivElement>;
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
@@ -38,6 +40,38 @@ const updateLanguage = debounce((content: string) => {
   });
 }, 500);
 
+let actionDisposables: monaco.IDisposable[] = [];
+function registerEditorActions() {
+  actionDisposables.forEach((d) => d.dispose());
+  actionDisposables = [];
+  if (!editor) return;
+  for (const action of EDITOR_ACTIONS) {
+    const keybinding = parseKeybinding(settings.editor.keybindings[action.id]);
+    actionDisposables.push(
+      editor.addAction({
+        id: `not3.${action.id}`,
+        label: action.label,
+        keybindings: keybinding !== null ? [keybinding] : [],
+        run: () => action.run(),
+      }),
+    );
+  }
+}
+
+function applyEditorSettings() {
+  if (!editor) return;
+  editor.updateOptions({
+    fontSize: settings.editor.fontSize,
+    wordWrap: settings.editor.wordWrap ? "on" : "off",
+    minimap: { enabled: settings.editor.minimap },
+    lineNumbers: settings.editor.lineNumbers ? "on" : "off",
+    renderWhitespace: settings.editor.renderWhitespace ? "all" : "none",
+    stickyScroll: { enabled: settings.editor.stickyScroll },
+  });
+  editor.getModel()?.updateOptions({ tabSize: settings.editor.tabSize });
+  registerEditorActions();
+}
+
 onMounted(async () => {
   await setupMonaco();
 
@@ -53,18 +87,17 @@ onMounted(async () => {
     theme: "vs-dark",
     readOnly: store.readonly,
     automaticLayout: true,
-    minimap: { enabled: true },
     scrollBeyondLastLine: false,
-    fontSize: 14,
-    tabSize: 2,
-    wordWrap: "on",
-    lineNumbers: "on",
+    fontSize: settings.editor.fontSize,
+    tabSize: settings.editor.tabSize,
+    wordWrap: settings.editor.wordWrap ? "on" : "off",
+    minimap: { enabled: settings.editor.minimap },
+    lineNumbers: settings.editor.lineNumbers ? "on" : "off",
+    renderWhitespace: settings.editor.renderWhitespace ? "all" : "none",
+    stickyScroll: { enabled: settings.editor.stickyScroll },
   });
 
-  // Register keyboard shortcuts
-  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, Actions.SAVE);
-  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, Actions.DUPLICATE);
-  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyN, Actions.NEW);
+  registerEditorActions();
 
   // Handle content changes
   editor.onDidChangeModelContent(() => {
@@ -92,6 +125,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  actionDisposables.forEach((d) => d.dispose());
   editor?.dispose();
 });
 
@@ -124,4 +158,6 @@ watch(
     }
   },
 );
+
+watch(() => settings.editor, applyEditorSettings, { deep: true });
 </script>
