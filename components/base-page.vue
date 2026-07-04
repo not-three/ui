@@ -46,7 +46,6 @@ onMounted(async () => {
   store.id = props.openNote || "";
 
   if (window.location.hash === "#duplicate") {
-    console.log("Duplicating content...");
     window.addEventListener("message", (event) => {
       if (event.data && event.data.tag === "set-content") {
         store.content = event.data.content;
