@@ -7,7 +7,7 @@ export const PerlDefinition: LanguageDefinition = {
   mimeTypes: ["text/x-perl"],
   detectionPatterns: [
     { pattern: /\bmy\s+[$@%]\w+/, weight: 4 },
-    { pattern: /\buse\s+(strict|warnings)\b/, weight: 4 },
+    { pattern: /^\s*use\s+(strict|warnings)\s*;/, weight: 4 },
     { pattern: /=~\s*[ms]?\//, weight: 3 },
     { pattern: /\bsub\s+\w+\s*\{/, weight: 2 },
   ],

@@ -100,4 +100,9 @@ describe("detection of new languages", () => {
       expect(detectLanguageFromContent(snippet)).toBe(expected);
     });
   }
+
+  it('does not misdetect a JS "use strict" directive as perl', () => {
+    const js = ['"use strict";', "var x = 1;", "foo(x);"].join("\n");
+    expect(detectLanguageFromContent(js)).not.toBe("perl");
+  });
 });
