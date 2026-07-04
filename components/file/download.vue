@@ -100,6 +100,13 @@ onMounted(async () => {
   }
 })
 
+onBeforeUnmount(() => {
+  // Stop the heartbeat when the user leaves via SPA navigation mid-download;
+  // the beforeunload listener stays and wipes the chunks when the tab closes.
+  canceled = true;
+  cleanupDownloadRun();
+});
+
 let cancelCheckInterval: number | null = null;
 
 function cleanupDownloadRun() {
