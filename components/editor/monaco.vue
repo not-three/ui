@@ -7,6 +7,7 @@
 <script lang="ts" setup>
 import { ref, watch, onMounted, onBeforeUnmount, type Ref } from "vue";
 import { detectLanguageFromContent, debounce } from "~/lib/monaco/utils";
+import { detectLanguage } from "~/lib/monaco/detect";
 import { setupMonaco } from "~/lib/monaco/setup";
 import { YesNoDialog } from "~/lib/dialog";
 import * as Actions from "~/lib/actions";
@@ -21,23 +22,26 @@ const currentLanguage = ref<string>("plaintext");
 const setEditorLanguage = (languageId: string) => {
   if (currentLanguage.value === languageId) return;
   if (editor && editor.getModel()) {
-    console.log("Setting language:", languageId);
     currentLanguage.value = languageId;
     monaco.editor.setModelLanguage(editor.getModel()!, languageId);
   }
 };
 
+// Sequence counter so a slow model result can't overwrite a newer detection.
+let detectSeq = 0;
 const updateLanguage = debounce((content: string) => {
-  if (editor) {
-    const detectedLanguage = detectLanguageFromContent(content);
-    store.detectedLanguage = detectedLanguage;
-    if (!store.selectedLanguage) setEditorLanguage(detectedLanguage);
-  }
+  const seq = ++detectSeq;
+  detectLanguage(content).then((detected) => {
+    if (seq !== detectSeq || !editor) return;
+    store.detectedLanguage = detected;
+    if (!store.selectedLanguage) setEditorLanguage(detected);
+  });
 }, 500);
 
 onMounted(async () => {
   await setupMonaco();
 
+  // Synchronous regex guess for instant startup; the ML model refines it below.
   const initialDetectedLanguage = detectLanguageFromContent(store.content);
   store.detectedLanguage = initialDetectedLanguage;
   const initialLanguage = store.selectedLanguage || initialDetectedLanguage;
@@ -81,6 +85,9 @@ onMounted(async () => {
     );
   });
 
+  // Refine the initial regex guess once the ML model is loaded
+  if (store.content) updateLanguage(store.content);
+
   emit("loaded");
 });
 
@@ -109,8 +116,12 @@ watch(
   () => store.selectedLanguage,
   (newLanguage) => {
     if (!editor) return;
-    if (newLanguage) setEditorLanguage(newLanguage);
-    else setEditorLanguage(detectLanguageFromContent(editor.getValue()));
+    if (newLanguage) {
+      setEditorLanguage(newLanguage);
+    } else {
+      if (store.detectedLanguage) setEditorLanguage(store.detectedLanguage);
+      updateLanguage(editor.getValue());
+    }
   },
 );
 </script>
