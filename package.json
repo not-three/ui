@@ -18,7 +18,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@not3/sdk": "^2.0.3",
+    "@not3/sdk": "^2.0.5",
     "@nuxt/eslint": "^1.15.2",
     "@pinia/nuxt": "0.11.3",
     "@vscode/vscode-languagedetection": "^1.0.23",
