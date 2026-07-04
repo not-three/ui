@@ -19,6 +19,10 @@ export class DownloadDb {
 
   constructor(private readonly db: IDBDatabase) {}
 
+  close() {
+    this.db.close()
+  }
+
   write(index: number, data: ArrayBuffer): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const tx = this.db.transaction('chunks', 'readwrite')

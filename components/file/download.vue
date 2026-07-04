@@ -153,14 +153,18 @@ async function startDownload() {
     }
   }, 1000);
   started.value = true;
+  let db: DownloadDb | null = null;
   try {
-    const db = await DownloadDb.open();
+    db = await DownloadDb.open();
     await runDownload(download.value, db, totalChunks.value, {
       onChunk: (index) => { progress.value = index + 1; },
       isCanceled: () => canceled,
     });
     if (canceled) return;
     blobDownloadUrl = URL.createObjectURL(await db.getFullBlob());
+    // Close the connection: an open one blocks the deleteDatabase call of any
+    // later DownloadDb.reset()/open() for the rest of the SPA session.
+    db.close();
     finished.value = true;
     cleanupDownloadRun();
     saveBlob();
@@ -168,6 +172,7 @@ async function startDownload() {
     if (canceled) return;
     console.error("Download Error", e);
     cleanupDownloadRun();
+    db?.close();
     DownloadDb.reset();
     started.value = false;
     progress.value = 0;
