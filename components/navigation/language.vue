@@ -13,7 +13,7 @@
         :key="lang.id"
         :value="lang.id"
       >
-        {{ lang.id.substring(0, 1).toUpperCase() + lang.id.substring(1) }}
+        {{ lang.aliases?.[0] || lang.id }}
         {{ lang.id === store.detectedLanguage ? "✨" : "" }}
         {{ lang.id === store.selectedLanguage ? "🔒" : "" }}
       </option>
