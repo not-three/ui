@@ -39,7 +39,7 @@
 import { FileUpload, FragmentData, type FileUploadProgress } from '@not3/sdk';
 import { readRecoveryData, writeRecoveryData, type UploadRecoveryData } from '~/lib/upload';
 import { OkDialog, YesNoDialog } from '~/lib/dialog';
-import { AxiosError } from 'axios';
+import { describeTransferError } from '~/lib/transfer/errors';
 
 const fileName = ref("");
 const store = useAppStore();
@@ -52,6 +52,7 @@ const upload = ref<FileUpload|null>(null);
 const recoveryInterval = ref<null|number>(null);
 
 const DIALOG_TAG = 'recovery';
+let cancelRequested = false;
 
 onMounted(() => {
   recoveryInterval.value = window.setInterval(() => {
@@ -86,15 +87,29 @@ onBeforeUnmount(() => {
   if (recoveryInterval.value) window.clearInterval(recoveryInterval.value);
 })
 
+function resetUploadState() {
+  upload.value = null;
+  progress.value = {};
+  totalChunks.value = 0;
+}
+
 function handleUploadError(e: unknown) {
   console.error("Upload Error", e);
-  upload.value = null;
-  let msg = "An error occurred while uploading the file.";
-  if (e instanceof AxiosError && e.response) {
-    if (e.response.data && e.response.data.message) msg = String(e.response.data.message);
+  resetUploadState();
+  if (cancelRequested) {
+    // Expected rejection of start()/resume() after a user-initiated cancel.
+    cancelRequested = false;
+    writeRecoveryData(null);
+    return;
   }
-  store.dialog = new OkDialog("Error", msg);
-  store.dialog.tag = upload.value ? DIALOG_TAG : '';
+  const msg = describeTransferError(e, "An error occurred while uploading the file.");
+  const canResume = !!readRecoveryData();
+  store.dialog = new OkDialog("Upload failed", canResume
+    ? `${msg}\n\nYou will be asked whether to resume after closing this dialog.`
+    : msg);
+  // Tagged dialogs survive the recovery poller (see onMounted interval);
+  // without recovery data the poller ignores untagged dialogs anyway.
+  store.dialog.tag = canResume ? DIALOG_TAG : '';
 }
 
 function finalizeUpload() {
@@ -161,6 +176,7 @@ async function recoverUpload(event?: Event) {
 }
 
 async function startUpload() {
+  cancelRequested = false;
   if (upload.value) return;
   if (!file.value) return;
   upload.value = new FileUpload(store.api.files(), fileName.value, file.value.size, 4, false);
@@ -177,13 +193,20 @@ async function startUpload() {
   }
 }
 
-function doCloseOrCancel() {
+async function doCloseOrCancel() {
   if (upload.value) {
-    upload.value.cancel();
+    cancelRequested = true;
+    try {
+      await upload.value.cancel();
+    } catch (e) {
+      console.warn("Cancel request failed", e);
+    }
+    writeRecoveryData(null);
   } else {
     store.upload = false;
     fileName.value = "";
     file.value = null;
+    resetUploadState();
   }
 }
 
@@ -193,8 +216,9 @@ function selectFile(files: FileList) {
   if (files.length > 1) return notifications.show("Only one file can be uploaded at a time.");
   if (!files[0]) throw new Error("No file found, which should be impossible here.");
   const fileSizeInMB = files[0].size / 1024 / 1024;
-  if (fileSizeInMB > store.info.fileTransferMaxSize * 0.98) {
-    return notifications.show(`File size exceeds the maximum limit of ${store.info.fileTransferMaxSize} MB.`);
+  const maxSizeMB = store.info.fileTransferMaxSize;
+  if (Number.isFinite(maxSizeMB) && fileSizeInMB > maxSizeMB * 0.98) {
+    return notifications.show(`File size exceeds the maximum limit of ${maxSizeMB} MB.`);
   }
   fileName.value = sanitizeFileName(files[0].name);
   fileSize.value = files[0].size;
