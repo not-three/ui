@@ -5,8 +5,21 @@ interface DetectionResult {
   score: number;
 }
 
+// Only score the first 64 KB — plenty of signal, keeps typing snappy on huge pastes.
+const MAX_DETECTION_LENGTH = 64 * 1024;
+// A single generic pattern must not be able to drown out everything else.
+const MAX_MATCHES_PER_PATTERN = 10;
+
+function withGlobalMultiline(pattern: RegExp): RegExp {
+  let flags = pattern.flags;
+  if (!flags.includes("g")) flags += "g";
+  if (!flags.includes("m")) flags += "m";
+  return new RegExp(pattern.source, flags);
+}
+
 export function detectLanguageFromContent(content: string): string {
   if (!content.trim()) return "plaintext";
+  const sample = content.slice(0, MAX_DETECTION_LENGTH);
 
   const results: DetectionResult[] = languageDefinitions
     .filter(
@@ -15,29 +28,19 @@ export function detectLanguageFromContent(content: string): string {
     .map((lang) => {
       const score = lang.detectionPatterns!.reduce(
         (total, { pattern, weight = 1 }) => {
-          // Test against the whole content, not just the beginning
-          const matches = (content.match(pattern) || []).length;
-          return total + matches * weight;
+          const matches =
+            sample.match(withGlobalMultiline(pattern))?.length ?? 0;
+          return total + Math.min(matches, MAX_MATCHES_PER_PATTERN) * weight;
         },
         0,
       );
-
-      return {
-        languageId: lang.id,
-        score,
-      };
+      return { languageId: lang.id, score };
     });
 
-  // Sort by score in descending order
   results.sort((a, b) => b.score - a.score);
-
-  // Return the language with the highest score, or plaintext if no matches
-  const res =
-    results.length > 0 && results[0].score > 0
-      ? results[0].languageId
-      : "plaintext";
-  console.log("Detected language:", res);
-  return res;
+  return results.length > 0 && results[0].score > 0
+    ? results[0].languageId
+    : "plaintext";
 }
 
 // Debounce function for language detection

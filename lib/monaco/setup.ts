@@ -1,10 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as monaco from "monaco-editor";
-import "monaco-editor/esm/vs/editor/editor.worker?worker";
+import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import jsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
 import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
 import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
 import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
+import {
+  conf as yamlConf,
+  language as yamlLanguage,
+} from "monaco-editor/esm/vs/basic-languages/yaml/yaml.js";
 
 import { languageDefinitions } from "./languages";
 import type { LanguageDefinition } from "./types";
@@ -43,12 +47,17 @@ export async function setupMonaco() {
         case "javascript":
           return new tsWorker();
         default:
-          return undefined as any;
+          return new editorWorker();
       }
     },
   };
 
   for (const lang of languageDefinitions) registerLanguage(lang);
+
+  // Docker Compose files are YAML; monaco has no dockercompose tokenizer, so
+  // reuse the built-in YAML monarch tokenizer and configuration for it.
+  monaco.languages.setMonarchTokensProvider("dockercompose", yamlLanguage);
+  monaco.languages.setLanguageConfiguration("dockercompose", yamlConf);
 
   monaco.editor.defineTheme("custom-dark", {
     base: "vs-dark",

@@ -1,6 +1,14 @@
 <template>
   <transition-fade>
-    <misc-overlay-container v-if="store.upload" class="z-30" :file-drop="true" @file-drop="selectFile">
+    <div
+      v-if="dragging"
+      class="fixed inset-0 z-40 flex justify-center items-center bg-black/30 backdrop-blur-xl pointer-events-none"
+    >
+      <icon name="lucide:upload" class="text-white text-8xl" />
+    </div>
+  </transition-fade>
+  <transition-fade>
+    <misc-overlay-container v-if="store.upload" class="z-30">
       <div class="p-4 w-[80vw] max-w-xs">
         <div class="border-white border-8 aspect-square w-full flex justify-center items-center">
           <transition-fade>
@@ -39,7 +47,8 @@
 import { FileUpload, FragmentData, type FileUploadProgress } from '@not3/sdk';
 import { readRecoveryData, writeRecoveryData, type UploadRecoveryData } from '~/lib/upload';
 import { OkDialog, YesNoDialog } from '~/lib/dialog';
-import { AxiosError } from 'axios';
+import { describeTransferError } from '~/lib/transfer/errors';
+import { canStartDropUpload, isFileDrag } from '~/lib/transfer/drop';
 
 const fileName = ref("");
 const store = useAppStore();
@@ -52,8 +61,64 @@ const upload = ref<FileUpload|null>(null);
 const recoveryInterval = ref<null|number>(null);
 
 const DIALOG_TAG = 'recovery';
+let cancelRequested = false;
+
+// Global "drop a file anywhere to start a transfer" zone. This component is
+// always mounted (only its overlay is gated by store.upload), so window-level
+// listeners give the whole editor an invisible drop target. While a file is
+// dragged over the page we show a centered hint (dragging) and blur the rest;
+// dropping opens the transfer with the file loaded.
+const dragging = ref(false);
+// enter/leave counter: entering a child fires dragenter before the parent's
+// dragleave, so counting keeps the hint stable instead of flickering as the
+// cursor crosses elements (e.g. the progress matrix in the center).
+let dragDepth = 0;
+
+function canHandleDrop(): boolean {
+  return canStartDropUpload({
+    fileTransferEnabled: !!store.info.fileTransferEnabled,
+    settingsOpen: store.settings,
+    uploadActive: !!upload.value,
+  });
+}
+
+function onWindowDragEnter(event: DragEvent) {
+  if (!isFileDrag(event.dataTransfer?.types)) return; // ignore editor text drags
+  event.preventDefault(); // block the browser from navigating to the file
+  if (!canHandleDrop()) return;
+  dragDepth++;
+  dragging.value = true;
+}
+
+function onWindowDragOver(event: DragEvent) {
+  if (!isFileDrag(event.dataTransfer?.types)) return;
+  event.preventDefault(); // required so a drop event fires (and no navigation)
+}
+
+function onWindowDragLeave() {
+  if (!dragging.value) return;
+  dragDepth--;
+  if (dragDepth <= 0) {
+    dragDepth = 0;
+    dragging.value = false;
+  }
+}
+
+function onWindowDrop(event: DragEvent) {
+  if (!isFileDrag(event.dataTransfer?.types)) return;
+  event.preventDefault();
+  dragDepth = 0;
+  dragging.value = false;
+  if (!canHandleDrop()) return;
+  store.upload = true;
+  if (event.dataTransfer) selectFile(event.dataTransfer.files);
+}
 
 onMounted(() => {
+  window.addEventListener("dragenter", onWindowDragEnter);
+  window.addEventListener("dragover", onWindowDragOver);
+  window.addEventListener("dragleave", onWindowDragLeave);
+  window.addEventListener("drop", onWindowDrop);
   recoveryInterval.value = window.setInterval(() => {
     if (upload.value) {
       if (store.dialog && store.dialog.tag === DIALOG_TAG) store.dialog = null;
@@ -83,18 +148,36 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener("dragenter", onWindowDragEnter);
+  window.removeEventListener("dragover", onWindowDragOver);
+  window.removeEventListener("dragleave", onWindowDragLeave);
+  window.removeEventListener("drop", onWindowDrop);
   if (recoveryInterval.value) window.clearInterval(recoveryInterval.value);
 })
 
+function resetUploadState() {
+  upload.value = null;
+  progress.value = {};
+  totalChunks.value = 0;
+}
+
 function handleUploadError(e: unknown) {
   console.error("Upload Error", e);
-  upload.value = null;
-  let msg = "An error occurred while uploading the file.";
-  if (e instanceof AxiosError && e.response) {
-    if (e.response.data && e.response.data.message) msg = String(e.response.data.message);
+  resetUploadState();
+  if (cancelRequested) {
+    // Expected rejection of start()/resume() after a user-initiated cancel.
+    cancelRequested = false;
+    writeRecoveryData(null);
+    return;
   }
-  store.dialog = new OkDialog("Error", msg);
-  store.dialog.tag = upload.value ? DIALOG_TAG : '';
+  const msg = describeTransferError(e, "An error occurred while uploading the file.");
+  const canResume = !!readRecoveryData();
+  store.dialog = new OkDialog("Upload failed", canResume
+    ? `${msg}\n\nYou will be asked whether to resume after closing this dialog.`
+    : msg);
+  // Tagged dialogs survive the recovery poller (see onMounted interval);
+  // without recovery data the poller ignores untagged dialogs anyway.
+  store.dialog.tag = canResume ? DIALOG_TAG : '';
 }
 
 function finalizeUpload() {
@@ -161,6 +244,7 @@ async function recoverUpload(event?: Event) {
 }
 
 async function startUpload() {
+  cancelRequested = false;
   if (upload.value) return;
   if (!file.value) return;
   upload.value = new FileUpload(store.api.files(), fileName.value, file.value.size, 4, false);
@@ -177,13 +261,20 @@ async function startUpload() {
   }
 }
 
-function doCloseOrCancel() {
+async function doCloseOrCancel() {
   if (upload.value) {
-    upload.value.cancel();
+    cancelRequested = true;
+    try {
+      await upload.value.cancel();
+    } catch (e) {
+      console.warn("Cancel request failed", e);
+    }
+    writeRecoveryData(null);
   } else {
     store.upload = false;
     fileName.value = "";
     file.value = null;
+    resetUploadState();
   }
 }
 
@@ -193,8 +284,9 @@ function selectFile(files: FileList) {
   if (files.length > 1) return notifications.show("Only one file can be uploaded at a time.");
   if (!files[0]) throw new Error("No file found, which should be impossible here.");
   const fileSizeInMB = files[0].size / 1024 / 1024;
-  if (fileSizeInMB > store.info.fileTransferMaxSize * 0.98) {
-    return notifications.show(`File size exceeds the maximum limit of ${store.info.fileTransferMaxSize} MB.`);
+  const maxSizeMB = store.info.fileTransferMaxSize;
+  if (Number.isFinite(maxSizeMB) && fileSizeInMB > maxSizeMB * 0.98) {
+    return notifications.show(`File size exceeds the maximum limit of ${maxSizeMB} MB.`);
   }
   fileName.value = sanitizeFileName(files[0].name);
   fileSize.value = files[0].size;

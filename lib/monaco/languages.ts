@@ -18,6 +18,22 @@ import { HtmlDefinition } from "./languages/html";
 import { XmlDefinition } from "./languages/xml";
 import { SqlDefinition } from "./languages/sql";
 import { PlaintextDefinition } from "./languages/plaintext";
+import { CssDefinition } from "./languages/css";
+import { ScssDefinition } from "./languages/scss";
+import { LessDefinition } from "./languages/less";
+import { RustDefinition } from "./languages/rust";
+import { RubyDefinition } from "./languages/ruby";
+import { CsharpDefinition } from "./languages/csharp";
+import { KotlinDefinition } from "./languages/kotlin";
+import { SwiftDefinition } from "./languages/swift";
+import { DartDefinition } from "./languages/dart";
+import { LuaDefinition } from "./languages/lua";
+import { PerlDefinition } from "./languages/perl";
+import { RDefinition } from "./languages/r";
+import { PowershellDefinition } from "./languages/powershell";
+import { DockerfileDefinition } from "./languages/dockerfile";
+import { DockerComposeDefinition } from "./languages/docker-compose";
+import { GraphqlDefinition } from "./languages/graphql";
 
 export const languageDefinitions: LanguageDefinition[] = [
   TypeScriptDefinition,
@@ -38,4 +54,20 @@ export const languageDefinitions: LanguageDefinition[] = [
   XmlDefinition,
   SqlDefinition,
   PlaintextDefinition,
+  CssDefinition,
+  ScssDefinition,
+  LessDefinition,
+  RustDefinition,
+  RubyDefinition,
+  CsharpDefinition,
+  KotlinDefinition,
+  SwiftDefinition,
+  DartDefinition,
+  LuaDefinition,
+  PerlDefinition,
+  RDefinition,
+  PowershellDefinition,
+  DockerfileDefinition,
+  DockerComposeDefinition,
+  GraphqlDefinition,
 ];
