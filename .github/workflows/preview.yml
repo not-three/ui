@@ -43,6 +43,10 @@ jobs:
         if: github.event.action != 'closed'
         run: pnpm lint
 
+      - name: Test
+        if: github.event.action != 'closed'
+        run: pnpm test
+
       - name: Generate static files
         if: github.event.action != 'closed'
         run: NUXT_APP_BASE_URL=/pr-preview/pr-${{ github.event.number }}/ pnpm generate
