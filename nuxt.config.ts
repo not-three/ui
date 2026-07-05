@@ -30,10 +30,10 @@ export default defineNuxtConfig({
   appConfig: {},
   modules: [
     "@nuxtjs/tailwindcss",
-    "nuxt-icon",
     "@nuxt/eslint",
     "@pinia/nuxt",
     "pinia-plugin-persistedstate/nuxt",
+    "@nuxt/icon",
   ],
   devtools: { enabled: true },
   ssr: false,
