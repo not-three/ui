@@ -30,11 +30,13 @@ describe("detectLanguageFromContent", () => {
 
   it("detects yaml with matches beyond the first line", () => {
     const yaml = [
-      "services:",
-      "  web:",
-      "    image: nginx",
-      "    ports:",
-      "      - target: 80",
+      "name: ci",
+      "on:",
+      "  push:",
+      "    branches: [main]",
+      "jobs:",
+      "  build:",
+      "    runs-on: ubuntu-latest",
     ].join("\n");
     expect(detectLanguageFromContent(yaml)).toBe("yaml");
   });

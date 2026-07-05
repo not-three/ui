@@ -43,6 +43,16 @@ const GUESSLANG_TO_MONACO: Record<string, string> = {
 // Same ballpark VS Code uses before it trusts the model.
 const MIN_CONFIDENCE = 0.2;
 
+// A docker-compose file is syntactically YAML, so neither the ML model nor the
+// YAML regex patterns will ever call it "dockercompose". Detect the compose
+// shape ourselves: a top-level `services:` mapping plus a service-level key.
+function looksLikeDockerCompose(content: string): boolean {
+  if (!/^services:\s*$/m.test(content)) return false;
+  return /^\s+(image|build|container_name|depends_on|ports|volumes|environment|networks|command|restart):/m.test(
+    content,
+  );
+}
+
 let defaultRunner: ModelRunner | null = null;
 let modelBroken = false;
 
@@ -84,6 +94,7 @@ export async function detectLanguage(
 ): Promise<string> {
   if (!content.trim()) return "plaintext";
   const model = runner ?? (await loadDefaultRunner());
+  let result: string | null = null;
   if (model) {
     try {
       const results = await model(content);
@@ -91,7 +102,7 @@ export async function detectLanguage(
       if (best && best.confidence >= MIN_CONFIDENCE) {
         const mapped = GUESSLANG_TO_MONACO[best.languageId];
         if (mapped && languageDefinitions.some((l) => l.id === mapped)) {
-          return mapped;
+          result = mapped;
         }
       }
     } catch (e) {
@@ -99,5 +110,9 @@ export async function detectLanguage(
       if (!runner) modelBroken = true;
     }
   }
-  return detectLanguageFromContent(content);
+  if (!result) result = detectLanguageFromContent(content);
+  // A YAML verdict on a compose-shaped file is really Docker Compose; upgrade
+  // it so the file gets the dedicated language and "Docker Compose" label.
+  if (result === "yaml" && looksLikeDockerCompose(content)) return "dockercompose";
+  return result;
 }

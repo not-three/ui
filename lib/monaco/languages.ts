@@ -32,6 +32,7 @@ import { PerlDefinition } from "./languages/perl";
 import { RDefinition } from "./languages/r";
 import { PowershellDefinition } from "./languages/powershell";
 import { DockerfileDefinition } from "./languages/dockerfile";
+import { DockerComposeDefinition } from "./languages/docker-compose";
 import { GraphqlDefinition } from "./languages/graphql";
 
 export const languageDefinitions: LanguageDefinition[] = [
@@ -67,5 +68,6 @@ export const languageDefinitions: LanguageDefinition[] = [
   RDefinition,
   PowershellDefinition,
   DockerfileDefinition,
+  DockerComposeDefinition,
   GraphqlDefinition,
 ];
