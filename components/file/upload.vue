@@ -1,6 +1,14 @@
 <template>
   <transition-fade>
-    <misc-overlay-container v-if="store.upload" class="z-30" :file-drop="true" @file-drop="selectFile">
+    <div
+      v-if="dragging"
+      class="fixed inset-0 z-40 flex justify-center items-center bg-black/30 backdrop-blur-xl pointer-events-none"
+    >
+      <icon name="lucide:upload" class="text-white text-8xl" />
+    </div>
+  </transition-fade>
+  <transition-fade>
+    <misc-overlay-container v-if="store.upload" class="z-30">
       <div class="p-4 w-[80vw] max-w-xs">
         <div class="border-white border-8 aspect-square w-full flex justify-center items-center">
           <transition-fade>
@@ -57,7 +65,15 @@ let cancelRequested = false;
 
 // Global "drop a file anywhere to start a transfer" zone. This component is
 // always mounted (only its overlay is gated by store.upload), so window-level
-// listeners give the whole editor an invisible drop target.
+// listeners give the whole editor an invisible drop target. While a file is
+// dragged over the page we show a centered hint (dragging) and blur the rest;
+// dropping opens the transfer with the file loaded.
+const dragging = ref(false);
+// enter/leave counter: entering a child fires dragenter before the parent's
+// dragleave, so counting keeps the hint stable instead of flickering as the
+// cursor crosses elements (e.g. the progress matrix in the center).
+let dragDepth = 0;
+
 function canHandleDrop(): boolean {
   return canStartDropUpload({
     fileTransferEnabled: !!store.info.fileTransferEnabled,
@@ -66,28 +82,42 @@ function canHandleDrop(): boolean {
   });
 }
 
-function onWindowDragOver(event: DragEvent) {
+function onWindowDragEnter(event: DragEvent) {
   if (!isFileDrag(event.dataTransfer?.types)) return; // ignore editor text drags
+  event.preventDefault(); // block the browser from navigating to the file
   if (!canHandleDrop()) return;
-  // preventDefault is required so a drop event fires and the browser doesn't
-  // navigate to the file; opening the overlay shows the drop hint.
-  event.preventDefault();
-  store.upload = true;
+  dragDepth++;
+  dragging.value = true;
+}
+
+function onWindowDragOver(event: DragEvent) {
+  if (!isFileDrag(event.dataTransfer?.types)) return;
+  event.preventDefault(); // required so a drop event fires (and no navigation)
+}
+
+function onWindowDragLeave() {
+  if (!dragging.value) return;
+  dragDepth--;
+  if (dragDepth <= 0) {
+    dragDepth = 0;
+    dragging.value = false;
+  }
 }
 
 function onWindowDrop(event: DragEvent) {
   if (!isFileDrag(event.dataTransfer?.types)) return;
-  if (!canHandleDrop()) return;
-  // If the overlay was already the drop target it handled + selected the file
-  // and called preventDefault; don't select a second time.
-  if (event.defaultPrevented) return;
   event.preventDefault();
+  dragDepth = 0;
+  dragging.value = false;
+  if (!canHandleDrop()) return;
   store.upload = true;
   if (event.dataTransfer) selectFile(event.dataTransfer.files);
 }
 
 onMounted(() => {
+  window.addEventListener("dragenter", onWindowDragEnter);
   window.addEventListener("dragover", onWindowDragOver);
+  window.addEventListener("dragleave", onWindowDragLeave);
   window.addEventListener("drop", onWindowDrop);
   recoveryInterval.value = window.setInterval(() => {
     if (upload.value) {
@@ -118,7 +148,9 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener("dragenter", onWindowDragEnter);
   window.removeEventListener("dragover", onWindowDragOver);
+  window.removeEventListener("dragleave", onWindowDragLeave);
   window.removeEventListener("drop", onWindowDrop);
   if (recoveryInterval.value) window.clearInterval(recoveryInterval.value);
 })
