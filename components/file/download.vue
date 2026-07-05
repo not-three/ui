@@ -101,6 +101,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  // Only clean up if this tab owns an active run. cancelCheckInterval is set
+  // when a download starts and nulled by every cleanup path, so a null here
+  // means we hold no lock — clearing it would delete another tab's lock.
+  if (cancelCheckInterval === null) return;
   // Stop the heartbeat when the user leaves via SPA navigation mid-download;
   // the beforeunload listener stays and wipes the chunks when the tab closes.
   canceled = true;
