@@ -1,0 +1,1 @@
+import{_ as e}from"./C6o93cIi.js";import{_ as o,c as n,o as _}from"./Jd2G-skW.js";import"./DxL5QqBT.js";const c={};function s(r,a){const t=e;return _(),n(t,{"open-settings":!0})}const i=o(c,[["render",s]]);export{i as default};
