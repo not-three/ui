@@ -40,6 +40,7 @@ import { FileUpload, FragmentData, type FileUploadProgress } from '@not3/sdk';
 import { readRecoveryData, writeRecoveryData, type UploadRecoveryData } from '~/lib/upload';
 import { OkDialog, YesNoDialog } from '~/lib/dialog';
 import { describeTransferError } from '~/lib/transfer/errors';
+import { canStartDropUpload, isFileDrag } from '~/lib/transfer/drop';
 
 const fileName = ref("");
 const store = useAppStore();
@@ -54,7 +55,40 @@ const recoveryInterval = ref<null|number>(null);
 const DIALOG_TAG = 'recovery';
 let cancelRequested = false;
 
+// Global "drop a file anywhere to start a transfer" zone. This component is
+// always mounted (only its overlay is gated by store.upload), so window-level
+// listeners give the whole editor an invisible drop target.
+function canHandleDrop(): boolean {
+  return canStartDropUpload({
+    fileTransferEnabled: !!store.info.fileTransferEnabled,
+    settingsOpen: store.settings,
+    uploadActive: !!upload.value,
+  });
+}
+
+function onWindowDragOver(event: DragEvent) {
+  if (!isFileDrag(event.dataTransfer?.types)) return; // ignore editor text drags
+  if (!canHandleDrop()) return;
+  // preventDefault is required so a drop event fires and the browser doesn't
+  // navigate to the file; opening the overlay shows the drop hint.
+  event.preventDefault();
+  store.upload = true;
+}
+
+function onWindowDrop(event: DragEvent) {
+  if (!isFileDrag(event.dataTransfer?.types)) return;
+  if (!canHandleDrop()) return;
+  // If the overlay was already the drop target it handled + selected the file
+  // and called preventDefault; don't select a second time.
+  if (event.defaultPrevented) return;
+  event.preventDefault();
+  store.upload = true;
+  if (event.dataTransfer) selectFile(event.dataTransfer.files);
+}
+
 onMounted(() => {
+  window.addEventListener("dragover", onWindowDragOver);
+  window.addEventListener("drop", onWindowDrop);
   recoveryInterval.value = window.setInterval(() => {
     if (upload.value) {
       if (store.dialog && store.dialog.tag === DIALOG_TAG) store.dialog = null;
@@ -84,6 +118,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener("dragover", onWindowDragOver);
+  window.removeEventListener("drop", onWindowDrop);
   if (recoveryInterval.value) window.clearInterval(recoveryInterval.value);
 })
 
