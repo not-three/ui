@@ -98,6 +98,52 @@ describe("buildBootstrap", () => {
     });
   });
 
+  it("splits %c format strings into styled segments", () => {
+    const posted = setup();
+    console.log("%cred%c plain", "color: red", "", "tail");
+    expect(posted).toContainEqual({
+      type: SANDBOX_CONSOLE_MESSAGE,
+      token: TOKEN,
+      level: "log",
+      args: ["red plain tail"],
+      segments: [
+        { text: "", css: "" },
+        { text: "red", css: "color: red" },
+        { text: " plain", css: "" },
+        { text: " tail", css: "" },
+      ],
+    });
+  });
+
+  it("substitutes non-style format directives", () => {
+    const posted = setup();
+    console.log("%s is %d/%f %o %% %q", "x", 4.7, 1.5, { a: 1 });
+    expect(posted).toContainEqual({
+      type: SANDBOX_CONSOLE_MESSAGE,
+      token: TOKEN,
+      level: "log",
+      args: ["x is 4/1.5 {a: 1} % %q"],
+    });
+  });
+
+  it("leaves plain strings and unmatched directives alone", () => {
+    const posted = setup();
+    console.log("100% sure", { a: 1 });
+    console.log("%c");
+    expect(posted).toContainEqual({
+      type: SANDBOX_CONSOLE_MESSAGE,
+      token: TOKEN,
+      level: "log",
+      args: ["100% sure", "{a: 1}"],
+    });
+    expect(posted).toContainEqual({
+      type: SANDBOX_CONSOLE_MESSAGE,
+      token: TOKEN,
+      level: "log",
+      args: ["%c"],
+    });
+  });
+
   it("ignores eval requests with a wrong token", () => {
     const posted = setup();
     window.dispatchEvent(

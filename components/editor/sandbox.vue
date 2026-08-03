@@ -33,7 +33,7 @@
         :key="i"
         class="whitespace-pre-wrap break-all"
         :class="LEVEL_CLASSES[entry.level]"
-      >{{ entry.text }}</div>
+      ><span v-for="(segment, j) in segmentsOf(entry)" :key="j" :style="segment.css">{{ segment.text }}</span></div>
     </div>
     <form class="flex items-center border-t border-black" @submit.prevent="submitEval">
       <span class="pl-2 pr-1 py-1 text-green-400 font-mono text-xs select-none">&gt;</span>
@@ -54,6 +54,7 @@ import {
   SANDBOX_EVAL_MESSAGE,
   parseSandboxMessage,
   type ConsoleLevel,
+  type SandboxConsoleSegment,
 } from "~/lib/sandbox/protocol";
 import {
   SANDBOX_IFRAME_SANDBOX,
@@ -64,7 +65,13 @@ import {
 
 const MAX_ENTRIES = 500;
 
-type Entry = { level: ConsoleLevel | "input"; text: string };
+// segments is set for `%c` styled logs; their css is sanitized by
+// parseSandboxMessage before it ever reaches an inline style attribute.
+type Entry = {
+  level: ConsoleLevel | "input";
+  text: string;
+  segments?: SandboxConsoleSegment[];
+};
 
 const LEVEL_CLASSES: Record<string, string> = {
   log: "text-gray-100",
@@ -91,6 +98,10 @@ const mode = computed<SandboxMode | null>(() =>
   sandboxModeForLanguage(store.getCurrentLanguage().id),
 );
 
+function segmentsOf(entry: Entry): SandboxConsoleSegment[] {
+  return entry.segments ?? [{ text: entry.text, css: "" }];
+}
+
 function push(entry: Entry) {
   entries.value.push(entry);
   if (entries.value.length > MAX_ENTRIES) {
@@ -116,7 +127,7 @@ function onMessage(event: MessageEvent) {
   const msg = parseSandboxMessage(event.data, token);
   if (!msg || msg.type !== SANDBOX_CONSOLE_MESSAGE) return;
   if (msg.level === "clear") entries.value = [];
-  else push({ level: msg.level, text: msg.args.join(" ") });
+  else push({ level: msg.level, text: msg.args.join(" "), segments: msg.segments });
 }
 
 function submitEval() {
