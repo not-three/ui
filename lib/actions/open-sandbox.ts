@@ -1,5 +1,5 @@
 import { OkDialog, YesNoDialog } from "../dialog";
-import { sandboxModeForLanguage } from "../sandbox/srcdoc";
+import { isRunnableLanguage } from "../sandbox/runners";
 
 export const OPEN_SANDBOX = () => {
   const store = useAppStore();
@@ -9,10 +9,10 @@ export const OPEN_SANDBOX = () => {
     store.sandbox = false;
     return;
   }
-  if (!sandboxModeForLanguage(store.getCurrentLanguage().id)) {
+  if (!isRunnableLanguage(store.getCurrentLanguage().id)) {
     store.dialog = new OkDialog(
       "Run / Preview",
-      "Only JavaScript and HTML notes can be run. Select one of these languages in the bottom bar first.",
+      "This note's language cannot be run or previewed. Select a supported language in the bottom bar first.",
     );
     return;
   }

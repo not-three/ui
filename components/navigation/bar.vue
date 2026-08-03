@@ -28,7 +28,7 @@
 import { YesNoDialog } from '~/lib/dialog';
 import type { NavigationEntry } from '~/lib/navigation';
 import * as Actions from '~/lib/actions';
-import { sandboxModeForLanguage } from '~/lib/sandbox/srcdoc';
+import { isRunnableLanguage } from '~/lib/sandbox/runners';
 const store = useAppStore();
 const settings = useSettingsStore();
 
@@ -123,11 +123,11 @@ const entries = computed<NavigationEntry[]>(() => [
       {
         name: store.sandbox ? "Close Run / Preview" : "Run / Preview",
         onClick: Actions.OPEN_SANDBOX,
-        disabled: store.settings || (!store.sandbox && !sandboxModeForLanguage(store.getCurrentLanguage().id)),
+        disabled: store.settings || (!store.sandbox && !isRunnableLanguage(store.getCurrentLanguage().id)),
         title: store.settings
           ? "Cant run code while settings editor is open"
-          : !store.sandbox && !sandboxModeForLanguage(store.getCurrentLanguage().id)
-            ? "Only JavaScript and HTML notes can be run"
+          : !store.sandbox && !isRunnableLanguage(store.getCurrentLanguage().id)
+            ? "This language cannot be run or previewed"
             : undefined,
       },
     ],

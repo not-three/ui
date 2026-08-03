@@ -1,6 +1,5 @@
 import { buildBootstrap } from "./bootstrap";
-
-export type SandboxMode = "javascript" | "html";
+import type { SandboxRunner } from "./runners/types";
 
 /**
  * iframe sandbox flags. NEVER add allow-same-origin (the opaque origin is
@@ -9,51 +8,67 @@ export type SandboxMode = "javascript" | "html";
  */
 export const SANDBOX_IFRAME_SANDBOX = "allow-scripts allow-modals";
 
-export function sandboxModeForLanguage(id: string | null | undefined): SandboxMode | null {
-  if (id === "javascript") return "javascript";
-  if (id === "html") return "html";
-  return null;
+export interface CspOptions {
+  /** User ticked the network checkbox: open https:/wss: for their code. */
+  allowNetwork: boolean;
+  /** App origin, set only for runners that load self-hosted vendor assets. */
+  vendorOrigin: string | null;
+  /** Allow blob: module scripts (compiled-in-iframe runners). */
+  scriptBlob: boolean;
 }
 
-export function buildCsp(allowNetwork: boolean): string {
-  const net = allowNetwork ? " https:" : "";
+export function buildCsp(opts: CspOptions): string {
+  const net = opts.allowNetwork ? " https:" : "";
+  const vendor = opts.vendorOrigin ? ` ${opts.vendorOrigin}` : "";
+  const blob = opts.scriptBlob ? " blob:" : "";
+  const connect = [
+    ...(opts.vendorOrigin ? [opts.vendorOrigin] : []),
+    ...(opts.allowNetwork ? ["https:", "wss:"] : []),
+  ];
   return [
     "default-src 'none'",
-    `script-src 'unsafe-inline' 'unsafe-eval'${net}`,
-    `style-src 'unsafe-inline'${net}`,
-    `img-src data: blob:${net}`,
-    `font-src data:${net}`,
-    `media-src data: blob:${net}`,
-    `connect-src ${allowNetwork ? "https: wss:" : "'none'"}`,
+    `script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'${blob}${vendor}${net}`,
+    `style-src 'unsafe-inline'${vendor}${net}`,
+    `img-src data: blob:${vendor}${net}`,
+    `font-src data:${vendor}${net}`,
+    `media-src data: blob:${vendor}${net}`,
+    `worker-src blob:${vendor}`,
+    `connect-src ${connect.length ? connect.join(" ") : "'none'"}`,
     "form-action 'none'",
     "base-uri 'none'",
   ].join("; ");
 }
 
-// Prevents user code from closing our <script> tag; inside JS string
-// literals "<\/script" is equivalent to "</script" so semantics survive.
-function escapeScript(code: string): string {
-  return code.replace(/<\/script/gi, "<\\/script");
-}
-
-export function buildSrcdoc(opts: {
-  mode: SandboxMode;
+export interface SrcdocOptions {
+  runner: SandboxRunner;
   content: string;
   token: string;
   allowNetwork: boolean;
-}): string {
+  /** window.location.origin of the app; vendor assets are loaded from it. */
+  origin: string;
+}
+
+export function buildSrcdoc(opts: SrcdocOptions): string {
+  const doc = opts.runner.build({
+    content: opts.content,
+    vendorBase: `${opts.origin.replace(/\/$/, "")}/vendor`,
+  });
+  const csp = buildCsp({
+    allowNetwork: opts.allowNetwork,
+    vendorOrigin: opts.runner.usesVendor ? opts.origin : null,
+    scriptBlob: opts.runner.scriptBlob === true,
+  });
   const head =
-    `<meta http-equiv="Content-Security-Policy" content="${buildCsp(opts.allowNetwork)}">` +
-    `<script>${buildBootstrap(opts.token)}</script>`;
-  if (opts.mode === "javascript") {
-    return (
-      "<!doctype html><html><head>" + head +
-      "<style>body{background:#1e1e1e}</style></head><body>" +
-      `<script>${escapeScript(opts.content)}</script></body></html>`
-    );
-  }
-  // html mode: our doctype + CSP + bootstrap must come first; a duplicate
-  // doctype mid-document would put the page into quirks mode, so strip it.
-  const content = opts.content.replace(/^\s*<!doctype[^>]*>/i, "");
-  return "<!doctype html>" + head + content;
+    `<meta http-equiv="Content-Security-Policy" content="${csp}">` +
+    `<script>${buildBootstrap(opts.token)}</script>` +
+    (doc.head ?? "");
+  if (doc.bare) return "<!doctype html>" + head + doc.body;
+  const style =
+    opts.runner.layout === "preview"
+      ? "<style>body{background:#fff}</style>"
+      : "<style>body{background:#1e1e1e}</style>";
+  return (
+    "<!doctype html><html><head>" + head + style + "</head><body>" +
+    doc.body + "</body></html>"
+  );
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="w-full sm:w-1/2 flex-shrink-0 h-full flex flex-col bg-[#111] border-l border-black text-white min-w-0">
     <div class="flex items-center gap-3 px-2 py-1 bg-black text-sm">
-      <span class="font-bold select-none">{{ mode === "html" ? "HTML Preview" : "JS Console" }}</span>
+      <span class="font-bold select-none">{{ runner?.layout === "preview" ? "Preview" : "Console" }}</span>
       <button class="sandbox-btn" @click="run">Run</button>
       <button class="sandbox-btn" @click="entries = []">Clear</button>
       <label class="flex items-center gap-1 select-none cursor-pointer" title="Re-run automatically when the note changes">
@@ -21,12 +21,12 @@
       :srcdoc="doc"
       :sandbox="SANDBOX_IFRAME_SANDBOX"
       referrerpolicy="no-referrer"
-      :class="mode === 'html' ? 'w-full flex-grow bg-white border-none' : 'hidden'"
+      :class="runner?.layout === 'preview' ? 'w-full flex-grow bg-white border-none' : 'hidden'"
     />
     <div
       ref="output"
       class="overflow-y-auto font-mono text-xs px-2 py-1"
-      :class="mode === 'html' ? 'h-48 border-t border-black flex-shrink-0' : 'flex-grow basis-0'"
+      :class="runner?.layout === 'preview' ? 'h-48 border-t border-black flex-shrink-0' : 'flex-grow basis-0'"
     >
       <div
         v-for="(entry, i) in entries"
@@ -56,12 +56,9 @@ import {
   type ConsoleLevel,
   type SandboxConsoleSegment,
 } from "~/lib/sandbox/protocol";
-import {
-  SANDBOX_IFRAME_SANDBOX,
-  buildSrcdoc,
-  sandboxModeForLanguage,
-  type SandboxMode,
-} from "~/lib/sandbox/srcdoc";
+import { SANDBOX_IFRAME_SANDBOX, buildSrcdoc } from "~/lib/sandbox/srcdoc";
+import { defaultRunnerForLanguage } from "~/lib/sandbox/runners";
+import type { SandboxRunner } from "~/lib/sandbox/runners/types";
 
 const MAX_ENTRIES = 500;
 
@@ -94,8 +91,8 @@ const doc = ref("");
 // iframe only evaluates REPL input carrying it.
 let token = "";
 
-const mode = computed<SandboxMode | null>(() =>
-  sandboxModeForLanguage(store.getCurrentLanguage().id),
+const runner = computed<SandboxRunner | null>(() =>
+  defaultRunnerForLanguage(store.getCurrentLanguage().id),
 );
 
 function segmentsOf(entry: Entry): SandboxConsoleSegment[] {
@@ -111,14 +108,15 @@ function push(entry: Entry) {
 }
 
 function run() {
-  if (!mode.value) return;
+  if (!runner.value) return;
   entries.value = [];
   token = nanoid();
   doc.value = buildSrcdoc({
-    mode: mode.value,
+    runner: runner.value,
     content: store.content,
     token,
     allowNetwork: allowNetwork.value,
+    origin: window.location.origin,
   });
 }
 
@@ -149,13 +147,14 @@ const rerun = debounce(() => {
 
 watch(() => store.content, () => rerun());
 watch(allowNetwork, run);
-watch(mode, (m) => {
-  if (!m) {
+watch(runner, (r, old) => {
+  if (!r) {
     store.sandbox = false;
     return;
   }
-  // The language switched while the panel is open: the pane layout changes with
-  // it, so never leave the document built for the previous mode on screen.
+  if (r.id === old?.id) return;
+  // Language switched while the panel is open: never leave the previous
+  // runner's document on screen.
   if (autoRun.value) run();
   else {
     entries.value = [];
