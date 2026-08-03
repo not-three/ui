@@ -38,6 +38,7 @@ export const useAppStore = defineStore('app', {
       mimeTypes: lang.mimeTypes || [],
     })).sort((a, b) => a.id.localeCompare(b.id)),
     excalidraw: false,
+    sandbox: false,
   }),
   actions: {
     async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean, openShareDialog?: 'url' | 'curl') {
