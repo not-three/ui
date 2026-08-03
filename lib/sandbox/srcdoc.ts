@@ -25,18 +25,31 @@ export function buildCsp(opts: CspOptions): string {
     ...(opts.vendorOrigin ? [opts.vendorOrigin] : []),
     ...(opts.allowNetwork ? ["https:", "wss:"] : []),
   ];
-  return [
+  const directives = [
     "default-src 'none'",
     `script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'${blob}${vendor}${net}`,
     `style-src 'unsafe-inline'${vendor}${net}`,
     `img-src data: blob:${vendor}${net}`,
     `font-src data:${vendor}${net}`,
     `media-src data: blob:${vendor}${net}`,
-    `worker-src blob:${vendor}`,
+  ];
+  // Only declare worker-src when a runner actually needs blob: module
+  // workers or vendor-origin workers. Plain javascript/html notes have
+  // neither, so we omit the directive entirely and let it fall back through
+  // child-src -> script-src -> default-src 'none', which blocks Worker
+  // construction outright — exactly the pre-refactor behaviour. Emitting an
+  // unconditional "worker-src blob:" here would silently grant every note
+  // (including plain JS/HTML) the ability to spawn blob: Workers, which is
+  // a capability widening this refactor must not introduce.
+  if (opts.vendorOrigin || opts.scriptBlob) {
+    directives.push(`worker-src blob:${vendor}`);
+  }
+  directives.push(
     `connect-src ${connect.length ? connect.join(" ") : "'none'"}`,
     "form-action 'none'",
     "base-uri 'none'",
-  ].join("; ");
+  );
+  return directives.join("; ");
 }
 
 export interface SrcdocOptions {

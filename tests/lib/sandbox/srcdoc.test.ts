@@ -6,6 +6,20 @@ import { HtmlRunner } from "~/lib/sandbox/runners/html";
 const TOKEN = "tok-xyz";
 const ORIGIN = "https://app.example";
 
+/**
+ * Extract a CSP directive's value as whitespace-separated tokens. Used
+ * instead of substring assertions: ORIGIN ("https://app.example") itself
+ * contains the text "https:", so a plain `toContain`/`not.toContain` check
+ * against a CSP string can pass even when the wrong tokens are present (e.g.
+ * a conflated allowNetwork/vendorOrigin flag widening script-src to the bare
+ * "https:" scheme). Tokenizing the directive and checking membership avoids
+ * that aliasing.
+ */
+function directive(csp: string, name: string): string[] {
+  const match = csp.match(new RegExp(`(?:^|; )${name} ([^;]*)`));
+  return match ? match[1].split(" ") : [];
+}
+
 describe("iframe sandbox attribute", () => {
   it("never grants same-origin or top navigation", () => {
     expect(SANDBOX_IFRAME_SANDBOX).toBe("allow-scripts allow-modals");
@@ -32,11 +46,16 @@ describe("buildCsp", () => {
     const csp = buildCsp({ allowNetwork: false, vendorOrigin: ORIGIN, scriptBlob: false });
     expect(csp).toContain(`script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' ${ORIGIN}`);
     expect(csp).toContain(`connect-src ${ORIGIN}`);
-    // Note: ORIGIN itself starts with "https:", so a plain
-    // `not.toContain("https:")` (as in the original spec) can never pass here.
-    // The property actually under test is that enabling a vendor origin does
-    // not also open the generic network-allowed wildcard scheme list.
-    expect(csp).not.toContain("wss:");
+    // Token-level check (see `directive` helper above): the generic wildcard
+    // schemes must NOT be members of script-src/connect-src even though
+    // ORIGIN's own text contains "https:". This is what actually catches a
+    // buildCsp that conflates allowNetwork and vendorOrigin.
+    expect(directive(csp, "script-src")).toContain(ORIGIN);
+    expect(directive(csp, "script-src")).not.toContain("https:");
+    expect(directive(csp, "script-src")).not.toContain("wss:");
+    expect(directive(csp, "connect-src")).toContain(ORIGIN);
+    expect(directive(csp, "connect-src")).not.toContain("https:");
+    expect(directive(csp, "connect-src")).not.toContain("wss:");
   });
 
   it("adds blob: to script-src only when requested", () => {
@@ -44,6 +63,23 @@ describe("buildCsp", () => {
     expect(csp).toContain("script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:");
     const plain = buildCsp({ allowNetwork: false, vendorOrigin: ORIGIN, scriptBlob: false });
     expect(plain.match(/script-src [^;]*/)![0]).not.toContain("blob:");
+  });
+
+  it("omits worker-src for runners that need neither blob workers nor vendor assets", () => {
+    const csp = buildCsp({ allowNetwork: false, vendorOrigin: null, scriptBlob: false });
+    // Plain javascript/html notes must keep the pre-refactor behaviour of
+    // blocking Worker construction outright (no worker-src -> falls back to
+    // script-src -> default-src 'none').
+    expect(csp).not.toContain("worker-src");
+  });
+
+  it("declares worker-src (blob: and the vendor origin) once a runner needs it", () => {
+    const withVendor = buildCsp({ allowNetwork: false, vendorOrigin: ORIGIN, scriptBlob: false });
+    expect(directive(withVendor, "worker-src")).toContain("blob:");
+    expect(directive(withVendor, "worker-src")).toContain(ORIGIN);
+
+    const withScriptBlob = buildCsp({ allowNetwork: false, vendorOrigin: null, scriptBlob: true });
+    expect(directive(withScriptBlob, "worker-src")).toContain("blob:");
   });
 });
 
@@ -77,6 +113,7 @@ describe("buildSrcdoc", () => {
     expect(doc).toContain("<h1>Hi</h1>");
     expect(doc).not.toContain("<!DOCTYPE html>");
     expect(doc.indexOf("Content-Security-Policy")).toBeLessThan(doc.indexOf("<h1>Hi</h1>"));
+    expect(doc.indexOf(TOKEN)).toBeLessThan(doc.indexOf("<h1>Hi</h1>"));
   });
 
   it("does not leak the app origin into non-vendor runners", () => {
