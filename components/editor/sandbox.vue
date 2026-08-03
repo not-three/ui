@@ -34,6 +34,7 @@
         <input v-model="allowNetwork" type="checkbox"> network
       </label>
       <div class="flex-grow" />
+      <button class="sandbox-btn" title="Open in a separate window" @click="popout">Popout</button>
       <button class="sandbox-btn" @click="store.sandbox = false">Close</button>
     </div>
     <iframe
@@ -82,6 +83,8 @@ import {
 import { SANDBOX_IFRAME_SANDBOX, buildSrcdoc } from "~/lib/sandbox/srcdoc";
 import { runnersForLanguage } from "~/lib/sandbox/runners";
 import type { SandboxRunner } from "~/lib/sandbox/runners/types";
+import { buildPopoutDocument } from "~/lib/sandbox/popout";
+import { OkDialog } from "~/lib/dialog";
 
 const MAX_ENTRIES = 500;
 
@@ -154,6 +157,29 @@ function run() {
     allowNetwork: allowNetwork.value,
     origin: window.location.origin,
   });
+}
+
+function popout() {
+  if (!runner.value) return;
+  if (!doc.value) run();
+  const win = window.open("", "_blank", "width=960,height=720");
+  if (!win) {
+    store.dialog = new OkDialog(
+      "Popup blocked",
+      "Your browser blocked the popout window. Allow popups for this site and try again.",
+    );
+    return;
+  }
+  win.document.open();
+  win.document.write(
+    buildPopoutDocument({
+      title: `!3 ${runner.value.label}`,
+      srcdoc: doc.value,
+      token,
+      layout: runner.value.layout,
+    }),
+  );
+  win.document.close();
 }
 
 function onMessage(event: MessageEvent) {
