@@ -1,6 +1,9 @@
 <template>
-  <div ref="container" class="w-full flex-grow relative">
-    <editor-excalidraw v-if="store.excalidraw" />
+  <div class="w-full flex-grow flex min-h-0">
+    <div ref="container" class="h-full flex-grow relative min-w-0">
+      <editor-excalidraw v-if="store.excalidraw" />
+    </div>
+    <editor-sandbox v-if="store.sandbox" />
   </div>
 </template>
 
