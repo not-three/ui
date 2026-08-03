@@ -1,5 +1,17 @@
 <template>
-  <div class="w-full sm:w-1/2 flex-shrink-0 h-full flex flex-col bg-[#111] border-l border-black text-white min-w-0">
+  <div
+    ref="root"
+    class="w-full sm:w-[var(--sandbox-w)] flex-shrink-0 h-full flex flex-col bg-[#111] border-l border-black text-white min-w-0 relative"
+    :style="{ '--sandbox-w': widthPct + '%' }"
+  >
+    <div
+      class="absolute left-0 inset-y-0 w-1.5 cursor-col-resize touch-none hidden sm:block hover:bg-white/30 z-10"
+      :class="{ 'bg-white/30': resizing }"
+      @pointerdown="startResize"
+      @pointermove="onResizeMove"
+      @pointerup="stopResize"
+      @pointercancel="stopResize"
+    />
     <div class="flex items-center gap-3 px-2 py-1 bg-black text-sm">
       <span class="font-bold select-none">{{ runner?.label || "Sandbox" }}</span>
       <select
@@ -29,7 +41,10 @@
       :srcdoc="doc"
       :sandbox="SANDBOX_IFRAME_SANDBOX"
       referrerpolicy="no-referrer"
-      :class="runner?.layout === 'preview' ? 'w-full flex-grow bg-white border-none' : 'hidden'"
+      :class="[
+        runner?.layout === 'preview' ? 'w-full flex-grow bg-white border-none' : 'hidden',
+        resizing ? 'pointer-events-none' : '',
+      ]"
     />
     <div
       ref="output"
@@ -87,9 +102,15 @@ const LEVEL_CLASSES: Record<string, string> = {
   input: "text-green-400",
 };
 
+const MIN_WIDTH_PCT = 20;
+const MAX_WIDTH_PCT = 80;
+
 const store = useAppStore();
 const iframe = ref<HTMLIFrameElement>();
 const output = ref<HTMLDivElement>();
+const root = ref<HTMLDivElement>();
+const widthPct = ref(50);
+const resizing = ref(false);
 const entries = ref<Entry[]>([]);
 const evalInput = ref("");
 const autoRun = ref(true);
@@ -154,6 +175,26 @@ function submitEval() {
     "*",
   );
   evalInput.value = "";
+}
+
+// Pointer events unify mouse/touch/pen; touch-action: none on the handle
+// stops the browser from turning the drag into a scroll on touch screens.
+function startResize(event: PointerEvent) {
+  (event.target as HTMLElement).setPointerCapture(event.pointerId);
+  resizing.value = true;
+}
+
+function onResizeMove(event: PointerEvent) {
+  if (!resizing.value) return;
+  const parent = root.value?.parentElement;
+  if (!parent) return;
+  const rect = parent.getBoundingClientRect();
+  const pct = ((rect.right - event.clientX) / rect.width) * 100;
+  widthPct.value = Math.min(MAX_WIDTH_PCT, Math.max(MIN_WIDTH_PCT, pct));
+}
+
+function stopResize() {
+  resizing.value = false;
 }
 
 const rerun = debounce(() => {
