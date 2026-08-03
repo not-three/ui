@@ -11,6 +11,7 @@
       @pointermove="onResizeMove"
       @pointerup="stopResize"
       @pointercancel="stopResize"
+      @lostpointercapture="stopResize"
     />
     <div class="flex items-center gap-3 px-2 py-1 bg-black text-sm">
       <span class="font-bold select-none">{{ runner?.label || "Sandbox" }}</span>
@@ -215,6 +216,7 @@ function onResizeMove(event: PointerEvent) {
   const parent = root.value?.parentElement;
   if (!parent) return;
   const rect = parent.getBoundingClientRect();
+  if (!(rect.width > 0)) return;
   const pct = ((rect.right - event.clientX) / rect.width) * 100;
   widthPct.value = Math.min(MAX_WIDTH_PCT, Math.max(MIN_WIDTH_PCT, pct));
 }
@@ -252,6 +254,7 @@ watch(runner, (r, old) => {
 
 onMounted(() => {
   window.addEventListener("message", onMessage);
+  engineId.value = availableRunners.value[0]?.id ?? "";
   autoRun.value = !runner.value?.heavy;
   run();
 });
