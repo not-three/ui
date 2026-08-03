@@ -1,4 +1,4 @@
-import { existsSync, statSync, readdirSync } from "node:fs";
+import { existsSync, statSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { VENDOR_PATHS } from "~/lib/sandbox/vendor";
@@ -13,25 +13,37 @@ function sizeOf(path: string): number {
 }
 
 // Per-engine ceilings in MB. Selective copies must stay well under these;
-// a blanket package copy blows straight through them.
+// a blanket package copy blows straight through them. The five small ones
+// (react, sql.js, wasmoon, jscpp, svelte) are set to roughly measured size +
+// 40% rather than a round "obviously small" number — a loose budget here
+// (e.g. react's original 2 MB against a 0.14 MB actual) would hide a
+// partial regression, such as a second build variant sneaking back in,
+// until it was already most of the way to blowing the ceiling.
 const BUDGET_MB: Record<string, number> = {
   pyodide: 30,
   "ruby-wasm": 60,
   "php-wasm": 60,
   pglite: 30,
-  "sql.js": 5,
+  "sql.js": 1,
   mermaid: 8,
-  svelte: 6,
+  svelte: 1.6,
   typescript: 15,
-  react: 2,
+  react: 0.2,
   vue: 3,
-  wasmoon: 2,
+  wasmoon: 0.6,
   babel: 4,
   coffeescript: 2,
-  jscpp: 2,
+  jscpp: 0.6,
   "picoc-js": 3,
 };
 const TOTAL_BUDGET_MB = 200;
+
+// Hosts confirmed (or preemptively suspected, same package class) to appear
+// as hardcoded default fetch targets inside vendored interpreter packages.
+// scripts/copy-sandbox-vendor.mjs neutralises these post-copy; this assertion
+// is what makes that mechanical and durable against future dependency bumps
+// silently reintroducing one, across all 18 engines.
+const CDN_HOSTS = ["cdn.jsdelivr.net", "unpkg.com", "cdnjs.cloudflare.com", "esm.sh"];
 
 describe("vendor pipeline", () => {
   it("every VENDOR_PATHS entry exists under public/vendor (run pnpm install if this fails)", () => {
@@ -66,5 +78,26 @@ describe("vendor pipeline", () => {
     };
     if (existsSync(vendorDir)) walk(vendorDir);
     expect(junk, `remove these from the copy list:\n${junk.join("\n")}`).toEqual([]);
+  });
+
+  it("ships no hardcoded CDN URLs (the app must load everything from its own origin)", () => {
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+          continue;
+        }
+        if (!/\.(m?js|cjs|json)$/i.test(entry.name)) continue;
+        const contents = readFileSync(full, "utf8");
+        if (CDN_HOSTS.some((host) => contents.includes(host))) offenders.push(full);
+      }
+    };
+    if (existsSync(vendorDir)) walk(vendorDir);
+    expect(
+      offenders,
+      `these vendored files still reference a CDN host (${CDN_HOSTS.join(", ")}) — the copy script's sanitisation pass should have rewritten them:\n${offenders.join("\n")}`,
+    ).toEqual([]);
   });
 });

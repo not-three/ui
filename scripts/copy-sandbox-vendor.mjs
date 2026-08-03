@@ -6,8 +6,8 @@
 // Copies are SELECTIVE: only the files a runner actually loads. Blanket
 // package copies would add ~300 MB to the image (php-wasm alone is 182 MB
 // unpacked); tests/lib/sandbox/vendor.test.ts enforces the budgets.
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -15,6 +15,33 @@ const modules = join(root, "node_modules");
 const target = join(root, "public", "vendor");
 
 const JUNK = /\.(map|d\.ts|md|txt)$/i;
+
+// Known CDN hosts that have turned up hardcoded inside vendored packages as
+// *default* fetch targets — not just documentation. Two confirmed instances:
+// wasmoon's LuaFactory falls back to `https://unpkg.com/wasmoon@<version>/
+// dist/glue.wasm` when no explicit wasm URI is given (the zero-arg
+// `new LuaFactory()` call from wasmoon's own docs), and pyodide's
+// loadPyodide() unconditionally calls `setCdnUrl('https://cdn.jsdelivr.net/
+// pyodide/v<version>/full/')` as the base for fetching any non-stdlib Python
+// package. cdnjs.cloudflare.com and esm.sh are included preemptively — same
+// class of package, not yet confirmed present, but cheap to neutralise up
+// front rather than wait for the next dependency bump to reintroduce one.
+//
+// The sandbox iframe's CSP (connect-src limited to the app origin, widened
+// to `https:` only when the user ticks the network checkbox) already blocks
+// these hosts at the network layer, so nothing could leak with the checkbox
+// off. But the user's mandate is stronger than "blocked at runtime": no CDN
+// URL may ship in the bundle at all, because the user CAN tick that
+// checkbox for their own code's use, and a residual CDN string is a latent
+// exfiltration path the CSP would then no longer stop for THIS asset. So the
+// strings are removed at the source, not merely left for the CSP to block.
+//
+// vendored.invalid uses the RFC 2606 reserved .invalid TLD, which can never
+// resolve in DNS — any code path that still tries to fetch it fails loudly
+// (offline) instead of silently reaching a real host.
+const CDN_HOSTS = ["cdn.jsdelivr.net", "unpkg.com", "cdnjs.cloudflare.com", "esm.sh"];
+const CDN_PATTERN = new RegExp(`https://(?:${CDN_HOSTS.map((h) => h.replace(/\./g, "\\.")).join("|")})`, "g");
+const SANITIZE_EXT = /\.(m?js|cjs|json)$/i;
 
 /**
  * Engines and the files they need.
@@ -132,6 +159,34 @@ function sizeOf(path) {
   return readdirSync(path).reduce((sum, e) => sum + sizeOf(join(path, e)), 0);
 }
 
+/**
+ * Walks every copied text file under `dir` and rewrites the origin of any
+ * known CDN URL to the non-resolving `vendored.invalid`, keeping the path
+ * so surrounding string handling (concatenation, template literals) is
+ * unaffected. Never touches anything outside `dir`. Rewrites indiscriminately
+ * — including matches inside comments/license headers — because reliably
+ * telling those apart from live code isn't worth the risk of missing one.
+ * Returns the number of files it changed.
+ */
+function sanitizeCdnReferences(dir) {
+  let filesChanged = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      filesChanged += sanitizeCdnReferences(full);
+      continue;
+    }
+    if (!SANITIZE_EXT.test(entry.name)) continue;
+    const original = readFileSync(full, "utf8");
+    const matches = original.match(CDN_PATTERN);
+    if (!matches) continue;
+    writeFileSync(full, original.replaceAll(CDN_PATTERN, "https://vendored.invalid"));
+    console.log(`[vendor] neutralised ${matches.length} CDN reference(s) in ${relative(root, full)}`);
+    filesChanged++;
+  }
+  return filesChanged;
+}
+
 rmSync(target, { recursive: true, force: true });
 let ok = 0;
 let missing = 0;
@@ -159,8 +214,12 @@ for (const engine of ENGINES) {
   }
   ok++;
 }
+const filesSanitized = existsSync(target) ? sanitizeCdnReferences(target) : 0;
 const mb = existsSync(target) ? sizeOf(target) / 1048576 : 0;
 console.log(`[vendor] ${ok}/${ENGINES.length} engines, ${mb.toFixed(1)} MB in public/vendor`);
+if (filesSanitized) {
+  console.log(`[vendor] neutralised CDN references in ${filesSanitized} file(s)`);
+}
 if (missing) {
   // Warn, never fail: `pnpm install` in the Dockerfile runs before the repo
   // is copied in, and a hard exit there would break the image build.
