@@ -28,6 +28,7 @@
 import { YesNoDialog } from '~/lib/dialog';
 import type { NavigationEntry } from '~/lib/navigation';
 import * as Actions from '~/lib/actions';
+import { sandboxModeForLanguage } from '~/lib/sandbox/srcdoc';
 const store = useAppStore();
 const settings = useSettingsStore();
 
@@ -118,7 +119,17 @@ const entries = computed<NavigationEntry[]>(() => [
           : store.settings
             ? "Cant open Excalidraw while settings editor is open"
             : undefined,
-      }
+      },
+      {
+        name: store.sandbox ? "Close Run / Preview" : "Run / Preview",
+        onClick: Actions.OPEN_SANDBOX,
+        disabled: store.settings || (!store.sandbox && !sandboxModeForLanguage(store.getCurrentLanguage().id)),
+        title: store.settings
+          ? "Cant run code while settings editor is open"
+          : !store.sandbox && !sandboxModeForLanguage(store.getCurrentLanguage().id)
+            ? "Only JavaScript and HTML notes can be run"
+            : undefined,
+      },
     ],
   },
   {
