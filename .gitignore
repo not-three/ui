@@ -26,3 +26,5 @@ logs
 db/
 .output-prebuild
 .pnpm-store
+docs/
+public/vendor/
