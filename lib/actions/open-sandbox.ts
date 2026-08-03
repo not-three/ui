@@ -25,7 +25,8 @@ export const OPEN_SANDBOX = () => {
       "Run this note?",
       [
         "This will execute the code contained in this note inside a sandboxed iframe.",
-        "The sandbox cannot access your notes, keys or cookies, and network access",
+        "The sandbox cannot access your notes, keys or cookies. It may load a",
+        "language runtime from this app's own server; external network access",
         "stays disabled unless you enable it in the panel.",
         "Only continue if you trust this note.",
       ].join(" "),

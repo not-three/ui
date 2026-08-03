@@ -1,7 +1,15 @@
 <template>
   <div class="w-full sm:w-1/2 flex-shrink-0 h-full flex flex-col bg-[#111] border-l border-black text-white min-w-0">
     <div class="flex items-center gap-3 px-2 py-1 bg-black text-sm">
-      <span class="font-bold select-none">{{ runner?.layout === "preview" ? "Preview" : "Console" }}</span>
+      <span class="font-bold select-none">{{ runner?.label || "Sandbox" }}</span>
+      <select
+        v-if="availableRunners.length > 1"
+        v-model="engineId"
+        class="bg-black border border-white/40 rounded-sm text-xs py-0.5"
+        title="Execution engine for this language"
+      >
+        <option v-for="r in availableRunners" :key="r.id" :value="r.id">{{ r.label }}</option>
+      </select>
       <button class="sandbox-btn" @click="run">Run</button>
       <button class="sandbox-btn" @click="entries = []">Clear</button>
       <label class="flex items-center gap-1 select-none cursor-pointer" title="Re-run automatically when the note changes">
@@ -57,7 +65,7 @@ import {
   type SandboxConsoleSegment,
 } from "~/lib/sandbox/protocol";
 import { SANDBOX_IFRAME_SANDBOX, buildSrcdoc } from "~/lib/sandbox/srcdoc";
-import { defaultRunnerForLanguage } from "~/lib/sandbox/runners";
+import { runnersForLanguage } from "~/lib/sandbox/runners";
 import type { SandboxRunner } from "~/lib/sandbox/runners/types";
 
 const MAX_ENTRIES = 500;
@@ -91,8 +99,15 @@ const doc = ref("");
 // iframe only evaluates REPL input carrying it.
 let token = "";
 
-const runner = computed<SandboxRunner | null>(() =>
-  defaultRunnerForLanguage(store.getCurrentLanguage().id),
+const engineId = ref("");
+const availableRunners = computed(() =>
+  runnersForLanguage(store.getCurrentLanguage().id),
+);
+const runner = computed<SandboxRunner | null>(
+  () =>
+    availableRunners.value.find((r) => r.id === engineId.value) ??
+    availableRunners.value[0] ??
+    null,
 );
 
 function segmentsOf(entry: Entry): SandboxConsoleSegment[] {
@@ -147,14 +162,20 @@ const rerun = debounce(() => {
 
 watch(() => store.content, () => rerun());
 watch(allowNetwork, run);
+watch(availableRunners, (list) => {
+  if (!list.some((r) => r.id === engineId.value)) engineId.value = list[0]?.id ?? "";
+});
+
 watch(runner, (r, old) => {
   if (!r) {
     store.sandbox = false;
     return;
   }
   if (r.id === old?.id) return;
-  // Language switched while the panel is open: never leave the previous
-  // runner's document on screen.
+  // Engine or language switched while the panel is open: never leave the
+  // previous runner's document on screen. Heavy interpreters default to
+  // manual runs so typing doesn't re-download/boot a wasm VM every second.
+  autoRun.value = !r.heavy;
   if (autoRun.value) run();
   else {
     entries.value = [];
@@ -164,6 +185,7 @@ watch(runner, (r, old) => {
 
 onMounted(() => {
   window.addEventListener("message", onMessage);
+  autoRun.value = !runner.value?.heavy;
   run();
 });
 
