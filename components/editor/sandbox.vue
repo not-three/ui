@@ -150,7 +150,17 @@ const rerun = debounce(() => {
 watch(() => store.content, () => rerun());
 watch(allowNetwork, run);
 watch(mode, (m) => {
-  if (!m) store.sandbox = false;
+  if (!m) {
+    store.sandbox = false;
+    return;
+  }
+  // The language switched while the panel is open: the pane layout changes with
+  // it, so never leave the document built for the previous mode on screen.
+  if (autoRun.value) run();
+  else {
+    entries.value = [];
+    doc.value = "";
+  }
 });
 
 onMounted(() => {
