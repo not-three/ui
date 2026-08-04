@@ -13,6 +13,10 @@ import {
   conf as jsConf,
   language as jsLanguage,
 } from "monaco-editor/esm/vs/basic-languages/javascript/javascript.js";
+import {
+  conf as htmlConf,
+  language as htmlLanguage,
+} from "monaco-editor/esm/vs/basic-languages/html/html.js";
 
 import { languageDefinitions } from "./languages";
 import type { LanguageDefinition } from "./types";
@@ -66,6 +70,10 @@ export async function setupMonaco() {
   // jsx reuses monaco's javascript grammar (no dedicated jsx monarch grammar).
   monaco.languages.setMonarchTokensProvider("jsx", jsLanguage);
   monaco.languages.setLanguageConfiguration("jsx", jsConf);
+
+  // vue SFCs are html-shaped; reuse monaco's html grammar.
+  monaco.languages.setMonarchTokensProvider("vue", htmlLanguage);
+  monaco.languages.setLanguageConfiguration("vue", htmlConf);
 
   monaco.editor.defineTheme("custom-dark", {
     base: "vs-dark",

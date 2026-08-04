@@ -37,6 +37,7 @@ import { GraphqlDefinition } from "./languages/graphql";
 import { CoffeescriptDefinition } from "./languages/coffeescript";
 import { MermaidDefinition } from "./languages/mermaid";
 import { JsxDefinition } from "./languages/jsx";
+import { VueDefinition } from "./languages/vue";
 
 export const languageDefinitions: LanguageDefinition[] = [
   TypeScriptDefinition,
@@ -76,4 +77,5 @@ export const languageDefinitions: LanguageDefinition[] = [
   CoffeescriptDefinition,
   MermaidDefinition,
   JsxDefinition,
+  VueDefinition,
 ];
