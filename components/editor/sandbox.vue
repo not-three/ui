@@ -83,6 +83,7 @@ import {
 } from "~/lib/sandbox/protocol";
 import { SANDBOX_IFRAME_SANDBOX, buildSrcdoc } from "~/lib/sandbox/srcdoc";
 import { runnersForLanguage } from "~/lib/sandbox/runners";
+import { resolveAutoRun } from "~/lib/sandbox/auto-run";
 import type { SandboxRunner } from "~/lib/sandbox/runners/types";
 import { buildPopoutDocument } from "~/lib/sandbox/popout";
 import { OkDialog } from "~/lib/dialog";
@@ -128,6 +129,9 @@ const doc = ref("");
 // Random per-run token: parent only trusts messages carrying it, the
 // iframe only evaluates REPL input carrying it.
 let token = "";
+
+// Per-runner memory of the auto checkbox, for the lifetime of the panel.
+const autoRunMemory = new Map<string, boolean>();
 
 const engineId = ref("");
 const availableRunners = computed(() =>
@@ -249,8 +253,9 @@ watch(runner, (r, old) => {
   if (r.id === old?.id) return;
   // Engine or language switched while the panel is open: never leave the
   // previous runner's document on screen. Heavy interpreters default to
-  // manual runs so typing doesn't re-download/boot a wasm VM every second.
-  autoRun.value = !r.heavy;
+  // manual runs so typing doesn't re-download/boot a wasm VM every second —
+  // but only until the user says otherwise for that runner.
+  autoRun.value = resolveAutoRun(autoRunMemory, old?.id ?? null, autoRun.value, r);
   if (autoRun.value) run();
   else {
     entries.value = [];
@@ -261,7 +266,9 @@ watch(runner, (r, old) => {
 onMounted(() => {
   window.addEventListener("message", onMessage);
   engineId.value = availableRunners.value[0]?.id ?? "";
-  autoRun.value = !runner.value?.heavy;
+  autoRun.value = runner.value
+    ? resolveAutoRun(autoRunMemory, null, autoRun.value, runner.value)
+    : true;
   run();
 });
 
