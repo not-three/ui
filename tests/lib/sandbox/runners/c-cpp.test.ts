@@ -3,6 +3,7 @@ import { buildSrcdoc } from "~/lib/sandbox/srcdoc";
 import { defaultRunnerForLanguage } from "~/lib/sandbox/runners";
 import { CppRunner } from "~/lib/sandbox/runners/cpp";
 import { CRunner } from "~/lib/sandbox/runners/c";
+import { embedJson } from "~/lib/sandbox/runners/util";
 
 const ORIGIN = "https://app.example";
 const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN };
@@ -16,6 +17,30 @@ describe("CppRunner", () => {
     const doc = buildSrcdoc({ ...OPTS, runner: CppRunner, content: "int main() { return 0; }" });
     expect(doc).toContain(`${ORIGIN}/vendor/jscpp/JSCPP.es5.min.js`);
     expect(doc).toContain("JSCPP.run");
+  });
+});
+
+describe("CppRunner std:: preprocessing", () => {
+  it("strips std:: qualifiers so JSCPP can parse them", () => {
+    const doc = CppRunner.build({
+      content: 'std::cout << "hi" << std::endl;',
+      vendorBase: `${ORIGIN}/vendor`,
+    });
+    expect(doc.body).toContain(embedJson('cout << "hi" << endl;'));
+    // The console note below deliberately mentions "std::", so only the
+    // embedded program itself must be free of the qualifier.
+    const embedded = doc.body.match(/var CODE = (.*);/)?.[1] ?? "";
+    expect(embedded).not.toContain("std::");
+  });
+
+  it("notes the stripping in the console only when something was stripped", () => {
+    const stripped = CppRunner.build({ content: "std::cout << 1;", vendorBase: "v" });
+    expect(stripped.body).toContain("STRIPPED = true");
+    const untouched = CppRunner.build({
+      content: "using namespace std;\nint main() { cout << 1; }",
+      vendorBase: "v",
+    });
+    expect(untouched.body).toContain("STRIPPED = false");
   });
 });
 
