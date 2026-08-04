@@ -221,6 +221,21 @@ describe("runner language collisions", () => {
     expect(detectLanguageFromContent(html)).toBe("html");
   });
 
+  // A tiny HTML fragment whose only "code" is an inline console.log — close
+  // to the HTML-preview example in the PR description. Before html.ts had
+  // any signal for ordinary text/block elements (h1, p, span, li, button,
+  // table cells, etc.), this tied javascript's console.log pattern (2 vs 2)
+  // and lost the tie by array order. html.ts now scores off the <h1
+  // style="...">Hello</h1> element itself, so this resolves correctly
+  // without touching javascript.ts.
+  it("detects a fragment with a heading and an inline console.log as html, not javascript", () => {
+    const html = [
+      '<h1 style="color: rebeccapurple">Hello</h1>',
+      '<script>console.log("hi")</script>',
+    ].join("\n");
+    expect(detectLanguageFromContent(html)).toBe("html");
+  });
+
   // Real XML: a declaration/prolog plus xmlns and xmlns:-prefixed elements
   // — exactly the signals xml.ts's fix leans on instead of raw tag counting.
   it("detects real XML (with prolog and xmlns) as xml", () => {
