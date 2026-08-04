@@ -17,7 +17,9 @@ export const VENDOR_PATHS = {
   babel: "babel/babel.min.js",
   react: "react/react.production.min.js",
   reactDom: "react/react-dom.production.min.js",
-  vue: "vue/vue.global.prod.js",
+  // Deliberately the DEV build: the prod build strips every runtime warning,
+  // so a note with a broken template binding failed completely silently.
+  vue: "vue/vue.global.js",
   vueSfcLoader: "vue/vue3-sfc-loader.js",
   svelteCompiler: "svelte/compiler/index.js",
   svelteIndexClient: "svelte/src/index-client.js",

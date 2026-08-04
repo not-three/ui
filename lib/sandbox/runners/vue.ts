@@ -2,7 +2,7 @@ import { VENDOR_PATHS } from "../vendor";
 import type { SandboxRunner } from "./types";
 import { embedJson } from "./util";
 
-// vue.global.prod.js assigns a plain global `var Vue = ...` (not ESM: zero
+// vue.global.js assigns a plain global `var Vue = ...` (not ESM: zero
 // `export` statements) and vue3-sfc-loader.js is a UMD bundle whose factory
 // wrapper (`!function(e,t){...e["vue3-sfc-loader"]=t()}(self,...)`) attaches
 // its API to `window["vue3-sfc-loader"]` when neither CommonJS nor AMD is
@@ -40,9 +40,19 @@ export const VueRunner: SandboxRunner = {
       },
     };
     var loadModule = window["vue3-sfc-loader"].loadModule;
-    Vue.createApp(
+    var app = Vue.createApp(
       Vue.defineAsyncComponent(function () { return loadModule("note.vue", options); }),
-    ).mount("#app");
+    );
+    // The dev build warns via console.warn on its own, but explicit handlers
+    // also catch render/handler exceptions (e.g. a @click bound to a missing
+    // method) and give them a stable, greppable prefix.
+    app.config.warnHandler = function (msg, _instance, trace) {
+      console.warn("[Vue warn] " + msg + (trace ? "\\n" + trace : ""));
+    };
+    app.config.errorHandler = function (err) {
+      console.error(String(err && err.stack || err));
+    };
+    app.mount("#app");
   } catch (e) { console.error(String(e && e.stack || e)); }
 })();
 </script>`,

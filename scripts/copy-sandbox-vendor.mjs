@@ -108,7 +108,11 @@ const ENGINES = [
   { from: "@babel/standalone", to: "babel", files: ["babel.min.js"] },
   { from: "react/umd", to: "react", files: ["react.production.min.js"] },
   { from: "react-dom/umd", to: "react", files: ["react-dom.production.min.js"] },
-  { from: "vue/dist", to: "vue", files: ["vue.global.prod.js"] },
+  // The sandbox deliberately ships the DEV build of Vue: the prod build strips
+  // ALL runtime warnings, so a note whose template references a nonexistent
+  // method rendered a dead button with an empty console. Warnings are the
+  // feature here, and the ~0.6 MB extra is inside the vue size budget.
+  { from: "vue/dist", to: "vue", files: ["vue.global.js"] },
   { from: "vue3-sfc-loader/dist", to: "vue", files: ["vue3-sfc-loader.js"] },
   // svelte needs its ESM source tree (compiled components import
   // "svelte/internal/*", which reaches into src/constants.js, src/utils.js,
