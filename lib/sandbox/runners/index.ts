@@ -8,6 +8,8 @@ import { ReactRunner } from "./react";
 import { PythonRunner } from "./python";
 import { LuaRunner } from "./lua";
 import { RubyRunner } from "./ruby";
+import { SqlJsRunner } from "./sqljs";
+import { PgliteRunner } from "./pglite";
 
 /** Order matters: the first runner for a language is its default engine. */
 export const SANDBOX_RUNNERS: SandboxRunner[] = [
@@ -23,6 +25,10 @@ export const SANDBOX_RUNNERS: SandboxRunner[] = [
   PythonRunner,
   LuaRunner,
   RubyRunner,
+  // Order matters: sql.js is the default SQL engine, PGlite the alternative
+  // offered in the panel's engine dropdown.
+  SqlJsRunner,
+  PgliteRunner,
 ];
 
 export function runnersForLanguage(languageId: string | null | undefined): SandboxRunner[] {

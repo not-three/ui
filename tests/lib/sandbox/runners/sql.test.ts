@@ -1,0 +1,26 @@
+import { describe, expect, it } from "vitest";
+import { buildSrcdoc } from "~/lib/sandbox/srcdoc";
+import { runnersForLanguage } from "~/lib/sandbox/runners";
+import { SqlJsRunner } from "~/lib/sandbox/runners/sqljs";
+import { PgliteRunner } from "~/lib/sandbox/runners/pglite";
+
+const ORIGIN = "https://app.example";
+const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN };
+
+describe("sql runners", () => {
+  it("offers two engines for sql, sql.js first", () => {
+    expect(runnersForLanguage("sql").map((r) => r.id)).toEqual(["sql-sqljs", "sql-pglite"]);
+  });
+
+  it("sql.js locates its wasm under the app origin", () => {
+    const doc = buildSrcdoc({ ...OPTS, runner: SqlJsRunner, content: "SELECT 1;" });
+    expect(doc).toContain(`${ORIGIN}/vendor/sql.js/sql-wasm.js`);
+    expect(doc).toContain(`"${ORIGIN}/vendor/sql.js/" + f`);
+  });
+
+  it("pglite imports the self-hosted ESM bundle and is heavy", () => {
+    const doc = buildSrcdoc({ ...OPTS, runner: PgliteRunner, content: "SELECT 1;" });
+    expect(doc).toContain(`${ORIGIN}/vendor/pglite/index.js`);
+    expect(PgliteRunner.heavy).toBe(true);
+  });
+});
