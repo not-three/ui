@@ -1,6 +1,8 @@
 <template>
-  <div class="w-full flex-grow flex min-h-0">
-    <div ref="container" class="h-full flex-grow relative min-w-0">
+  <!-- Below `sm` the editor and the sandbox panel stack (editor on top,
+       panel on the bottom half); from `sm` up they sit side by side. -->
+  <div class="w-full flex-grow flex flex-col sm:flex-row min-h-0">
+    <div ref="container" class="flex-grow relative min-w-0 min-h-0">
       <editor-excalidraw v-if="store.excalidraw" />
     </div>
     <editor-sandbox v-if="store.sandbox" />

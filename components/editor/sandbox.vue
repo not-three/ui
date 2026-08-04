@@ -1,7 +1,7 @@
 <template>
   <div
     ref="root"
-    class="w-full sm:w-[var(--sandbox-w)] flex-shrink-0 h-full flex flex-col bg-[#111] border-l border-black text-white min-w-0 relative"
+    class="w-full h-1/2 sm:h-full sm:w-[var(--sandbox-w)] flex-shrink-0 flex flex-col bg-[#111] border-t border-black sm:border-t-0 sm:border-l text-white min-w-0 min-h-0 relative"
     :style="{ '--sandbox-w': widthPct + '%' }"
   >
     <div
@@ -36,7 +36,9 @@
       </label>
       <div class="flex-grow" />
       <button class="sandbox-btn" title="Open in a separate window" @click="popout">Popout</button>
-      <button class="sandbox-btn" @click="store.sandbox = false">Close</button>
+      <!-- The nav bar's Run/Stop button is `hidden sm:flex`, so this only
+           needs to exist below that breakpoint. -->
+      <button class="sandbox-btn sm:hidden" @click="store.sandbox = false">Close</button>
     </div>
     <iframe
       ref="iframe"
