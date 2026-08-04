@@ -1,0 +1,1 @@
+import{_ as n}from"./B1GyhjKC.js";import{d as t,u as a,c as s,a as _,o as p}from"./BHlSs3gR.js";import"./_KZ-18rJ.js";const f=t({__name:"[id]",setup(r){const o=a().params.id;return(c,m)=>{const e=n;return p(),s(e,{"open-note":_(o)},null,8,["open-note"])}}});export{f as default};
