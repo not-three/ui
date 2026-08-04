@@ -5,7 +5,8 @@
     <div ref="container" class="flex-grow relative min-w-0 min-h-0">
       <editor-excalidraw v-if="store.excalidraw" />
     </div>
-    <editor-sandbox v-if="store.sandbox" />
+    <editor-sandbox v-if="store.sandbox && !store.sandboxPopout" />
+    <editor-sandbox-popout-bridge v-if="store.sandbox && store.sandboxPopout" />
   </div>
 </template>
 
