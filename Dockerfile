@@ -1,12 +1,12 @@
 FROM node:26-alpine as build-stage
 WORKDIR /app
 RUN npm i -g pnpm
-COPY package.json ./
-COPY pnpm-lock.yaml ./
-COPY pnpm-workspace.yaml ./
-RUN pnpm install
+# The full source must be present before `pnpm install` runs: package.json's
+# postinstall script (nuxt prepare + scripts/copy-sandbox-vendor.mjs +
+# scripts/fetch-pyodide-wheels.mjs) vendors the sandbox interpreter assets,
+# and those scripts don't exist yet if only the manifest files are copied in.
 COPY . .
-RUN node scripts/copy-sandbox-vendor.mjs && node scripts/fetch-pyodide-wheels.mjs
+RUN pnpm install
 ARG NUXT_APP_BASE_URL=/
 ENV NUXT_APP_BASE_URL=$NUXT_APP_BASE_URL
 RUN pnpm generate
