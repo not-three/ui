@@ -9,6 +9,15 @@
     <h1 class="navigation-logo-text">not-th.re</h1>
     <navigation-entry v-for="entry in entries" :key="entry.name" :config="entry" />
     <div class="flex-grow" />
+    <button
+      v-if="!store.excalidraw && !store.settings && runnable"
+      class="border border-white px-2 py-0.5 -my-1 hidden sm:flex items-center gap-1"
+      :title="store.sandbox ? 'Close the run/preview panel' : 'Run / preview this note'"
+      @click="Actions.OPEN_SANDBOX()"
+    >
+      <icon :name="store.sandbox ? 'lucide:square' : 'lucide:play'" class="mb-0.5" />
+      {{ store.sandbox ? "Stop" : "Run" }}
+    </button>
     <navigation-language v-if="!store.excalidraw" />
     <button v-if="store.excalidraw" class="border border-white px-2 py-0.5 -my-1 hidden sm:block" @click="store.excalidraw = false">
       Close Excalidraw
@@ -31,6 +40,8 @@ import * as Actions from '~/lib/actions';
 import { isRunnableLanguage } from '~/lib/sandbox/runners';
 const store = useAppStore();
 const settings = useSettingsStore();
+
+const runnable = computed(() => isRunnableLanguage(store.getCurrentLanguage().id));
 
 const entries = computed<NavigationEntry[]>(() => [
   {
