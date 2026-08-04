@@ -29,7 +29,7 @@ export const VENDOR_PATHS = {
   // rubyScript below) because it hardcodes a jsdelivr.net CDN fetch.
   rubyScript: "ruby-wasm/browser.umd.js",
   rubyWasm: "ruby-wasm/ruby+stdlib.wasm",
-  phpTags: "php-wasm/php-tags.mjs",
+  phpWeb: "php-wasm/PhpWeb.mjs",
   mermaid: "mermaid/mermaid.min.js",
   jscpp: "jscpp/JSCPP.es5.min.js",
   picoc: "picoc-js/bundle.js",

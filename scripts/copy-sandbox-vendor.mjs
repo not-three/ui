@@ -118,14 +118,16 @@ const ENGINES = [
   },
   // php-wasm ships 12 PHP version/variant builds (182 MB total). Only the
   // 8.4 non-SDL web build is copied — the one PhpWeb.mjs selects by default
-  // — plus the small ESM wrapper modules php-tags.mjs transitively imports
+  // — plus the small ESM wrapper modules PhpWeb.mjs transitively imports
   // (verified via their import graphs) and the one wasm binary that build
-  // loads by relative URL.
+  // loads by relative URL. The runner imports PhpWeb.mjs directly rather
+  // than php-tags.mjs's <script type="text/php"> tag-scanning wrapper (see
+  // lib/sandbox/runners/php.ts for why), so php-tags.mjs itself is not
+  // copied — it isn't loaded by anything.
   {
     from: "php-wasm",
     to: "php-wasm",
     files: [
-      "php-tags.mjs",
       "PhpWeb.mjs",
       "PhpBase.mjs",
       "webTransactions.mjs",

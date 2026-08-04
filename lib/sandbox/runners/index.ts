@@ -10,6 +10,7 @@ import { LuaRunner } from "./lua";
 import { RubyRunner } from "./ruby";
 import { SqlJsRunner } from "./sqljs";
 import { PgliteRunner } from "./pglite";
+import { PhpRunner } from "./php";
 
 /** Order matters: the first runner for a language is its default engine. */
 export const SANDBOX_RUNNERS: SandboxRunner[] = [
@@ -29,6 +30,7 @@ export const SANDBOX_RUNNERS: SandboxRunner[] = [
   // offered in the panel's engine dropdown.
   SqlJsRunner,
   PgliteRunner,
+  PhpRunner,
 ];
 
 export function runnersForLanguage(languageId: string | null | undefined): SandboxRunner[] {
