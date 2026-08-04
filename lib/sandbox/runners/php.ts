@@ -30,6 +30,30 @@ export const PhpRunner: SandboxRunner = {
   build: ({ content, vendorBase }) => ({
     body: `<div id="php-out"></div>
 <script type="module">
+// The Web Locks API rejects in opaque-origin contexts, and this iframe is
+// deliberately opaque (that is the whole sandbox model). php-wasm's
+// _enqueue() serializes every operation through navigator.locks.request, so
+// without a shim the very first run dies as an unhandled rejection. One
+// iframe == one tab == one queue, so a promise chain is a faithful
+// replacement. defineProperty shadows the Navigator.prototype getter with an
+// own property.
+(function () {
+  var chain = Promise.resolve();
+  var locksShim = {
+    request: function (name, optionsOrCallback, maybeCallback) {
+      var callback = typeof optionsOrCallback === "function" ? optionsOrCallback : maybeCallback;
+      var next = chain.then(function () {
+        return callback({ name: String(name), mode: "exclusive" });
+      });
+      chain = next.catch(function () {});
+      return next;
+    },
+    query: function () { return Promise.resolve({ held: [], pending: [] }); },
+  };
+  try {
+    Object.defineProperty(navigator, "locks", { value: locksShim, configurable: true });
+  } catch (e) { /* real locks stay; fine on non-opaque origins */ }
+})();
 const CODE = ${embedJson(content)};
 try {
   const { PhpWeb } = await import("${vendorBase}/${VENDOR_PATHS.phpWeb}");
