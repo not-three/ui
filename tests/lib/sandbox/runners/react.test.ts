@@ -31,6 +31,13 @@ describe("ReactRunner", () => {
     expect(doc).not.toContain('type="text/babel"');
   });
 
+  it("compiles with the commonjs module transform and a require shim", () => {
+    const doc = ReactRunner.build({ content: "export default () => null;", vendorBase: "v" });
+    expect(doc.body).toContain("transform-modules-commonjs");
+    expect(doc.body).toContain('if (name === "react") return React;');
+    expect(doc.body).toContain("moduleShim.exports.default");
+  });
+
   // Regression: raw-source embedding via escapeScriptClose broke on a literal
   // <script> element inside JSX (Babel would see an injected "<\/script" and
   // throw "Expecting Unicode escape sequence \uXXXX"), and on an unbalanced

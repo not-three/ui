@@ -2,19 +2,6 @@ import { VENDOR_PATHS } from "../vendor";
 import type { SandboxRunner } from "./types";
 import { embedJson } from "./util";
 
-// Appended to the compiled user code INSIDE the same eval() call (concatenated
-// into one string, not a second <script>), so it shares scope with the user's
-// top-level `function App() {}` declaration regardless of eval strictness.
-const AUTO_RENDER = `
-;(function () {
-  try {
-    var __root = document.getElementById("root");
-    if (__root && !__root.childNodes.length && typeof App !== "undefined") {
-      ReactDOM.createRoot(__root).render(React.createElement(App));
-    }
-  } catch (e) { console.error(String(e)); }
-})();`;
-
 export const ReactRunner: SandboxRunner = {
   id: "react",
   label: "React (Babel)",
@@ -40,10 +27,36 @@ export const ReactRunner: SandboxRunner = {
 <script>
 (function () {
   var CODE = ${embedJson(content)};
-  var EPILOGUE = ${embedJson(AUTO_RENDER)};
   try {
-    var compiled = Babel.transform(CODE, { presets: ["react"] }).code;
-    (0, eval)(compiled + EPILOGUE);
+    // The react preset alone leaves ES module syntax untouched, so a note
+    // starting with "export default function App()" is a SyntaxError for
+    // eval/new Function. The commonjs transform rewrites import/export into
+    // require/exports, which the shims below satisfy.
+    var compiled = Babel.transform(CODE, {
+      presets: ["react"],
+      plugins: ["transform-modules-commonjs"],
+    }).code;
+    var moduleShim = { exports: {} };
+    var requireShim = function (name) {
+      if (name === "react") return React;
+      if (name === "react-dom" || name === "react-dom/client") return ReactDOM;
+      throw new Error("Cannot import \\"" + name + "\\": only react and react-dom exist in the sandbox");
+    };
+    // new Function gives the compiled CJS a private scope holding the shims;
+    // the trailing return exposes a top-level \`function App() {}\` that never
+    // went through exports (the pre-module-syntax style previously supported).
+    var run = new Function(
+      "require", "module", "exports",
+      compiled + "\\n;return typeof App !== \\"undefined\\" ? App : undefined;",
+    );
+    var scopedApp = run(requireShim, moduleShim, moduleShim.exports);
+    var App = moduleShim.exports.default || moduleShim.exports.App || scopedApp;
+    var root = document.getElementById("root");
+    if (root && !root.childNodes.length && App) {
+      ReactDOM.createRoot(root).render(React.createElement(App));
+    } else if (!App) {
+      console.warn("No component found: export default one, or define function App() {}");
+    }
   } catch (e) { console.error(String(e && e.stack || e)); }
 })();
 </script>`,
