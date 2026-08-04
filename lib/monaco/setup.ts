@@ -9,6 +9,10 @@ import {
   conf as yamlConf,
   language as yamlLanguage,
 } from "monaco-editor/esm/vs/basic-languages/yaml/yaml.js";
+import {
+  conf as jsConf,
+  language as jsLanguage,
+} from "monaco-editor/esm/vs/basic-languages/javascript/javascript.js";
 
 import { languageDefinitions } from "./languages";
 import type { LanguageDefinition } from "./types";
@@ -58,6 +62,10 @@ export async function setupMonaco() {
   // reuse the built-in YAML monarch tokenizer and configuration for it.
   monaco.languages.setMonarchTokensProvider("dockercompose", yamlLanguage);
   monaco.languages.setLanguageConfiguration("dockercompose", yamlConf);
+
+  // jsx reuses monaco's javascript grammar (no dedicated jsx monarch grammar).
+  monaco.languages.setMonarchTokensProvider("jsx", jsLanguage);
+  monaco.languages.setLanguageConfiguration("jsx", jsConf);
 
   monaco.editor.defineTheme("custom-dark", {
     base: "vs-dark",

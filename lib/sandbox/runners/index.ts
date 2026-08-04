@@ -4,6 +4,7 @@ import { HtmlRunner } from "./html";
 import { TypescriptRunner } from "./typescript";
 import { CoffeescriptRunner } from "./coffeescript";
 import { MermaidRunner } from "./mermaid";
+import { ReactRunner } from "./react";
 
 /** Order matters: the first runner for a language is its default engine. */
 export const SANDBOX_RUNNERS: SandboxRunner[] = [
@@ -12,6 +13,10 @@ export const SANDBOX_RUNNERS: SandboxRunner[] = [
   TypescriptRunner,
   CoffeescriptRunner,
   MermaidRunner,
+  // Must come after JavascriptRunner: ReactRunner also claims "javascript"
+  // as an alternative engine, but registration order defines the default,
+  // and plain JS notes must keep JavascriptRunner as their default.
+  ReactRunner,
 ];
 
 export function runnersForLanguage(languageId: string | null | undefined): SandboxRunner[] {

@@ -36,6 +36,7 @@ import { DockerComposeDefinition } from "./languages/docker-compose";
 import { GraphqlDefinition } from "./languages/graphql";
 import { CoffeescriptDefinition } from "./languages/coffeescript";
 import { MermaidDefinition } from "./languages/mermaid";
+import { JsxDefinition } from "./languages/jsx";
 
 export const languageDefinitions: LanguageDefinition[] = [
   TypeScriptDefinition,
@@ -74,4 +75,5 @@ export const languageDefinitions: LanguageDefinition[] = [
   GraphqlDefinition,
   CoffeescriptDefinition,
   MermaidDefinition,
+  JsxDefinition,
 ];
