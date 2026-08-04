@@ -3,6 +3,7 @@ import { JavascriptRunner } from "./javascript";
 import { HtmlRunner } from "./html";
 import { TypescriptRunner } from "./typescript";
 import { CoffeescriptRunner } from "./coffeescript";
+import { MermaidRunner } from "./mermaid";
 
 /** Order matters: the first runner for a language is its default engine. */
 export const SANDBOX_RUNNERS: SandboxRunner[] = [
@@ -10,6 +11,7 @@ export const SANDBOX_RUNNERS: SandboxRunner[] = [
   HtmlRunner,
   TypescriptRunner,
   CoffeescriptRunner,
+  MermaidRunner,
 ];
 
 export function runnersForLanguage(languageId: string | null | undefined): SandboxRunner[] {
