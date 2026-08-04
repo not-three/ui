@@ -23,4 +23,12 @@ describe("sql runners", () => {
     expect(doc).toContain(`${ORIGIN}/vendor/pglite/index.js`);
     expect(PgliteRunner.heavy).toBe(true);
   });
+
+  it("both engines declare a SQL repl and install the eval hook", () => {
+    for (const runner of [SqlJsRunner, PgliteRunner]) {
+      expect(runner.replLanguage).toBe("SQL");
+      const doc = buildSrcdoc({ ...OPTS, runner, content: "SELECT 1;" });
+      expect(doc).toContain("__not3Eval__");
+    }
+  });
 });

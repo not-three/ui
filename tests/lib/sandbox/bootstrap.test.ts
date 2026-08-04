@@ -98,6 +98,56 @@ describe("buildBootstrap", () => {
     });
   });
 
+  // Runners with their own interpreter (sql, python) install __not3Eval__ so
+  // the console input speaks their language instead of JavaScript.
+  it("routes eval requests through window.__not3Eval__ when a runner installed one", async () => {
+    const posted = setup();
+    (window as unknown as Record<string, unknown>).__not3Eval__ = (code: string) =>
+      "SQL:" + code;
+    try {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { type: SANDBOX_EVAL_MESSAGE, token: TOKEN, code: "select 1" },
+          source: window,
+        }),
+      );
+      await new Promise((r) => setTimeout(r, 0));
+      expect(posted).toContainEqual(
+        expect.objectContaining({
+          type: SANDBOX_CONSOLE_MESSAGE,
+          level: "log",
+          args: ["SQL:select 1"],
+        }),
+      );
+    } finally {
+      delete (window as unknown as Record<string, unknown>).__not3Eval__;
+    }
+  });
+
+  it("reports a rejecting __not3Eval__ hook as a console error", async () => {
+    const posted = setup();
+    (window as unknown as Record<string, unknown>).__not3Eval__ = () => {
+      throw new Error("no such table: t");
+    };
+    try {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { type: SANDBOX_EVAL_MESSAGE, token: TOKEN, code: "select * from t" },
+          source: window,
+        }),
+      );
+      await new Promise((r) => setTimeout(r, 0));
+      expect(posted).toContainEqual(
+        expect.objectContaining({
+          level: "error",
+          args: [expect.stringContaining("no such table: t")],
+        }),
+      );
+    } finally {
+      delete (window as unknown as Record<string, unknown>).__not3Eval__;
+    }
+  });
+
   it("splits %c format strings into styled segments", () => {
     const posted = setup();
     console.log("%cred%c plain", "color: red", "", "tail");

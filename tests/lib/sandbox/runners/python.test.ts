@@ -30,4 +30,14 @@ describe("PythonRunner", () => {
     expect(doc).toContain("loadPackagesFromImports");
     expect(doc).toContain("standard library");
   });
+
+  it("declares a Python repl and installs the eval hook", () => {
+    expect(PythonRunner.replLanguage).toBe("Python");
+    const doc = buildSrcdoc({
+      runner: PythonRunner, content: "print(1)", token: "tok",
+      allowNetwork: false, origin: ORIGIN,
+    });
+    expect(doc).toContain("__not3Eval__");
+    expect(doc).toContain("runPythonAsync");
+  });
 });

@@ -167,6 +167,19 @@ export function buildBootstrap(token: string): string {
     var data = event.data;
     if (!data || typeof data !== "object") return;
     if (data.token !== TOKEN || data.type !== EVAL_MSG) return;
+    var hook = window.__not3Eval__;
+    if (typeof hook === "function") {
+      // Runner-provided REPL (sql, python, ...). Treated as async by
+      // contract, so a hook may await its interpreter. A non-empty
+      // resolution is logged; the hook may also print via console itself
+      // and resolve undefined.
+      Promise.resolve().then(function () { return hook(String(data.code)); })
+        .then(function (result) {
+          if (result !== undefined && result !== null) post("log", [clamp(String(result))]);
+        })
+        .catch(function (e) { post("error", [serialize(e, 0, [])]); });
+      return;
+    }
     try {
       var result = (0, eval)(String(data.code));
       post("log", [serialize(result, 0, [])]);

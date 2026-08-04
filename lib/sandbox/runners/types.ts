@@ -31,5 +31,7 @@ export interface SandboxRunner {
   scriptBlob?: boolean;
   /** Slow interpreter startup — the panel defaults auto-run to off. */
   heavy?: boolean;
+  /** REPL language name shown in the console input; absent = JavaScript eval. */
+  replLanguage?: string;
   build(ctx: RunnerContext): RunnerDocument;
 }

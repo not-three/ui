@@ -63,7 +63,7 @@
       <input
         v-model="evalInput"
         class="flex-grow bg-transparent font-mono text-xs py-1 pr-2 outline-none"
-        placeholder="Run JavaScript in the sandbox…"
+        :placeholder="`Run ${runner?.replLanguage ?? 'JavaScript'} in the sandbox…`"
       >
     </form>
   </div>
