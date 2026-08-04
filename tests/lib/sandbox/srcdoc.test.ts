@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { SANDBOX_IFRAME_SANDBOX, buildCsp, buildSrcdoc } from "~/lib/sandbox/srcdoc";
+import {
+  SANDBOX_IFRAME_SANDBOX,
+  buildCsp,
+  buildSrcdoc,
+  vendorBaseFor,
+} from "~/lib/sandbox/srcdoc";
+import { PythonRunner } from "~/lib/sandbox/runners/python";
 import { JavascriptRunner } from "~/lib/sandbox/runners/javascript";
 import { HtmlRunner } from "~/lib/sandbox/runners/html";
 
@@ -122,5 +128,48 @@ describe("buildSrcdoc", () => {
       allowNetwork: false, origin: ORIGIN,
     });
     expect(doc).not.toContain(ORIGIN);
+  });
+
+  it("loads vendor assets under the app base path", () => {
+    // Regression: the PR previews are served from https://host/pr-preview/pr-N/,
+    // where public/vendor lives behind that prefix. Loading from the bare
+    // origin 404s and every vendor-backed runner fails.
+    const doc = buildSrcdoc({
+      runner: PythonRunner, content: 'print("hi")', token: TOKEN,
+      allowNetwork: false, origin: ORIGIN, basePath: "/pr-preview/pr-122/",
+    });
+    expect(doc).toContain(`${ORIGIN}/pr-preview/pr-122/vendor/pyodide/pyodide.js`);
+    expect(doc).toContain(`indexURL: "${ORIGIN}/pr-preview/pr-122/vendor/pyodide/"`);
+    expect(doc).not.toContain(`${ORIGIN}/vendor/`);
+    // CSP is origin-based, so the base path must not appear in it.
+    const csp = doc.match(/content="([^"]*)"/)![1];
+    expect(csp).toContain(ORIGIN);
+    expect(csp).not.toContain("/pr-preview/");
+  });
+});
+
+describe("vendorBaseFor", () => {
+  it("defaults to the origin root", () => {
+    expect(vendorBaseFor(ORIGIN)).toBe(`${ORIGIN}/vendor`);
+    expect(vendorBaseFor(ORIGIN, "/")).toBe(`${ORIGIN}/vendor`);
+    expect(vendorBaseFor(ORIGIN, "")).toBe(`${ORIGIN}/vendor`);
+    expect(vendorBaseFor(ORIGIN, undefined)).toBe(`${ORIGIN}/vendor`);
+  });
+
+  it("honours a subpath with or without surrounding slashes", () => {
+    expect(vendorBaseFor(ORIGIN, "/pr-preview/pr-122/")).toBe(
+      `${ORIGIN}/pr-preview/pr-122/vendor`,
+    );
+    expect(vendorBaseFor(ORIGIN, "/pr-preview/pr-122")).toBe(
+      `${ORIGIN}/pr-preview/pr-122/vendor`,
+    );
+    expect(vendorBaseFor(ORIGIN, "pr-preview/pr-122/")).toBe(
+      `${ORIGIN}/pr-preview/pr-122/vendor`,
+    );
+  });
+
+  it("never doubles a slash", () => {
+    expect(vendorBaseFor(`${ORIGIN}/`, "/sub/")).toBe(`${ORIGIN}/sub/vendor`);
+    expect(vendorBaseFor(ORIGIN, "//sub//")).not.toContain("//sub");
   });
 });

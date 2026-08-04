@@ -59,12 +59,28 @@ export interface SrcdocOptions {
   allowNetwork: boolean;
   /** window.location.origin of the app; vendor assets are loaded from it. */
   origin: string;
+  /**
+   * The app's base path (Nuxt's NUXT_APP_BASE_URL, exposed as
+   * runtimeConfig.public.uiBaseURL). Deployments served from a subpath — the
+   * PR previews live at https://host/pr-preview/pr-<n>/ — keep public/ under
+   * that prefix, so it has to be part of the URL runners load assets from.
+   * Defaults to "/". The CSP is origin-based and so is unaffected by it.
+   */
+  basePath?: string;
+}
+
+/** Absolute URL prefix of the vendored interpreter assets. */
+export function vendorBaseFor(origin: string, basePath?: string): string {
+  // Normalise to exactly one leading and one trailing slash, so "/sub",
+  // "sub/" and "//sub//" all yield the same well-formed prefix.
+  const prefix = (basePath || "/").replace(/^\/*/, "/").replace(/\/*$/, "/");
+  return `${origin.replace(/\/$/, "")}${prefix}vendor`;
 }
 
 export function buildSrcdoc(opts: SrcdocOptions): string {
   const doc = opts.runner.build({
     content: opts.content,
-    vendorBase: `${opts.origin.replace(/\/$/, "")}/vendor`,
+    vendorBase: vendorBaseFor(opts.origin, opts.basePath),
   });
   const csp = buildCsp({
     allowNetwork: opts.allowNetwork,

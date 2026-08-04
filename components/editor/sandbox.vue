@@ -109,6 +109,11 @@ const LEVEL_CLASSES: Record<string, string> = {
 const MIN_WIDTH_PCT = 20;
 const MAX_WIDTH_PCT = 80;
 
+// Deployments under a subpath (the PR previews are served from
+// /pr-preview/pr-<n>/) keep public/vendor behind that prefix, so runners must
+// load their interpreters relative to it, not from the bare origin.
+const { uiBaseURL } = useRuntimeConfig().public;
+
 const store = useAppStore();
 const iframe = ref<HTMLIFrameElement>();
 const output = ref<HTMLDivElement>();
@@ -157,6 +162,7 @@ function run() {
     token,
     allowNetwork: allowNetwork.value,
     origin: window.location.origin,
+    basePath: uiBaseURL as string,
   });
 }
 
