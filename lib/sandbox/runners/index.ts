@@ -6,6 +6,8 @@ import { CoffeescriptRunner } from "./coffeescript";
 import { MermaidRunner } from "./mermaid";
 import { ReactRunner } from "./react";
 import { PythonRunner } from "./python";
+import { LuaRunner } from "./lua";
+import { RubyRunner } from "./ruby";
 
 /** Order matters: the first runner for a language is its default engine. */
 export const SANDBOX_RUNNERS: SandboxRunner[] = [
@@ -19,6 +21,8 @@ export const SANDBOX_RUNNERS: SandboxRunner[] = [
   // and plain JS notes must keep JavascriptRunner as their default.
   ReactRunner,
   PythonRunner,
+  LuaRunner,
+  RubyRunner,
 ];
 
 export function runnersForLanguage(languageId: string | null | undefined): SandboxRunner[] {
