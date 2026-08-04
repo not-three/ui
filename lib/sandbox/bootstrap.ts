@@ -2,6 +2,10 @@ import {
   SANDBOX_CONSOLE_MESSAGE,
   SANDBOX_EVAL_MESSAGE,
   SANDBOX_READY_MESSAGE,
+  SANDBOX_ROWS_REQUEST,
+  SANDBOX_ROWS_RESULT,
+  SANDBOX_TABLES_REQUEST,
+  SANDBOX_TABLES_RESULT,
 } from "./protocol";
 
 /**
@@ -16,6 +20,10 @@ export function buildBootstrap(token: string): string {
   var CONSOLE_MSG = ${JSON.stringify(SANDBOX_CONSOLE_MESSAGE)};
   var EVAL_MSG = ${JSON.stringify(SANDBOX_EVAL_MESSAGE)};
   var READY_MSG = ${JSON.stringify(SANDBOX_READY_MESSAGE)};
+  var TABLES_REQ = ${JSON.stringify(SANDBOX_TABLES_REQUEST)};
+  var TABLES_RES = ${JSON.stringify(SANDBOX_TABLES_RESULT)};
+  var ROWS_REQ = ${JSON.stringify(SANDBOX_ROWS_REQUEST)};
+  var ROWS_RES = ${JSON.stringify(SANDBOX_ROWS_RESULT)};
   var MAX_ARG_LENGTH = 10000;
 
   function post(level, args, segments) {
@@ -166,7 +174,32 @@ export function buildBootstrap(token: string): string {
     if (event.source !== window.parent) return;
     var data = event.data;
     if (!data || typeof data !== "object") return;
-    if (data.token !== TOKEN || data.type !== EVAL_MSG) return;
+    if (data.token !== TOKEN) return;
+    // Table viewer: answered from the runner's live database, never from a
+    // bulk copy held in the parent.
+    if (data.type === TABLES_REQ) {
+      var tf = window.__not3Tables__;
+      if (typeof tf !== "function") return;
+      Promise.resolve().then(function () { return tf(); }).then(function (tables) {
+        window.parent.postMessage({ type: TABLES_RES, token: TOKEN, tables: tables }, "*");
+      }).catch(function (e) { post("error", [serialize(e, 0, [])]); });
+      return;
+    }
+    if (data.type === ROWS_REQ) {
+      var rf = window.__not3Rows__;
+      if (typeof rf !== "function" || !data.query || typeof data.query !== "object") return;
+      Promise.resolve().then(function () { return rf(data.query); }).then(function (res) {
+        window.parent.postMessage({
+          type: ROWS_RES,
+          token: TOKEN,
+          id: data.query.id,
+          rows: res.rows,
+          total: res.total,
+        }, "*");
+      }).catch(function (e) { post("error", [serialize(e, 0, [])]); });
+      return;
+    }
+    if (data.type !== EVAL_MSG) return;
     var hook = window.__not3Eval__;
     if (typeof hook === "function") {
       // Runner-provided REPL (sql, python, ...). Treated as async by

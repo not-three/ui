@@ -46,7 +46,37 @@
         resizing ? 'pointer-events-none' : '',
       ]"
     />
+    <div v-if="runner?.tables" class="flex items-center gap-1 px-2 py-1 bg-black/60 text-xs">
+      <button
+        v-for="tab in (['console', 'tables'] as const)"
+        :key="tab"
+        class="px-2 rounded-sm border border-white/40 capitalize"
+        :class="view === tab ? 'bg-white/20' : 'hover:bg-white/10'"
+        @click="selectView(tab)"
+      >{{ tab }}</button>
+    </div>
+    <editor-sandbox-tables
+      v-if="runner?.tables"
+      v-show="view === 'tables'"
+      :tables="tables"
+      :selected="selectedTable"
+      :columns="selectedColumns"
+      :rows="rows.rows"
+      :total="rows.total"
+      :offset="rows.offset"
+      :limit="ROWS_PER_PAGE"
+      :sort-by="rows.sortBy"
+      :sort-dir="rows.sortDir"
+      :search="rows.search"
+      :loading="rows.loading"
+      @select="onSelectTable"
+      @search="onSearch"
+      @sort="onSort"
+      @page="onPage"
+      @refresh="requestTables"
+    />
     <div
+      v-show="view === 'console'"
       ref="output"
       class="overflow-y-auto font-mono text-xs px-2 py-1"
       :class="runner?.layout === 'preview' ? 'h-48 border-t border-black flex-shrink-0' : 'flex-grow basis-0'"
@@ -75,9 +105,14 @@ import { debounce } from "~/lib/monaco/utils";
 import {
   SANDBOX_CONSOLE_MESSAGE,
   SANDBOX_EVAL_MESSAGE,
+  SANDBOX_ROWS_REQUEST,
+  SANDBOX_ROWS_RESULT,
+  SANDBOX_TABLES_REQUEST,
+  SANDBOX_TABLES_RESULT,
   parseSandboxMessage,
   type ConsoleLevel,
   type SandboxConsoleSegment,
+  type SandboxTableInfo,
 } from "~/lib/sandbox/protocol";
 import { SANDBOX_IFRAME_SANDBOX, buildSrcdoc } from "~/lib/sandbox/srcdoc";
 import { runnersForLanguage } from "~/lib/sandbox/runners";
@@ -148,6 +183,128 @@ const runner = computed<SandboxRunner | null>(
     null,
 );
 
+// --- table viewer state ---------------------------------------------------
+const ROWS_PER_PAGE = 50;
+// Engines boot asynchronously, so the first tables request usually arrives
+// before the database exists. Poll a bounded number of times instead.
+const TABLES_RETRY_MS = 700;
+const TABLES_MAX_TRIES = 15;
+
+const view = ref<"console" | "tables">("console");
+const tables = ref<SandboxTableInfo[]>([]);
+const selectedTable = ref("");
+const rows = ref({
+  rows: [] as string[][],
+  total: 0,
+  offset: 0,
+  sortBy: null as string | null,
+  sortDir: "asc" as "asc" | "desc",
+  search: "",
+  loading: false,
+});
+// Monotonic id: a rows result that is not the newest request is dropped, so a
+// slow page can never overwrite a newer one.
+let rowsRequestId = 0;
+let tablesTimer: ReturnType<typeof setTimeout> | null = null;
+let tablesTries = 0;
+
+const selectedColumns = computed(
+  () => tables.value.find((t) => t.name === selectedTable.value)?.columns ?? [],
+);
+
+function postToFrame(message: Record<string, unknown>) {
+  // "*" is required: the sandboxed iframe has an opaque origin. The token and
+  // the iframe's own source check replace the origin check.
+  iframe.value?.contentWindow?.postMessage({ ...message, token }, "*");
+}
+
+function stopTablesRetry() {
+  if (tablesTimer) clearTimeout(tablesTimer);
+  tablesTimer = null;
+}
+
+function requestTables() {
+  if (!runner.value?.tables) return;
+  stopTablesRetry();
+  tablesTries = 0;
+  const attempt = () => {
+    postToFrame({ type: SANDBOX_TABLES_REQUEST });
+    if (++tablesTries < TABLES_MAX_TRIES) {
+      tablesTimer = setTimeout(attempt, TABLES_RETRY_MS);
+    }
+  };
+  attempt();
+}
+
+function requestRows() {
+  if (!selectedTable.value) return;
+  rows.value.loading = true;
+  postToFrame({
+    type: SANDBOX_ROWS_REQUEST,
+    query: {
+      id: ++rowsRequestId,
+      table: selectedTable.value,
+      offset: rows.value.offset,
+      limit: ROWS_PER_PAGE,
+      sortBy: rows.value.sortBy ?? undefined,
+      sortDir: rows.value.sortDir,
+      search: rows.value.search || undefined,
+    },
+  });
+}
+
+function resetTableState() {
+  stopTablesRetry();
+  tables.value = [];
+  selectedTable.value = "";
+  rows.value = {
+    rows: [],
+    total: 0,
+    offset: 0,
+    sortBy: null,
+    sortDir: "asc",
+    search: "",
+    loading: false,
+  };
+}
+
+function selectView(tab: "console" | "tables") {
+  view.value = tab;
+  if (tab === "tables") requestTables();
+}
+
+function onSelectTable(name: string) {
+  selectedTable.value = name;
+  rows.value.offset = 0;
+  rows.value.sortBy = null;
+  rows.value.sortDir = "asc";
+  rows.value.search = "";
+  requestRows();
+}
+
+const requestRowsDebounced = debounce(requestRows, 300);
+
+function onSearch(term: string) {
+  rows.value.search = term;
+  rows.value.offset = 0;
+  requestRowsDebounced();
+}
+
+function onSort(column: string) {
+  if (rows.value.sortBy === column) {
+    rows.value.sortDir = rows.value.sortDir === "asc" ? "desc" : "asc";
+  } else {
+    rows.value.sortBy = column;
+    rows.value.sortDir = "asc";
+  }
+  requestRows();
+}
+
+function onPage(direction: number) {
+  rows.value.offset = Math.max(0, rows.value.offset + direction * ROWS_PER_PAGE);
+  requestRows();
+}
+
 function segmentsOf(entry: Entry): SandboxConsoleSegment[] {
   return entry.segments ?? [{ text: entry.text, css: "" }];
 }
@@ -163,6 +320,7 @@ function push(entry: Entry) {
 function run() {
   if (!runner.value) return;
   entries.value = [];
+  resetTableState();
   token = nanoid();
   doc.value = buildSrcdoc({
     runner: runner.value,
@@ -172,12 +330,31 @@ function run() {
     origin: window.location.origin,
     basePath: uiBaseURL as string,
   });
+  if (runner.value.tables) requestTables();
 }
 
 function onMessage(event: MessageEvent) {
   if (!iframe.value || event.source !== iframe.value.contentWindow) return;
   const msg = parseSandboxMessage(event.data, token);
-  if (!msg || msg.type !== SANDBOX_CONSOLE_MESSAGE) return;
+  if (!msg) return;
+  if (msg.type === SANDBOX_TABLES_RESULT) {
+    stopTablesRetry();
+    tables.value = msg.tables;
+    if (!tables.value.some((t) => t.name === selectedTable.value)) {
+      selectedTable.value = tables.value[0]?.name ?? "";
+      rows.value.offset = 0;
+    }
+    if (selectedTable.value) requestRows();
+    return;
+  }
+  if (msg.type === SANDBOX_ROWS_RESULT) {
+    if (msg.id !== rowsRequestId) return; // stale page
+    rows.value.rows = msg.rows;
+    rows.value.total = msg.total;
+    rows.value.loading = false;
+    return;
+  }
+  if (msg.type !== SANDBOX_CONSOLE_MESSAGE) return;
   if (msg.level === "clear") entries.value = [];
   else push({ level: msg.level, text: msg.args.join(" "), segments: msg.segments });
 }
@@ -186,12 +363,8 @@ function submitEval() {
   const code = evalInput.value.trim();
   if (!code || !iframe.value?.contentWindow) return;
   push({ level: "input", text: "> " + code });
-  // "*" is required: the sandboxed iframe has an opaque origin. The token
-  // and the source check inside the iframe replace the origin check.
-  iframe.value.contentWindow.postMessage(
-    { type: SANDBOX_EVAL_MESSAGE, token, code },
-    "*",
-  );
+  view.value = "console"; // so the answer is visible
+  postToFrame({ type: SANDBOX_EVAL_MESSAGE, code });
   evalInput.value = "";
 }
 
@@ -216,9 +389,11 @@ watch(runner, (r, old) => {
   // manual runs so typing doesn't re-download/boot a wasm VM every second —
   // but only until the user says otherwise for that runner.
   autoRun.value = resolveAutoRun(autoRunMemory, old?.id ?? null, autoRun.value, r);
+  if (!r.tables) view.value = "console";
   if (autoRun.value) run();
   else {
     entries.value = [];
+    resetTableState();
     doc.value = "";
   }
 });
@@ -234,6 +409,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("message", onMessage);
+  stopTablesRetry();
 });
 </script>
 

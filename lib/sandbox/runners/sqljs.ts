@@ -9,6 +9,7 @@ export const SqlJsRunner: SandboxRunner = {
   layout: "console",
   usesVendor: true,
   replLanguage: "SQL",
+  tables: true,
   build: ({ content, vendorBase }) => ({
     head: `<script src="${vendorBase}/${VENDOR_PATHS.sqlJs}"></script>`,
     body: `<script>
@@ -31,6 +32,53 @@ export const SqlJsRunner: SandboxRunner = {
     window.__not3Eval__ = function (code) {
       printResults(db.exec(code));
       return undefined;
+    };
+    // --- table viewer -------------------------------------------------
+    // Identifiers can never be bound as parameters in SQL, so every one is
+    // first checked against the engine's own catalog and then double-quote
+    // escaped. Search VALUES are always bound.
+    function quoteIdent(name) { return '"' + String(name).replace(/"/g, '""') + '"'; }
+    function tableNames() {
+      var res = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
+      return res.length ? res[0].values.map(function (r) { return String(r[0]); }) : [];
+    }
+    window.__not3Tables__ = function () {
+      return tableNames().map(function (name) {
+        var cols = db.exec("PRAGMA table_info(" + quoteIdent(name) + ")");
+        var count = db.exec("SELECT COUNT(*) FROM " + quoteIdent(name));
+        return {
+          name: name,
+          columns: cols.length ? cols[0].values.map(function (r) { return String(r[1]); }) : [],
+          rowCount: count.length ? Number(count[0].values[0][0]) : 0,
+        };
+      });
+    };
+    window.__not3Rows__ = function (q) {
+      if (tableNames().indexOf(q.table) === -1) throw new Error("unknown table: " + q.table);
+      var info = window.__not3Tables__().filter(function (t) { return t.name === q.table; })[0];
+      var where = "";
+      var params = [];
+      if (q.search) {
+        where = " WHERE " + info.columns.map(function (c) {
+          return "CAST(" + quoteIdent(c) + " AS TEXT) LIKE ?";
+        }).join(" OR ");
+        for (var i = 0; i < info.columns.length; i++) params.push("%" + q.search + "%");
+      }
+      var order = "";
+      if (q.sortBy && info.columns.indexOf(q.sortBy) !== -1) {
+        order = " ORDER BY " + quoteIdent(q.sortBy) + (q.sortDir === "desc" ? " DESC" : " ASC");
+      }
+      var limit = Math.max(1, Math.min(200, Number(q.limit) || 50));
+      var offset = Math.max(0, Number(q.offset) || 0);
+      var total = db.exec("SELECT COUNT(*) FROM " + quoteIdent(q.table) + where, params);
+      var rows = db.exec(
+        "SELECT * FROM " + quoteIdent(q.table) + where + order + " LIMIT " + limit + " OFFSET " + offset,
+        params,
+      );
+      return {
+        rows: rows.length ? rows[0].values.map(function (r) { return r.map(String); }) : [],
+        total: total.length ? Number(total[0].values[0][0]) : 0,
+      };
     };
     printResults(db.exec(CODE));
   } catch (e) { console.error(String(e)); }

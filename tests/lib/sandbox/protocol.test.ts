@@ -3,6 +3,8 @@ import {
   CONSOLE_LEVELS,
   SANDBOX_CONSOLE_MESSAGE,
   SANDBOX_READY_MESSAGE,
+  SANDBOX_ROWS_RESULT,
+  SANDBOX_TABLES_RESULT,
   parseSandboxMessage,
   sanitizeConsoleCss,
 } from "~/lib/sandbox/protocol";
@@ -140,5 +142,96 @@ describe("sanitizeConsoleCss", () => {
     expect(sanitizeConsoleCss("not-a-declaration")).toBe("");
     expect(sanitizeConsoleCss("color:")).toBe("");
     expect(sanitizeConsoleCss("color: red".padEnd(5000, " "))).toBe("");
+  });
+});
+
+describe("table viewer messages", () => {
+  it("accepts a valid tables result", () => {
+    const msg = parseSandboxMessage(
+      {
+        token: TOKEN,
+        type: SANDBOX_TABLES_RESULT,
+        tables: [{ name: "users", columns: ["id", "name"], rowCount: 2 }],
+      },
+      TOKEN,
+    );
+    expect(msg).toEqual({
+      type: SANDBOX_TABLES_RESULT,
+      tables: [{ name: "users", columns: ["id", "name"], rowCount: 2 }],
+    });
+  });
+
+  it("coerces and clamps hostile cells in a rows result", () => {
+    const msg = parseSandboxMessage(
+      {
+        token: TOKEN,
+        type: SANDBOX_ROWS_RESULT,
+        id: 1,
+        rows: [[{ evil: true } as unknown as string, "x".repeat(20000)]],
+        total: "7",
+      },
+      TOKEN,
+    );
+    expect(msg && msg.type).toBe(SANDBOX_ROWS_RESULT);
+    if (msg && msg.type === SANDBOX_ROWS_RESULT) {
+      expect(typeof msg.rows[0][0]).toBe("string");
+      expect(msg.rows[0][1].length).toBeLessThanOrEqual(10001);
+      expect(msg.total).toBe(7);
+    }
+  });
+
+  it("rejects rows results with a bad id or non-array rows", () => {
+    expect(
+      parseSandboxMessage(
+        { token: TOKEN, type: SANDBOX_ROWS_RESULT, id: "x", rows: [], total: 0 },
+        TOKEN,
+      ),
+    ).toBeNull();
+    expect(
+      parseSandboxMessage(
+        { token: TOKEN, type: SANDBOX_ROWS_RESULT, id: 1, rows: "no", total: 0 },
+        TOKEN,
+      ),
+    ).toBeNull();
+  });
+
+  it("clamps oversized table and row collections", () => {
+    const tables = Array.from({ length: 800 }, (_, i) => ({
+      name: `t${i}`,
+      columns: Array.from({ length: 400 }, (_, c) => `c${c}`),
+      rowCount: 1,
+    }));
+    const msg = parseSandboxMessage(
+      { token: TOKEN, type: SANDBOX_TABLES_RESULT, tables },
+      TOKEN,
+    );
+    if (msg && msg.type === SANDBOX_TABLES_RESULT) {
+      expect(msg.tables.length).toBeLessThanOrEqual(500);
+      expect(msg.tables[0].columns.length).toBeLessThanOrEqual(200);
+    } else {
+      throw new Error("expected a tables result");
+    }
+
+    const rowsMsg = parseSandboxMessage(
+      {
+        token: TOKEN,
+        type: SANDBOX_ROWS_RESULT,
+        id: 2,
+        rows: Array.from({ length: 500 }, () => ["a"]),
+        total: 500,
+      },
+      TOKEN,
+    );
+    if (rowsMsg && rowsMsg.type === SANDBOX_ROWS_RESULT) {
+      expect(rowsMsg.rows.length).toBeLessThanOrEqual(200);
+    } else {
+      throw new Error("expected a rows result");
+    }
+  });
+
+  it("rejects a tables result whose tables are not an array", () => {
+    expect(
+      parseSandboxMessage({ token: TOKEN, type: SANDBOX_TABLES_RESULT, tables: {} }, TOKEN),
+    ).toBeNull();
   });
 });

@@ -4,6 +4,10 @@ import {
   SANDBOX_CONSOLE_MESSAGE,
   SANDBOX_EVAL_MESSAGE,
   SANDBOX_READY_MESSAGE,
+  SANDBOX_ROWS_REQUEST,
+  SANDBOX_ROWS_RESULT,
+  SANDBOX_TABLES_REQUEST,
+  SANDBOX_TABLES_RESULT,
 } from "~/lib/sandbox/protocol";
 
 const TOKEN = "tok-abc";
@@ -146,6 +150,65 @@ describe("buildBootstrap", () => {
     } finally {
       delete (window as unknown as Record<string, unknown>).__not3Eval__;
     }
+  });
+
+  it("answers tables/rows requests via the runner hooks", async () => {
+    const posted = setup();
+    const win = window as unknown as Record<string, unknown>;
+    win.__not3Tables__ = () => [{ name: "t", columns: ["a"], rowCount: 1 }];
+    win.__not3Rows__ = () => ({ rows: [["1"]], total: 1 });
+    try {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { type: SANDBOX_TABLES_REQUEST, token: TOKEN },
+          source: window,
+        }),
+      );
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: {
+            type: SANDBOX_ROWS_REQUEST,
+            token: TOKEN,
+            query: { id: 5, table: "t", offset: 0, limit: 50 },
+          },
+          source: window,
+        }),
+      );
+      await new Promise((r) => setTimeout(r, 0));
+      expect(posted).toContainEqual(
+        expect.objectContaining({
+          type: SANDBOX_TABLES_RESULT,
+          token: TOKEN,
+          tables: [{ name: "t", columns: ["a"], rowCount: 1 }],
+        }),
+      );
+      expect(posted).toContainEqual(
+        expect.objectContaining({
+          type: SANDBOX_ROWS_RESULT,
+          token: TOKEN,
+          id: 5,
+          rows: [["1"]],
+          total: 1,
+        }),
+      );
+    } finally {
+      delete win.__not3Tables__;
+      delete win.__not3Rows__;
+    }
+  });
+
+  it("ignores table requests when the runner installed no hooks", async () => {
+    const posted = setup();
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: { type: SANDBOX_TABLES_REQUEST, token: TOKEN },
+        source: window,
+      }),
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(posted).not.toContainEqual(
+      expect.objectContaining({ type: SANDBOX_TABLES_RESULT }),
+    );
   });
 
   it("splits %c format strings into styled segments", () => {

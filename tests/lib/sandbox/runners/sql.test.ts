@@ -24,6 +24,19 @@ describe("sql runners", () => {
     expect(PgliteRunner.heavy).toBe(true);
   });
 
+  it("both engines expose the table viewer hooks", () => {
+    for (const runner of [SqlJsRunner, PgliteRunner]) {
+      expect(runner.tables).toBe(true);
+      const doc = buildSrcdoc({ ...OPTS, runner, content: "SELECT 1;" });
+      expect(doc).toContain("__not3Tables__");
+      expect(doc).toContain("__not3Rows__");
+      // Identifiers are validated against the live catalog and quoted; the
+      // search term must be a bound parameter, never concatenated.
+      expect(doc).toContain("quoteIdent");
+      expect(doc).toContain("unknown table");
+    }
+  });
+
   it("both engines declare a SQL repl and install the eval hook", () => {
     for (const runner of [SqlJsRunner, PgliteRunner]) {
       expect(runner.replLanguage).toBe("SQL");

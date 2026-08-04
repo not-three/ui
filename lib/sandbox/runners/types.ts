@@ -33,5 +33,11 @@ export interface SandboxRunner {
   heavy?: boolean;
   /** REPL language name shown in the console input; absent = JavaScript eval. */
   replLanguage?: string;
+  /**
+   * Runner answers table-viewer queries: its document installs
+   * `window.__not3Tables__` and `window.__not3Rows__`, and the panel offers
+   * the Tables tab.
+   */
+  tables?: boolean;
   build(ctx: RunnerContext): RunnerDocument;
 }
