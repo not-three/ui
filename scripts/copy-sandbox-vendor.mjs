@@ -141,7 +141,11 @@ const ENGINES = [
   },
   { from: "mermaid/dist", to: "mermaid", files: ["mermaid.min.js"] },
   { from: "jscpp/dist", to: "jscpp", files: ["JSCPP.es5.min.js"] },
-  { from: "picoc-js/dist", to: "picoc-js", files: ["bundle.js"] },
+  // dist/bundle.js is an ES module with top-level `import ... from 'path'`
+  // (Node builtin) that a browser cannot resolve; dist/bundle.umd.js is
+  // the browser-usable UMD build the runner actually loads (see
+  // lib/sandbox/runners/c.ts).
+  { from: "picoc-js/dist", to: "picoc-js", files: ["bundle.umd.js"] },
 ];
 
 function copyFiltered(from, to, skip = []) {

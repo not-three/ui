@@ -11,6 +11,8 @@ import { RubyRunner } from "./ruby";
 import { SqlJsRunner } from "./sqljs";
 import { PgliteRunner } from "./pglite";
 import { PhpRunner } from "./php";
+import { CppRunner } from "./cpp";
+import { CRunner } from "./c";
 
 /** Order matters: the first runner for a language is its default engine. */
 export const SANDBOX_RUNNERS: SandboxRunner[] = [
@@ -31,6 +33,8 @@ export const SANDBOX_RUNNERS: SandboxRunner[] = [
   SqlJsRunner,
   PgliteRunner,
   PhpRunner,
+  CppRunner,
+  CRunner,
 ];
 
 export function runnersForLanguage(languageId: string | null | undefined): SandboxRunner[] {

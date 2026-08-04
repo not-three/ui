@@ -32,5 +32,9 @@ export const VENDOR_PATHS = {
   phpWeb: "php-wasm/PhpWeb.mjs",
   mermaid: "mermaid/mermaid.min.js",
   jscpp: "jscpp/JSCPP.es5.min.js",
-  picoc: "picoc-js/bundle.js",
+  // dist/bundle.js is an ES module with top-level `import ... from 'path'`
+  // (and 'fs', 'crypto', 'child_process') that a browser cannot resolve —
+  // see lib/sandbox/runners/c.ts. dist/bundle.umd.js is the browser-usable
+  // build; it attaches its API to `window.picocjs`.
+  picoc: "picoc-js/bundle.umd.js",
 } as const;
