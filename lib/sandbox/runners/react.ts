@@ -1,9 +1,10 @@
 import { VENDOR_PATHS } from "../vendor";
 import type { SandboxRunner } from "./types";
-import { escapeScriptClose } from "./util";
+import { embedJson } from "./util";
 
-// Appended to the user code INSIDE the same babel script so it shares its
-// scope (top-level const/function in a script are not on window).
+// Appended to the compiled user code INSIDE the same eval() call (concatenated
+// into one string, not a second <script>), so it shares scope with the user's
+// top-level `function App() {}` declaration regardless of eval strictness.
 const AUTO_RENDER = `
 ;(function () {
   try {
@@ -25,7 +26,26 @@ export const ReactRunner: SandboxRunner = {
       `<script src="${vendorBase}/${VENDOR_PATHS.react}"></script>` +
       `<script src="${vendorBase}/${VENDOR_PATHS.reactDom}"></script>` +
       `<script src="${vendorBase}/${VENDOR_PATHS.babel}"></script>`,
+    // The note is embedded as a JSON string literal (like every other
+    // compiler runner), never spliced as raw source into the HTML. Relying on
+    // Babel's own DOMContentLoaded scanner for type="text/babel" tags would
+    // require the raw, un-escaped JSX source to live directly in the HTML
+    // body, where a literal `<script>` element inside the JSX (perfectly
+    // valid user code, e.g. `<div><script>...</script></div>`) or an
+    // unbalanced `<!--<script>` would confuse the HTML tokenizer or an
+    // escaping pass long before Babel ever saw it. Embedding as a JS string
+    // and invoking Babel explicitly sidesteps HTML parsing entirely: the
+    // browser only ever sees one well-formed <script> element.
     body: `<div id="root"></div>
-<script type="text/babel" data-presets="react">${escapeScriptClose(content + "\n" + AUTO_RENDER)}</script>`,
+<script>
+(function () {
+  var CODE = ${embedJson(content)};
+  var EPILOGUE = ${embedJson(AUTO_RENDER)};
+  try {
+    var compiled = Babel.transform(CODE, { presets: ["react"] }).code;
+    (0, eval)(compiled + EPILOGUE);
+  } catch (e) { console.error(String(e && e.stack || e)); }
+})();
+</script>`,
   }),
 };

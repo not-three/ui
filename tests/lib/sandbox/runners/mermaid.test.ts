@@ -21,4 +21,15 @@ describe("MermaidRunner", () => {
     expect(doc).toContain("A--&gt;B&lt;script&gt;");
     expect(doc).not.toContain("A-->B<script>");
   });
+
+  // securityLevel is the one config value here that actually matters for
+  // safety: anything looser than "strict" lets mermaid render arbitrary HTML
+  // in node labels (the diagram source is untrusted note content).
+  it("initializes mermaid with securityLevel strict", () => {
+    const doc = buildSrcdoc({
+      runner: MermaidRunner, content: "graph TD; A-->B", token: "tok",
+      allowNetwork: false, origin: ORIGIN,
+    });
+    expect(doc).toContain('securityLevel: "strict"');
+  });
 });
