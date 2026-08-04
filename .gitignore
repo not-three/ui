@@ -26,3 +26,9 @@ logs
 db/
 .output-prebuild
 .pnpm-store
+docs/
+public/vendor/
+
+# Playwright (tests/runners)
+test-results/
+playwright-report/

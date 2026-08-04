@@ -34,6 +34,11 @@ import { PowershellDefinition } from "./languages/powershell";
 import { DockerfileDefinition } from "./languages/dockerfile";
 import { DockerComposeDefinition } from "./languages/docker-compose";
 import { GraphqlDefinition } from "./languages/graphql";
+import { CoffeescriptDefinition } from "./languages/coffeescript";
+import { MermaidDefinition } from "./languages/mermaid";
+import { JsxDefinition } from "./languages/jsx";
+import { VueDefinition } from "./languages/vue";
+import { SvelteDefinition } from "./languages/svelte";
 
 export const languageDefinitions: LanguageDefinition[] = [
   TypeScriptDefinition,
@@ -70,4 +75,9 @@ export const languageDefinitions: LanguageDefinition[] = [
   DockerfileDefinition,
   DockerComposeDefinition,
   GraphqlDefinition,
+  CoffeescriptDefinition,
+  MermaidDefinition,
+  JsxDefinition,
+  VueDefinition,
+  SvelteDefinition,
 ];
