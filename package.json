@@ -15,7 +15,7 @@
     "prettier": "prettier --write .",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare && node scripts/copy-sandbox-vendor.mjs"
+    "postinstall": "nuxt prepare && node scripts/copy-sandbox-vendor.mjs && node scripts/fetch-pyodide-wheels.mjs"
   },
   "dependencies": {
     "@not3/sdk": "^2.0.5",

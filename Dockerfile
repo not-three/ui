@@ -6,7 +6,7 @@ COPY pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
 RUN pnpm install
 COPY . .
-RUN node scripts/copy-sandbox-vendor.mjs
+RUN node scripts/copy-sandbox-vendor.mjs && node scripts/fetch-pyodide-wheels.mjs
 ARG NUXT_APP_BASE_URL=/
 ENV NUXT_APP_BASE_URL=$NUXT_APP_BASE_URL
 RUN pnpm generate
