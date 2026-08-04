@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>runner harness</title>
+<body>
+<script>
+  // Stands in for the panel: mounts the same sandboxed iframe and records
+  // every message the sandbox posts, so specs can assert on real output.
+  window.__messages = [];
+  window.addEventListener("message", (e) => { window.__messages.push(e.data); });
+  window.__mount = (srcdoc) => {
+    document.querySelector("iframe")?.remove();
+    const f = document.createElement("iframe");
+    f.setAttribute("sandbox", "allow-scripts allow-modals");
+    f.setAttribute("referrerpolicy", "no-referrer");
+    f.style.width = "800px"; f.style.height = "500px";
+    f.srcdoc = srcdoc;
+    document.body.appendChild(f);
+  };
+  window.__post = (msg) => { document.querySelector("iframe").contentWindow.postMessage(msg, "*"); };
+</script>
+</body>
