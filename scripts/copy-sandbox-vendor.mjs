@@ -6,13 +6,27 @@
 // Copies are SELECTIVE: only the files a runner actually loads. Blanket
 // package copies would add ~300 MB to the image (php-wasm alone is 182 MB
 // unpacked); tests/lib/sandbox/vendor.test.ts enforces the budgets.
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const modules = join(root, "node_modules");
 const target = join(root, "public", "vendor");
+
+// esm-env and clsx are transitive runtime dependencies of svelte's compiled
+// "svelte/internal/client" module graph (bare `import ... from 'esm-env'` /
+// `'clsx'`), not direct dependencies of this project, so pnpm does not hoist
+// them to a stable node_modules/<name> path -- they only exist nested inside
+// svelte's own resolved location (node_modules/.pnpm/svelte@<version>/
+// node_modules/<pkg>). Resolve them via svelte's own symlink rather than a
+// version-pinned .pnpm/<pkg>@<version> path, so a future svelte (or esm-env/
+// clsx) version bump doesn't silently stop resolving.
+function svelteDepDir(pkg) {
+  const svelteDir = join(modules, "svelte");
+  if (!existsSync(svelteDir)) return join(modules, pkg);
+  return join(dirname(realpathSync(svelteDir)), pkg);
+}
 
 const JUNK = /\.(map|d\.ts|md|txt)$/i;
 
@@ -105,6 +119,24 @@ const ENGINES = [
   // covers compilation instead.
   { from: "svelte/src", to: "svelte/src", dir: true, skip: ["compiler"] },
   { from: "svelte/compiler", to: "svelte/compiler", dir: true },
+  // esm-env's index.js re-exports its ./browser, ./development and ./node
+  // subpaths; browsers apply only the "default" export condition (no
+  // "browser"/"development"/"production"/"node" custom conditions), which
+  // resolves those subpaths to browser-fallback.js, dev-fallback.js and
+  // false.js respectively -- true.js is never reached under that condition,
+  // so it is skipped.
+  {
+    from: relative(modules, svelteDepDir("esm-env")),
+    to: "svelte/esm-env",
+    files: ["index.js", "browser-fallback.js", "dev-fallback.js", "false.js"],
+  },
+  // clsx's ESM entry (package.json exports "." -> import -> dist/clsx.mjs)
+  // is a single self-contained file with no further imports.
+  {
+    from: relative(modules, join(svelteDepDir("clsx"), "dist")),
+    to: "svelte/clsx",
+    files: ["clsx.mjs"],
+  },
   // The npm package's only auto-executing browser bundle,
   // dist/browser.script.iife.js, hardcodes a fetch to
   // https://cdn.jsdelivr.net at import time — unacceptable for a

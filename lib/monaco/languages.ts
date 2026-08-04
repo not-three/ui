@@ -38,6 +38,7 @@ import { CoffeescriptDefinition } from "./languages/coffeescript";
 import { MermaidDefinition } from "./languages/mermaid";
 import { JsxDefinition } from "./languages/jsx";
 import { VueDefinition } from "./languages/vue";
+import { SvelteDefinition } from "./languages/svelte";
 
 export const languageDefinitions: LanguageDefinition[] = [
   TypeScriptDefinition,
@@ -78,4 +79,5 @@ export const languageDefinitions: LanguageDefinition[] = [
   MermaidDefinition,
   JsxDefinition,
   VueDefinition,
+  SvelteDefinition,
 ];

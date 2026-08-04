@@ -14,6 +14,7 @@ import { PhpRunner } from "./php";
 import { CppRunner } from "./cpp";
 import { CRunner } from "./c";
 import { VueRunner } from "./vue";
+import { SvelteRunner } from "./svelte";
 
 /** Order matters: the first runner for a language is its default engine. */
 export const SANDBOX_RUNNERS: SandboxRunner[] = [
@@ -37,6 +38,7 @@ export const SANDBOX_RUNNERS: SandboxRunner[] = [
   CppRunner,
   CRunner,
   VueRunner,
+  SvelteRunner,
 ];
 
 export function runnersForLanguage(languageId: string | null | undefined): SandboxRunner[] {

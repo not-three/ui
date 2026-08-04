@@ -75,6 +75,10 @@ export async function setupMonaco() {
   monaco.languages.setMonarchTokensProvider("vue", htmlLanguage);
   monaco.languages.setLanguageConfiguration("vue", htmlConf);
 
+  // svelte files are also html-shaped; reuse the same grammar.
+  monaco.languages.setMonarchTokensProvider("svelte", htmlLanguage);
+  monaco.languages.setLanguageConfiguration("svelte", htmlConf);
+
   monaco.editor.defineTheme("custom-dark", {
     base: "vs-dark",
     inherit: true,

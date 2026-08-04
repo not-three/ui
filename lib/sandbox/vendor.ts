@@ -24,6 +24,17 @@ export const VENDOR_PATHS = {
   svelteInternalClient: "svelte/src/internal/client/index.js",
   svelteDiscloseVersion: "svelte/src/internal/disclose-version.js",
   svelteFlagsLegacy: "svelte/src/internal/flags/legacy.js",
+  // Compiled Svelte components' "svelte/internal/client" module graph has
+  // real (non-relative) `import ... from 'esm-env'` / `'clsx'` statements
+  // (verified by walking the reachable import graph from src/index-client.js
+  // and src/internal/client/index.js) -- these are svelte's own transitive
+  // runtime deps, not vendored packages of ours, so they need their own
+  // import-map entries alongside the svelte* ones above.
+  svelteEsmEnv: "svelte/esm-env/index.js",
+  svelteEsmEnvBrowser: "svelte/esm-env/browser-fallback.js",
+  svelteEsmEnvDevelopment: "svelte/esm-env/dev-fallback.js",
+  svelteEsmEnvNode: "svelte/esm-env/false.js",
+  svelteClsx: "svelte/clsx/clsx.mjs",
   // php-wasm's build variants and a whole-package ruby.wasm+stdlib copy would
   // between them add ~230 MB; browser.script.iife.js was rejected (see
   // rubyScript below) because it hardcodes a jsdelivr.net CDN fetch.
