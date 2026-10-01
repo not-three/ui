@@ -17,7 +17,7 @@ export const ORIGIN = "http://127.0.0.1:8788";
 type Recorded = Record<string, unknown>;
 
 /** Build a runner's document exactly as the panel does and mount it. */
-export async function runNote(page: Page, runnerId: string, content: string) {
+export async function runNote(page: Page, runnerId: string, content: string, theme: "dark" | "light" = "dark") {
   const runner = getRunner(runnerId);
   if (!runner) throw new Error("unknown runner: " + runnerId);
   const srcdoc = buildSrcdoc({
@@ -27,6 +27,7 @@ export async function runNote(page: Page, runnerId: string, content: string) {
     allowNetwork: false,
     origin: ORIGIN,
     basePath: "/",
+    theme,
   });
   await page.goto("/harness.html");
   await page.evaluate((doc) => (window as never as { __mount(d: string): void }).__mount(doc), srcdoc);

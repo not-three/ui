@@ -5,7 +5,7 @@ import { LuaRunner } from "~/lib/sandbox/runners/lua";
 import { RubyRunner } from "~/lib/sandbox/runners/ruby";
 
 const ORIGIN = "https://app.example";
-const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN };
+const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN, theme: "dark" as const };
 
 describe("LuaRunner", () => {
   it("is the default engine for lua notes", () => {

@@ -88,7 +88,7 @@
         :class="LEVEL_CLASSES[entry.level]"
       ><span v-for="(segment, j) in segmentsOf(entry)" :key="j" :style="segment.css">{{ segment.text }}</span></div>
     </div>
-    <form class="flex items-center border-t border-black" @submit.prevent="submitEval">
+    <form v-if="!runner?.noRepl" class="flex items-center border-t border-black" @submit.prevent="submitEval">
       <span class="pl-2 pr-1 py-1 text-green-400 font-mono text-xs select-none">&gt;</span>
       <input
         v-model="evalInput"
@@ -329,6 +329,7 @@ function run() {
     allowNetwork: allowNetwork.value,
     origin: window.location.origin,
     basePath: uiBaseURL as string,
+    theme: "dark",
   });
   if (runner.value.tables) requestTables();
 }
@@ -389,7 +390,7 @@ watch(runner, (r, old) => {
   // manual runs so typing doesn't re-download/boot a wasm VM every second —
   // but only until the user says otherwise for that runner.
   autoRun.value = resolveAutoRun(autoRunMemory, old?.id ?? null, autoRun.value, r);
-  if (!r.tables) view.value = "console";
+  view.value = r.defaultTab ?? "console";
   if (autoRun.value) run();
   else {
     entries.value = [];

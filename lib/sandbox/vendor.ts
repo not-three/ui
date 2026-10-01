@@ -44,6 +44,7 @@ export const VENDOR_PATHS = {
   rubyWasm: "ruby-wasm/ruby+stdlib.wasm",
   phpWeb: "php-wasm/PhpWeb.mjs",
   mermaid: "mermaid/mermaid.min.js",
+  markdown: "markdown/markdown.min.js",
   jscpp: "jscpp/JSCPP.es5.min.js",
   // dist/bundle.js is an ES module with top-level `import ... from 'path'`
   // (and 'fs', 'crypto', 'child_process') that a browser cannot resolve —
