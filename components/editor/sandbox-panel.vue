@@ -332,6 +332,7 @@ function run() {
   doc.value = buildSrcdoc({
     runner: runner.value,
     content: props.content,
+    languageId: props.languageId,
     token,
     allowNetwork: allowNetwork.value,
     origin: window.location.origin,

@@ -9,6 +9,7 @@ import { PythonRunner } from "~/lib/sandbox/runners/python";
 import { JavascriptRunner } from "~/lib/sandbox/runners/javascript";
 import { HtmlRunner } from "~/lib/sandbox/runners/html";
 import { MarkdownRunner } from "~/lib/sandbox/runners/markdown";
+import type { SandboxRunner } from "~/lib/sandbox/runners/types";
 
 const TOKEN = "tok-xyz";
 const ORIGIN = "https://app.example";
@@ -91,6 +92,15 @@ describe("buildCsp", () => {
 });
 
 describe("buildSrcdoc", () => {
+  it("passes the selected editor language into runner build", () => {
+    const runner: SandboxRunner = {
+      id: "probe", label: "Probe", languages: ["markdown"], layout: "console", usesVendor: false,
+      build: ({ languageId }) => ({ body: `<p>language:${languageId}</p>` }),
+    };
+    const doc = buildSrcdoc({ runner, content: "x", languageId: "markdown", token: TOKEN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark" });
+    expect(doc).toContain("language:markdown");
+  });
   it("passes the selected theme into markdown rendering", () => {
     const dark = buildSrcdoc({ runner: MarkdownRunner, content: "# Theme", token: TOKEN,
       allowNetwork: false, origin: ORIGIN, theme: "dark" });

@@ -3,6 +3,8 @@ export type RunnerLayout = "console" | "preview";
 export interface RunnerContext {
   /** Plaintext note content (the code to run). */
   content: string;
+  /** Selected Monaco language; data runners use it instead of guessing from content. */
+  languageId?: string;
   /** Absolute URL prefix for self-hosted interpreter assets, e.g. "https://host/vendor". */
   vendorBase: string;
   /** Preview palette selected by the parent panel. */

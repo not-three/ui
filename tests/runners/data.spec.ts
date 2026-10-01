@@ -3,7 +3,7 @@ import { expectConsole, requestRows, requestTables, runNote } from "./helpers";
 
 test("CSV answers search, stable sort, and one 50-row page per request", async ({ page }) => {
   const source = ["name,rank,group", ...Array.from({ length: 105 }, (_, i) => `item${i},${i},${i % 2 ? "odd" : "even"}`)].join("\n");
-  await runNote(page, "data-tables", source);
+  await runNote(page, "data-tables", source, "dark", "csv");
   await expectConsole(page, "info", "Parsed 105 rows × 3 columns");
   expect(await requestTables(page)).toEqual([{ name: "data", columns: ["name", "rank", "group"], rowCount: 105 }]);
   const first = await requestRows(page, { id: 1, table: "data", offset: 0, limit: 200, sortBy: "rank", sortDir: "desc" });
@@ -19,7 +19,7 @@ test("CSV answers search, stable sort, and one 50-row page per request", async (
 });
 
 test("JSON arrays expose separate tables and compact nested cells", async ({ page }) => {
-  await runNote(page, "data-tables", '{"users":[{"id":1,"meta":{"role":"admin"}},{"id":2,"name":"Bob"}],"notes":"ignore"}');
+  await runNote(page, "data-tables", '{"users":[{"id":1,"meta":{"role":"admin"}},{"id":2,"name":"Bob"}],"notes":"ignore"}', "dark", "json");
   expect(await requestTables(page)).toEqual([{ name: "users", columns: ["id", "meta", "name"], rowCount: 2 }]);
   const result = await requestRows(page, { id: 3, table: "users", offset: 0, limit: 50, search: "admin" });
   expect(result.rows).toEqual([["1", '{"role":"admin"}', ""]]);
@@ -27,7 +27,7 @@ test("JSON arrays expose separate tables and compact nested cells", async ({ pag
 });
 
 test("Markdown exposes multiple GFM tables named by headings", async ({ page }) => {
-  await runNote(page, "data-tables", "# People\n\n| Name | Age |\n| --- | --- |\n| Ada | 36 |\n\n## Cities\n\n| City | Country |\n| --- | --- |\n| Berlin | DE |");
+  await runNote(page, "data-tables", "# People\n\n| Name | Age |\n| --- | --- |\n| Ada | 36 |\n\n## Cities\n\n| City | Country |\n| --- | --- |\n| Berlin | DE |", "dark", "markdown");
   expect(await requestTables(page)).toEqual([
     { name: "People", columns: ["Name", "Age"], rowCount: 1 },
     { name: "Cities", columns: ["City", "Country"], rowCount: 1 },
@@ -36,36 +36,47 @@ test("Markdown exposes multiple GFM tables named by headings", async ({ page }) 
 });
 
 test("invalid JSON reports an error and no tables", async ({ page }) => {
-  await runNote(page, "data-tables", "{invalid");
+  await runNote(page, "data-tables", "{invalid", "dark", "json");
   await expectConsole(page, "error", "Invalid JSON");
   expect(await requestTables(page)).toEqual([]);
 });
 
 test("quoted CSV newlines stay inside a cell and malformed CSV reports an error", async ({ page }) => {
-  await runNote(page, "data-tables", 'name,notes\nAda,"first\nsecond"\nBob,"said ""hi"""');
+  await runNote(page, "data-tables", 'name,notes\nAda,"first\nsecond"\nBob,"said ""hi"""', "dark", "csv");
   expect(await requestTables(page)).toEqual([{ name: "data", columns: ["name", "notes"], rowCount: 2 }]);
   expect((await requestRows(page, { id: 5, table: "data", offset: 0, limit: 50 })).rows).toEqual([
     ["Ada", "first\nsecond"], ["Bob", 'said "hi"'],
   ]);
 
-  await runNote(page, "data-tables", 'name,notes\nAda,"never closed');
+  await runNote(page, "data-tables", 'name,notes\nAda,"never closed', "dark", "csv");
   await expectConsole(page, "error", "CSV parse error");
   expect(await requestTables(page)).toEqual([]);
 });
 
 test("top-level JSON array uses lowercase data table name", async ({ page }) => {
-  await runNote(page, "data-tables", '[{"id":1},{"id":2}]');
+  await runNote(page, "data-tables", '[{"id":1},{"id":2}]', "dark", "json");
   expect(await requestTables(page)).toEqual([{ name: "data", columns: ["id"], rowCount: 2 }]);
 });
 
 test("Markdown starting with a link still exposes a later GFM table", async ({ page }) => {
-  await runNote(page, "data-tables", "[Intro](#intro)\n\n# People\n\n| Name | Age |\n| --- | --- |\n| Ada | 36 |");
+  await runNote(page, "data-tables", "[Intro](#intro)\n\n# People\n\n| Name | Age |\n| --- | --- |\n| Ada | 36 |", "dark", "markdown");
   expect(await requestTables(page)).toEqual([{ name: "People", columns: ["Name", "Age"], rowCount: 1 }]);
   expect((await requestRows(page, { id: 6, table: "People", offset: 0, limit: 50 })).rows).toEqual([["Ada", "36"]]);
 });
 
 test("a malformed JSON array still reports a JSON error", async ({ page }) => {
-  await runNote(page, "data-tables", '[{"id":1');
+  await runNote(page, "data-tables", '[{"id":1', "dark", "json");
   await expectConsole(page, "error", "Invalid JSON");
   expect(await requestTables(page)).toEqual([]);
+});
+
+test("reference-style leading link still allows a later Markdown table", async ({ page }) => {
+  await runNote(page, "data-tables", "[Intro][intro]\n\n[intro]: #intro\n\n| A | B |\n| --- | --- |\n| 1 | 2 |", "dark", "markdown");
+  expect(await requestTables(page)).toEqual([{ name: "Table 1", columns: ["A", "B"], rowCount: 1 }]);
+});
+
+test("one-dash GFM delimiters produce an unheaded Markdown table", async ({ page }) => {
+  await runNote(page, "data-tables", "| A | B |\n| - | - |\n| 1 | 2 |", "dark", "markdown");
+  expect(await requestTables(page)).toEqual([{ name: "Table 1", columns: ["A", "B"], rowCount: 1 }]);
+  expect((await requestRows(page, { id: 7, table: "Table 1", offset: 0, limit: 50 })).rows).toEqual([["1", "2"]]);
 });

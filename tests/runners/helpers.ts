@@ -17,12 +17,13 @@ export const ORIGIN = "http://127.0.0.1:8788";
 type Recorded = Record<string, unknown>;
 
 /** Build a runner's document exactly as the panel does and mount it. */
-export async function runNote(page: Page, runnerId: string, content: string, theme: "dark" | "light" = "dark") {
+export async function runNote(page: Page, runnerId: string, content: string, theme: "dark" | "light" = "dark", languageId?: string) {
   const runner = getRunner(runnerId);
   if (!runner) throw new Error("unknown runner: " + runnerId);
   const srcdoc = buildSrcdoc({
     runner,
     content,
+    languageId,
     token: TOKEN,
     allowNetwork: false,
     origin: ORIGIN,
