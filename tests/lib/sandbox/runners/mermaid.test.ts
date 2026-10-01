@@ -14,7 +14,7 @@ describe("MermaidRunner", () => {
   it("html-escapes the diagram source into a pre.mermaid block", () => {
     const doc = buildSrcdoc({
       runner: MermaidRunner, content: "graph TD; A-->B<script>", token: "tok",
-      allowNetwork: false, origin: ORIGIN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).toContain(`${ORIGIN}/vendor/mermaid/mermaid.min.js`);
     expect(doc).toContain('<pre class="mermaid">');
@@ -28,7 +28,7 @@ describe("MermaidRunner", () => {
   it("initializes mermaid with securityLevel strict", () => {
     const doc = buildSrcdoc({
       runner: MermaidRunner, content: "graph TD; A-->B", token: "tok",
-      allowNetwork: false, origin: ORIGIN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).toContain('securityLevel: "strict"');
   });

@@ -18,6 +18,8 @@ import { setupMonaco } from "~/lib/monaco/setup";
 import { YesNoDialog } from "~/lib/dialog";
 import { parseKeybinding } from "~/lib/monaco/keybindings";
 import { EDITOR_ACTIONS } from "~/lib/monaco/editor-actions";
+import { registerFormatEditor } from "~/lib/actions/format";
+import { canFormatNote } from "~/lib/format/availability";
 import * as monaco from "monaco-editor";
 
 const store = useAppStore();
@@ -52,6 +54,7 @@ function registerEditorActions() {
   actionDisposables = [];
   if (!editor) return;
   for (const action of EDITOR_ACTIONS) {
+    if (action.id === "format" && !canFormatNote(store, store.getCurrentLanguage().id)) continue;
     const keybinding = parseKeybinding(settings.editor.keybindings[action.id]);
     actionDisposables.push(
       editor.addAction({
@@ -103,6 +106,7 @@ onMounted(async () => {
     stickyScroll: { enabled: settings.editor.stickyScroll },
   });
 
+  registerFormatEditor(editor);
   registerEditorActions();
 
   // Handle content changes
@@ -132,6 +136,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   actionDisposables.forEach((d) => d.dispose());
+  registerFormatEditor(null);
   editor?.dispose();
 });
 
@@ -166,4 +171,8 @@ watch(
 );
 
 watch(() => settings.editor, applyEditorSettings, { deep: true });
+watch(
+  () => [store.readonly, store.settings, store.excalidraw, store.selectedLanguage, store.detectedLanguage],
+  registerEditorActions,
+);
 </script>

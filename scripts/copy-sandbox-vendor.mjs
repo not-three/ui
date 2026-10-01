@@ -10,6 +10,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync,
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSync } from "esbuild";
+import { buildCdnPattern } from "./vendor-cdn.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const modules = join(root, "node_modules");
@@ -55,7 +56,7 @@ const JUNK = /\.(map|d\.ts|md|txt)$/i;
 // resolve in DNS — any code path that still tries to fetch it fails loudly
 // (offline) instead of silently reaching a real host.
 const CDN_HOSTS = ["cdn.jsdelivr.net", "unpkg.com", "cdnjs.cloudflare.com", "esm.sh"];
-const CDN_PATTERN = new RegExp(`https://(?:${CDN_HOSTS.map((h) => h.replace(/\./g, "\\.")).join("|")})`, "g");
+const CDN_PATTERN = buildCdnPattern(CDN_HOSTS);
 const SANITIZE_EXT = /\.(m?js|cjs|json)$/i;
 
 /**
@@ -258,8 +259,8 @@ for (const engine of ENGINES) {
   }
   ok++;
 }
-// Shared with Markdown preview: a single self-hosted browser bundle supplies
-// markdown-it to both runners, plus preview-only task lists and highlighting.
+// One browser bundle keeps the parser, task-list plugin and common syntax
+// highlighter self-hosted while avoiding Node-style require() in the iframe.
 const markdownDir = join(target, "markdown");
 mkdirSync(markdownDir, { recursive: true });
 buildSync({

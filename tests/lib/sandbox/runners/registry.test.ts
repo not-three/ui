@@ -26,6 +26,21 @@ describe("runner registry", () => {
     expect(isRunnableLanguage(undefined)).toBe(false);
     expect(getRunner("nope")).toBeNull();
   });
+
+  it("registers markdown as a preview without a REPL", () => {
+    const runner = defaultRunnerForLanguage("markdown");
+    expect(runner).toMatchObject({
+      id: "markdown-preview",
+      languages: ["markdown"],
+      layout: "preview",
+      usesVendor: true,
+      noRepl: true,
+      defaultTab: "console",
+    });
+    expect(SANDBOX_RUNNERS.indexOf(runner!)).toBeLessThan(
+      SANDBOX_RUNNERS.findIndex((r) => r.id === "sql-sqljs"),
+    );
+  });
 });
 
 describe("escaping helpers (via util)", () => {

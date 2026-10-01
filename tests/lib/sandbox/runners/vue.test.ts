@@ -14,7 +14,7 @@ describe("VueRunner", () => {
   it("loads self-hosted vue + sfc-loader and embeds the SFC source", () => {
     const doc = buildSrcdoc({
       runner: VueRunner, content: "<template><h1>{{ msg }}</h1></template>",
-      token: "tok", allowNetwork: false, origin: ORIGIN,
+      token: "tok", allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).toContain(`${ORIGIN}/vendor/vue/vue.global.js`);
     expect(doc).toContain(`${ORIGIN}/vendor/vue/vue3-sfc-loader.js`);
@@ -25,7 +25,7 @@ describe("VueRunner", () => {
   // The prod build strips every runtime warning, which made broken notes
   // (e.g. @click bound to a method that does not exist) fail silently.
   it("loads the dev build and installs warn/error handlers", () => {
-    const doc = VueRunner.build({ content: "<template><p/></template>", vendorBase: "v" });
+    const doc = VueRunner.build({ content: "<template><p/></template>", vendorBase: "v", theme: "dark" });
     expect(doc.head).toContain("vue.global.js");
     expect(doc.head).not.toContain("vue.global.prod.js");
     expect(doc.body).toContain("config.warnHandler");
