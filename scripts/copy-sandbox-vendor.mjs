@@ -9,7 +9,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildCdnPattern } from "./vendor-cdn.mjs";
+import { replaceCdnUrls } from "./vendor-cdn.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const modules = join(root, "node_modules");
@@ -55,7 +55,6 @@ const JUNK = /\.(map|d\.ts|md|txt)$/i;
 // resolve in DNS — any code path that still tries to fetch it fails loudly
 // (offline) instead of silently reaching a real host.
 const CDN_HOSTS = ["cdn.jsdelivr.net", "unpkg.com", "cdnjs.cloudflare.com", "esm.sh"];
-const CDN_PATTERN = buildCdnPattern(CDN_HOSTS);
 const SANITIZE_EXT = /\.(m?js|cjs|json)$/i;
 
 /**
@@ -221,10 +220,10 @@ function sanitizeCdnReferences(dir) {
     }
     if (!SANITIZE_EXT.test(entry.name)) continue;
     const original = readFileSync(full, "utf8");
-    const matches = original.match(CDN_PATTERN);
-    if (!matches) continue;
-    writeFileSync(full, original.replaceAll(CDN_PATTERN, "https://vendored.invalid"));
-    console.log(`[vendor] neutralised ${matches.length} CDN reference(s) in ${relative(root, full)}`);
+    const { text, count } = replaceCdnUrls(original, CDN_HOSTS, "https://vendored.invalid");
+    if (count === 0) continue;
+    writeFileSync(full, text);
+    console.log(`[vendor] neutralised ${count} CDN reference(s) in ${relative(root, full)}`);
     filesChanged++;
   }
   return filesChanged;
