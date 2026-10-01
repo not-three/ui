@@ -29,10 +29,10 @@ describe("format", () => {
     expect(await format("css", "a{color:red}", { tabWidth: 4 })).toBe("a {\n    color: red;\n}\n");
   });
 
-  it("uses Prettier's default line width", async () => {
+  it("uses the specified 100-column line width", async () => {
     const source = '{"items":["' + "a".repeat(40) + '","' + "b".repeat(40) + '"]}';
     expect(await format("json", source, { tabWidth: 2 })).toBe(
-      '{\n  "items": [\n    "' + "a".repeat(40) + '",\n    "' + "b".repeat(40) + '"\n  ]\n}\n',
+      '{\n  "items": ["' + "a".repeat(40) + '", "' + "b".repeat(40) + '"]\n}\n',
     );
   });
 

@@ -49,6 +49,8 @@ export async function format(languageId: string, source: string, opts: FormatOpt
     parser,
     plugins,
     tabWidth: opts.tabWidth,
+    useTabs: false,
+    printWidth: 100,
   });
 }
 
