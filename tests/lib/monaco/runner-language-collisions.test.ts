@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { detectLanguageFromContent } from "~/lib/monaco/utils";
+import { VueDefinition } from "~/lib/monaco/languages/vue";
 
 // The "Run / Preview" panel (feat/sandboxed-runner-preview) picks a runner
 // straight from detectLanguageFromContent's verdict, so a misdetection no
@@ -135,6 +136,10 @@ describe("runner language collisions", () => {
       "</style>",
     ].join("\n");
     expect(detectLanguageFromContent(vue)).toBe("vue");
+  });
+
+  it("matches an uppercase SCRIPT block with the Vue SFC script pattern", () => {
+    expect(VueDefinition.detectionPatterns?.[1]?.pattern.test('<SCRIPT setup lang="ts">')).toBe(true);
   });
 
   // A realistic Svelte component — runes-style local state, an {#if} block,

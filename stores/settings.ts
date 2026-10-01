@@ -6,6 +6,9 @@ export const useSettingsStore = defineStore('settings', {
       password: null as string | null,
     },
     trustedServers: [] as string[],
+    sandbox: {
+      panelWidthPct: 50,
+    },
     warnings: {
       serverSideDecryption: true,
       unknownServer: true,
