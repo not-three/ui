@@ -42,6 +42,18 @@ describe("format", () => {
     );
   });
 
+  it("formats TypeScript inside a Vue single-file component", async () => {
+    expect(await format("vue", '<template><div>Hi</div></template><script lang="ts">const x:number=1</script>', { tabWidth: 2 })).toBe(
+      '<template><div>Hi</div></template>\n<script lang="ts">\nconst x: number = 1;\n</script>\n',
+    );
+  });
+
+  it("formats embedded JavaScript and CSS in HTML", async () => {
+    expect(await format("html", "<html><script>const x=1</script><style>a{color:red}</style></html>", { tabWidth: 2 })).toBe(
+      "<html>\n  <script>\n    const x = 1;\n  </script>\n  <style>\n    a {\n      color: red;\n    }\n  </style>\n</html>\n",
+    );
+  });
+
   it("rejects an unknown language", async () => {
     expect(hasFormatter("python")).toBe(false);
     await expect(format("python", "print(1)", { tabWidth: 2 })).rejects.toThrow(/formatter/i);

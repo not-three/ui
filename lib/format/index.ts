@@ -60,7 +60,13 @@ async function loadPlugins(parser: PrettierParser) {
     case "json-stringify": return [await import("prettier/plugins/estree"), await import("prettier/plugins/babel")];
     case "yaml": return [await import("prettier/plugins/yaml")];
     case "html":
-    case "vue": return [await import("prettier/plugins/html")];
+    case "vue": return Promise.all([
+      import("prettier/plugins/html"),
+      import("prettier/plugins/estree"),
+      import("prettier/plugins/babel"),
+      import("prettier/plugins/typescript"),
+      import("prettier/plugins/postcss"),
+    ]);
     case "css":
     case "scss":
     case "less": return [await import("prettier/plugins/postcss")];
