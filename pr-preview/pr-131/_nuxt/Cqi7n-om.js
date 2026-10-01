@@ -1,0 +1,1 @@
+import{_ as n}from"./DOV_T2Ij.js";import{d as t,u as a,o as p,c as s,a as _}from"./jPS-YooJ.js";import"./oVEJCKZz.js";import"./bhaNGJWy.js";const d=t({__name:"[id]",setup(r){const e=a().params.id;return(c,m)=>{const o=n;return p(),s(o,{"open-file":_(e)},null,8,["open-file"])}}});export{d as default};
