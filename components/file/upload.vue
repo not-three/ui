@@ -79,6 +79,7 @@ function canHandleDrop(): boolean {
     fileTransferEnabled: !!store.info.fileTransferEnabled,
     settingsOpen: store.settings,
     uploadActive: !!upload.value,
+    p2pSendActive: store.p2pSend,
   });
 }
 

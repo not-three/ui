@@ -122,6 +122,16 @@ const entries = computed<NavigationEntry[]>(() => [
             : undefined,
       },
       {
+        name: "P2P Transfer",
+        onClick: Actions.OPEN_P2P_SEND,
+        disabled: !store.info.p2pEnabled || store.settings,
+        title: !store.info.p2pEnabled
+          ? "This server does not have P2P transfers enabled."
+          : store.settings
+            ? "Cant open P2P transfer while settings editor is open"
+            : undefined,
+      },
+      {
         name: (store.excalidraw ? "Close" : "Open") + " Excalidraw",
         onClick: Actions.OPEN_EXCALIDRAW,
         disabled: !store.config.drawURL || store.settings,

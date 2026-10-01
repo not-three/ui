@@ -1,12 +1,13 @@
 export class DownloadDb {
-  static reset() {
-    indexedDB.deleteDatabase('download')
+  static reset(name: string | Event = 'download') {
+    // beforeunload also calls this method directly with its event argument.
+    indexedDB.deleteDatabase(typeof name === 'string' ? name : 'download')
   }
 
-  static async open() {
+  static async open(name = 'download') {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      this.reset()
-      const req = indexedDB.open('download', 1)
+      this.reset(name)
+      const req = indexedDB.open(name, 1)
       req.onsuccess = () => resolve(req.result)
       req.onerror = () => reject(req.error)
       req.onupgradeneeded = () => {
