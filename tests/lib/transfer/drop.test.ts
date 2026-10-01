@@ -21,6 +21,7 @@ describe("canStartDropUpload", () => {
         fileTransferEnabled: true,
         settingsOpen: false,
         uploadActive: false,
+        p2pSendActive: false,
       }),
     ).toBe(true);
   });
@@ -31,6 +32,7 @@ describe("canStartDropUpload", () => {
         fileTransferEnabled: false,
         settingsOpen: false,
         uploadActive: false,
+        p2pSendActive: false,
       }),
     ).toBe(false);
   });
@@ -41,6 +43,7 @@ describe("canStartDropUpload", () => {
         fileTransferEnabled: true,
         settingsOpen: true,
         uploadActive: false,
+        p2pSendActive: false,
       }),
     ).toBe(false);
   });
@@ -51,6 +54,18 @@ describe("canStartDropUpload", () => {
         fileTransferEnabled: true,
         settingsOpen: false,
         uploadActive: true,
+        p2pSendActive: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("blocks the ordinary drop flow while P2P send is open", () => {
+    expect(
+      canStartDropUpload({
+        fileTransferEnabled: true,
+        settingsOpen: false,
+        uploadActive: false,
+        p2pSendActive: true,
       }),
     ).toBe(false);
   });
