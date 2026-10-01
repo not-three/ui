@@ -1,9 +1,28 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createP2PSink } from '~/lib/transfer/p2p-sink';
+import { createP2PSink, prepareP2PSink } from '~/lib/transfer/p2p-sink';
 
 const bytes = (values: number[]) => new Uint8Array(values).buffer;
 
 describe('P2P streaming sink', () => {
+  it('prepares a file destination before metadata and attaches it without reopening', async () => {
+    const writes: number[] = [];
+    const writer = {
+      seek: vi.fn(async (at: number) => { writes.push(at); }),
+      write: vi.fn(async (_buf: ArrayBuffer) => {}),
+      close: vi.fn(async () => {}),
+      abort: vi.fn(async () => {}),
+    };
+    const picker = vi.fn(async (_options: { suggestedName: string }) => ({ createWritable: async () => writer }));
+    const prepared = await prepareP2PSink('incoming.bin', { showSaveFilePicker: picker });
+    expect(picker).toHaveBeenCalledOnce();
+    const sink = prepared.attach('actual.bin', 3, 3);
+    await sink.write(bytes([1, 2, 3]), 0);
+    await sink.finish();
+    expect(picker).toHaveBeenCalledOnce();
+    expect(writes).toEqual([0]);
+    expect(writer.close).toHaveBeenCalledOnce();
+  });
+
   it('writes each chunk to File System Access and rewinds a resumed chunk', async () => {
     const writes: number[][] = [];
     let position = 0;
