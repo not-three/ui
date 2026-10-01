@@ -29,6 +29,9 @@ describe("CSV registration and detection", () => {
     "This is prose, with commas, and clauses.\nIt remains prose, with commas, and clauses.\nThe third sentence, has commas, and clauses.",
     "This is prose, with commas, and clauses\nIt remains prose, with commas, and clauses\nThe third sentence, has commas, and clauses",
     "name,age,city\nAda,36\nBob,42,Berlin",
+    "name,age,city\n\nAda,36,London\n\nBob,42,Berlin",
+    "name,age,city\n{a,b,c}\nBob,42,Berlin",
+    "name,age,city\n<span,a,b>\nBob,42,Berlin",
     "# Table\n| a,b,c | x,y,z |\n| --- | --- |\n| d,e,f | g,h,i |",
   ])("does not misdetect JSON, HTML, prose or irregular rows", (content) => {
     expect(detectLanguageFromContent(content)).not.toBe("csv");

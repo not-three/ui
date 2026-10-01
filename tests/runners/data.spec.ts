@@ -4,14 +4,14 @@ import { expectConsole, requestRows, requestTables, runNote } from "./helpers";
 test("CSV answers search, stable sort, and one 50-row page per request", async ({ page }) => {
   const source = ["name,rank,group", ...Array.from({ length: 105 }, (_, i) => `item${i},${i},${i % 2 ? "odd" : "even"}`)].join("\n");
   await runNote(page, "data-tables", source);
-  await expectConsole(page, "info", "Parsed 1 table(s), 105 row(s)");
-  expect(await requestTables(page)).toEqual([{ name: "Data", columns: ["name", "rank", "group"], rowCount: 105 }]);
-  const first = await requestRows(page, { id: 1, table: "Data", offset: 0, limit: 200, sortBy: "rank", sortDir: "desc" });
+  await expectConsole(page, "info", "Parsed 105 rows × 3 columns");
+  expect(await requestTables(page)).toEqual([{ name: "data", columns: ["name", "rank", "group"], rowCount: 105 }]);
+  const first = await requestRows(page, { id: 1, table: "data", offset: 0, limit: 200, sortBy: "rank", sortDir: "desc" });
   expect(first.id).toBe(1);
   expect(first.total).toBe(105);
   expect(first.rows).toHaveLength(50);
   expect(first.rows[0]).toEqual(["item104", "104", "even"]);
-  const second = await requestRows(page, { id: 2, table: "Data", offset: 50, limit: 50, search: "odd" });
+  const second = await requestRows(page, { id: 2, table: "data", offset: 50, limit: 50, search: "odd" });
   expect(second.id).toBe(2);
   expect(second.total).toBe(52);
   expect(second.rows).toHaveLength(2);
@@ -39,4 +39,21 @@ test("invalid JSON reports an error and no tables", async ({ page }) => {
   await runNote(page, "data-tables", "{invalid");
   await expectConsole(page, "error", "Invalid JSON");
   expect(await requestTables(page)).toEqual([]);
+});
+
+test("quoted CSV newlines stay inside a cell and malformed CSV reports an error", async ({ page }) => {
+  await runNote(page, "data-tables", 'name,notes\nAda,"first\nsecond"\nBob,"said ""hi"""');
+  expect(await requestTables(page)).toEqual([{ name: "data", columns: ["name", "notes"], rowCount: 2 }]);
+  expect((await requestRows(page, { id: 5, table: "data", offset: 0, limit: 50 })).rows).toEqual([
+    ["Ada", "first\nsecond"], ["Bob", 'said "hi"'],
+  ]);
+
+  await runNote(page, "data-tables", 'name,notes\nAda,"never closed');
+  await expectConsole(page, "error", "CSV parse error");
+  expect(await requestTables(page)).toEqual([]);
+});
+
+test("top-level JSON array uses lowercase data table name", async ({ page }) => {
+  await runNote(page, "data-tables", '[{"id":1},{"id":2}]');
+  expect(await requestTables(page)).toEqual([{ name: "data", columns: ["id"], rowCount: 2 }]);
 });

@@ -13,12 +13,16 @@ interface MarkdownToken {
 }
 
 type MarkdownParser = new () => { parse(content: string, env: object): MarkdownToken[] };
+type CsvParser = {
+  parse(content: string, config: object): { data: string[][]; errors: { message: string }[] };
+};
 
 /** Self-contained pure parser: its source is embedded unchanged in the iframe. */
 export function parseDataTables(
   content: string,
   language: string,
   MarkdownIt?: MarkdownParser,
+  Papa?: CsvParser,
 ): { tables: DataTable[]; message?: string; error?: string } {
   const tables: DataTable[] = [];
   const cell = (value: unknown): string => {
@@ -39,17 +43,7 @@ export function parseDataTables(
     catch (error) { return { tables, error: `Invalid JSON: ${String(error)}` }; }
 
     const addArray = (name: string, items: unknown[]) => {
-      if (!items.length || !items.every((item) => item !== null && typeof item === "object")) return;
-      if (items.every(Array.isArray)) {
-        const width = Math.max(...items.map((item) => (item as unknown[]).length));
-        tables.push({
-          name: uniqueName(name),
-          columns: Array.from({ length: width }, (_, i) => `Column ${i + 1}`),
-          rows: items.map((item) => Array.from({ length: width }, (_, i) => cell((item as unknown[])[i]))),
-        });
-        return;
-      }
-      if (!items.every((item) => !Array.isArray(item))) return;
+      if (!items.length || !items.every((item) => item !== null && typeof item === "object" && !Array.isArray(item))) return;
       const objects = items as Record<string, unknown>[];
       const columns = [...new Set(objects.flatMap((item) => Object.keys(item)))];
       if (!columns.length) return;
@@ -58,54 +52,33 @@ export function parseDataTables(
         rows: objects.map((item) => columns.map((key) => cell(item[key]))),
       });
     };
-    if (Array.isArray(value)) addArray("Data", value);
+    if (Array.isArray(value)) addArray("data", value);
     else if (value !== null && typeof value === "object") {
       for (const [key, entry] of Object.entries(value)) {
         if (Array.isArray(entry)) addArray(key, entry);
       }
     }
   } else if (language === "csv") {
-    const first = content.split(/\r?\n/).find((line) => line.trim()) ?? "";
-    const separators = [",", ";", "\t"];
-    const countIn = (line: string, separator: string) => {
-      let count = 0;
-      let quoted = false;
-      for (let i = 0; i < line.length; i++) {
-        if (line[i] === '"') {
-          if (quoted && line[i + 1] === '"') i++;
-          else quoted = !quoted;
-        } else if (!quoted && line[i] === separator) count++;
-      }
-      return count;
-    };
-    const delimiter = separators.sort((a, b) => countIn(first, b) - countIn(first, a))[0];
-    const records: string[][] = [];
-    let record: string[] = [];
-    let field = "";
-    let quoted = false;
-    const source = content.replace(/\r\n/g, "\n");
-    for (let i = 0; i < source.length; i++) {
-      const ch = source[i];
-      if (ch === '"') {
-        if (quoted && source[i + 1] === '"') { field += '"'; i++; }
-        else quoted = !quoted;
-      } else if (!quoted && ch === delimiter) {
-        record.push(field); field = "";
-      } else if (!quoted && ch === "\n") {
-        record.push(field); field = "";
-        if (record.some((value) => value !== "")) records.push(record);
-        record = [];
-      } else field += ch;
-    }
-    record.push(field);
-    if (record.some((value) => value !== "")) records.push(record);
+    if (!Papa) return { tables, error: "CSV parser failed to load" };
+    const parsed = Papa.parse(content, {
+      delimiter: "",
+      delimitersToGuess: [",", "\t", ";"],
+      dynamicTyping: false,
+      skipEmptyLines: "greedy",
+    });
+    if (parsed.errors.length) return { tables, error: `CSV parse error: ${parsed.errors[0]!.message}` };
+    const records = parsed.data;
     if (records.length >= 2 && records[0]!.length >= 2) {
       const columns = records[0]!;
-      tables.push({ name: "Data", columns, rows: records.slice(1).map((row) => columns.map((_, i) => row[i] ?? "")) });
+      if (records.slice(1).some((row) => row.length !== columns.length)) {
+        return { tables, error: "CSV parse error: inconsistent row width" };
+      }
+      tables.push({ name: "data", columns, rows: records.slice(1) });
     }
   } else if (language === "markdown" && MarkdownIt) {
     const tokens = new MarkdownIt().parse(content, {});
-    let heading = "Table";
+    let heading: string | null = null;
+    let unnamed = 0;
     let current: DataTable | null = null;
     let row: string[] = [];
     let inHeading = false;
@@ -113,13 +86,13 @@ export function parseDataTables(
     for (const token of tokens) {
       if (token.type === "heading_open") inHeading = true;
       else if (token.type === "heading_close") inHeading = false;
-      else if (token.type === "table_open") current = { name: uniqueName(heading), columns: [], rows: [] };
+      else if (token.type === "table_open") current = { name: uniqueName(heading ?? `Table ${++unnamed}`), columns: [], rows: [] };
       else if (token.type === "tr_open" && current) row = [];
       else if ((token.type === "th_open" || token.type === "td_open") && current) inCell = true;
       else if ((token.type === "th_close" || token.type === "td_close") && current) inCell = false;
       else if (token.type === "inline") {
         const text = token.children?.filter((part) => part.type === "text" || part.type === "code_inline").map((part) => part.content).join("") ?? token.content;
-        if (inHeading) heading = text || "Table";
+        if (inHeading) heading = text || null;
         else if (current && inCell) row.push(text);
       } else if (token.type === "tr_close" && current) {
         if (!current.columns.length) current.columns = row;

@@ -21,7 +21,7 @@ function withGlobalMultiline(pattern: RegExp): RegExp {
 export function looksLikeCsv(content: string): boolean {
   const sample = content.slice(0, MAX_DETECTION_LENGTH).trimStart();
   if (sample.startsWith("{") || sample.startsWith("<") || sample.startsWith("[")) return false;
-  const lines = sample.split(/\r?\n/).filter((line) => line.trim());
+  const lines = sample.split(/\r?\n/);
   for (const separator of [",", ";", "\t"]) {
     const fields = (line: string): string[] | null => {
       const values: string[] = [];
@@ -40,7 +40,9 @@ export function looksLikeCsv(content: string): boolean {
       return quoted ? null : values;
     };
     for (let i = 0; i <= lines.length - 3; i++) {
-      const window = lines.slice(i, i + 3).map(fields);
+      const candidates = lines.slice(i, i + 3);
+      if (candidates.some((line) => /^\s*[<{]/.test(line))) continue;
+      const window = candidates.map(fields);
       if (window.some((row) => row === null)) continue;
       const [header, second, third] = window as [string[], string[], string[]];
       if (header.length < 3 || header.length !== second.length || header.length !== third.length) continue;

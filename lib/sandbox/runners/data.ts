@@ -13,7 +13,7 @@ export const DataTablesRunner: SandboxRunner = {
   noRepl: true,
   usesVendor: true,
   build: ({ content, vendorBase }) => ({
-    head: `<script src="${vendorBase}/${VENDOR_PATHS.markdown}"></script>`,
+    head: `<script src="${vendorBase}/${VENDOR_PATHS.markdown}"></script><script src="${vendorBase}/${VENDOR_PATHS.papaParse}"></script>`,
     body: `<script>
 (function () {
   var source = ${embedJson(content)};
@@ -21,7 +21,7 @@ export const DataTablesRunner: SandboxRunner = {
   var language = first.charAt(0) === "{" || first.charAt(0) === "[" ? "json" : /^(?:#{1,6}\\s|[\\s\\S]*\\|[ \\t]*:?-{3,})/m.test(first) ? "markdown" : "csv";
   var parse = (${parseDataTables.toString()});
   var query = (${queryDataRows.toString()});
-  var result = parse(source, language, window.__not3Markdown && window.__not3Markdown.MarkdownIt);
+  var result = parse(source, language, window.__not3Markdown && window.__not3Markdown.MarkdownIt, window.Papa);
   var tables = result.tables;
   window.__not3Tables__ = function () {
     return tables.map(function (table) {
@@ -31,7 +31,7 @@ export const DataTablesRunner: SandboxRunner = {
   window.__not3Rows__ = function (request) { return query(tables, request); };
   if (result.error) console.error(result.error);
   else if (result.message) console.info(result.message);
-  else console.info("Parsed " + tables.length + " table(s), " + tables.reduce(function (sum, table) { return sum + table.rows.length; }, 0) + " row(s)");
+  else tables.forEach(function (table) { console.info("Parsed " + table.rows.length + " rows × " + table.columns.length + " columns"); });
 })();
 </script>`,
   }),
