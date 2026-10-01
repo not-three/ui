@@ -9,7 +9,9 @@ export function isP2PFragment(url: string): boolean {
 }
 
 export function absoluteApiBase(base: string, origin: string): string {
-  return new URL(base, origin).toString();
+  const url = new URL(base, origin);
+  if (!url.pathname.endsWith('/')) url.pathname += '/';
+  return url.toString();
 }
 
 export function p2pApiFor(server: string | null, base: string, origin: string, password?: string): Not3Client {
