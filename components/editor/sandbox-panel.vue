@@ -94,6 +94,8 @@
         v-model="evalInput"
         class="flex-grow bg-transparent font-mono text-xs py-1 pr-2 outline-none"
         :placeholder="`Run ${runner?.replLanguage ?? 'JavaScript'} in the sandbox…`"
+        @keydown.up.prevent="navigateHistory('up')"
+        @keydown.down.prevent="navigateHistory('down')"
       >
     </form>
   </div>
@@ -118,6 +120,7 @@ import { SANDBOX_IFRAME_SANDBOX, buildSrcdoc } from "~/lib/sandbox/srcdoc";
 import { runnersForLanguage } from "~/lib/sandbox/runners";
 import type { SandboxRunner } from "~/lib/sandbox/runners/types";
 import { resolveAutoRun } from "~/lib/sandbox/auto-run";
+import { createReplHistory } from "~/lib/sandbox/repl-history";
 
 /**
  * The sandbox panel itself: toolbar, sandboxed iframe, console and REPL.
@@ -164,6 +167,7 @@ const iframe = ref<HTMLIFrameElement>();
 const output = ref<HTMLDivElement>();
 const entries = ref<Entry[]>([]);
 const evalInput = ref("");
+const replHistory = createReplHistory();
 const autoRun = ref(true);
 const allowNetwork = ref(false);
 const doc = ref("");
@@ -363,10 +367,16 @@ function onMessage(event: MessageEvent) {
 function submitEval() {
   const code = evalInput.value.trim();
   if (!code || !iframe.value?.contentWindow) return;
+  if (runner.value) replHistory.record(runner.value.id, code);
   push({ level: "input", text: "> " + code });
   view.value = "console"; // so the answer is visible
   postToFrame({ type: SANDBOX_EVAL_MESSAGE, code });
   evalInput.value = "";
+}
+
+function navigateHistory(direction: "up" | "down") {
+  if (!runner.value) return;
+  evalInput.value = replHistory.navigate(runner.value.id, direction, evalInput.value);
 }
 
 const rerun = debounce(() => {
@@ -385,6 +395,7 @@ watch(runner, (r, old) => {
     return;
   }
   if (r.id === old?.id) return;
+  evalInput.value = replHistory.switchRunner(old?.id ?? "", r.id, evalInput.value);
   // Engine or language switched while the panel is open: never leave the
   // previous runner's document on screen. Heavy interpreters default to
   // manual runs so typing doesn't re-download/boot a wasm VM every second —
