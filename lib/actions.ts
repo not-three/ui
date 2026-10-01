@@ -1,5 +1,6 @@
 export * from './actions/download';
 export * from './actions/duplicate';
+export * from './actions/format';
 export * from './actions/new';
 export * from './actions/open-excalidraw';
 export * from './actions/open-file-transfer';

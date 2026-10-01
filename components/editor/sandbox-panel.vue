@@ -137,7 +137,7 @@ const props = defineProps<{
   resizing?: boolean;
 }>();
 
-const emit = defineEmits<{ close: []; popout: [] }>();
+const emit = defineEmits<{ close: []; popout: []; engine: [id: string] }>();
 
 const MAX_ENTRIES = 500;
 
@@ -179,6 +179,7 @@ let token = "";
 const autoRunMemory = new Map<string, boolean>();
 
 const engineId = ref("");
+watch(engineId, (id) => emit("engine", id));
 const availableRunners = computed(() => runnersForLanguage(props.languageId));
 const runner = computed<SandboxRunner | null>(
   () =>

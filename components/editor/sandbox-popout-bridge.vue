@@ -9,6 +9,7 @@ import { debounce } from "~/lib/monaco/utils";
 import {
   POPOUT_READY_MESSAGE,
   POPOUT_STATE_MESSAGE,
+  POPOUT_ENGINE_MESSAGE,
   closePopoutWindow,
   getPopoutWindow,
   parsePopoutMessage,
@@ -44,6 +45,7 @@ function onMessage(event: MessageEvent) {
   if (event.origin !== window.location.origin) return;
   const msg = parsePopoutMessage(event.data);
   if (msg?.type === POPOUT_READY_MESSAGE) sendState();
+  if (msg?.type === POPOUT_ENGINE_MESSAGE) store.sandboxEngineId = msg.engineId;
 }
 
 function onPageHide() {

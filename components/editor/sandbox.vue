@@ -19,6 +19,7 @@
       :resizing="resizing"
       @close="store.sandbox = false"
       @popout="openPopout"
+      @engine="store.sandboxEngineId = $event"
     />
   </div>
 </template>

@@ -1,6 +1,8 @@
+import { migrateSettings } from "~/lib/settings-migration";
+
 export const useSettingsStore = defineStore('settings', {
   state: () => ({
-    version: 2,
+    version: 3,
     customServer: {
       url: null as string | null,
       password: null as string | null,
@@ -30,8 +32,11 @@ export const useSettingsStore = defineStore('settings', {
         duplicate: "ctrl+d",
         new: "ctrl+alt+n",
         download: "ctrl+shift+s",
+        format: "shift+alt+f",
       } as Record<string, string>,
     },
   }),
-  persist: true,
+  persist: {
+    afterHydrate: ({ store }) => store.$patch(migrateSettings(store.$state)),
+  },
 })
