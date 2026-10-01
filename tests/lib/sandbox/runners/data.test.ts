@@ -57,7 +57,7 @@ describe("data table runner", () => {
   it("advertises the tables-first read-only contract and embeds shared parsers", () => {
     expect(DataTablesRunner).toMatchObject({ id: "data-tables", languages: ["csv", "json", "markdown"], layout: "console", tables: true, defaultTab: "tables", noRepl: true, usesVendor: true });
     const doc = DataTablesRunner.build({ content: "a,b,c\n1,2,3", vendorBase: "https://app.example/vendor", theme: "dark" });
-    expect(doc.head).toContain("markdown-it/markdown-it.umd.min.js");
+    expect(doc.head).toContain("markdown/markdown.min.js");
     expect(doc.body).toContain("__not3Tables__");
     expect(doc.body).toContain("__not3Rows__");
     expect(doc.body).not.toContain("https://cdn");

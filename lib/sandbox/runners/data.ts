@@ -13,7 +13,7 @@ export const DataTablesRunner: SandboxRunner = {
   noRepl: true,
   usesVendor: true,
   build: ({ content, vendorBase }) => ({
-    head: `<script src="${vendorBase}/${VENDOR_PATHS.markdownIt}"></script>`,
+    head: `<script src="${vendorBase}/${VENDOR_PATHS.markdown}"></script>`,
     body: `<script>
 (function () {
   var source = ${embedJson(content)};
@@ -21,7 +21,7 @@ export const DataTablesRunner: SandboxRunner = {
   var language = first.charAt(0) === "{" || first.charAt(0) === "[" ? "json" : /^(?:#{1,6}\\s|[\\s\\S]*\\|[ \\t]*:?-{3,})/m.test(first) ? "markdown" : "csv";
   var parse = (${parseDataTables.toString()});
   var query = (${queryDataRows.toString()});
-  var result = parse(source, language, window.markdownit);
+  var result = parse(source, language, window.__not3Markdown && window.__not3Markdown.MarkdownIt);
   var tables = result.tables;
   window.__not3Tables__ = function () {
     return tables.map(function (table) {
