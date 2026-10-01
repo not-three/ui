@@ -1,7 +1,7 @@
 <template>
   <div class="flex-grow basis-0 overflow-auto flex flex-col text-xs font-mono min-h-0">
     <div v-if="!tables.length" class="flex-grow flex items-center justify-center text-white/50 px-4 text-center">
-      No tables found. CREATE TABLE + INSERT something, then Run.
+      No tables found. Run a note that creates a table or contains tabular data.
     </div>
     <template v-else>
       <div class="flex items-center gap-2 px-2 py-1 border-b border-black flex-wrap">
