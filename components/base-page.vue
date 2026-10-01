@@ -5,8 +5,10 @@
     <dialog-base />
     <misc-loading-spinner :visible="loading > 0 || store.loading" />
     <file-upload />
+    <p2p-send />
     <transition-fade>
-      <file-download v-if="openFile && loading <= 0" :file="openFile" />
+      <file-p2p-receive v-if="openFile && loading <= 0 && fileIsP2P" :file="openFile" />
+      <file-download v-else-if="openFile && loading <= 0" :file="openFile" />
     </transition-fade>
     <navigation-bar />
     <editor-monaco @loaded="loading--" />
@@ -19,6 +21,7 @@ import { OkDialog, YesNoDialog } from "~/lib/dialog";
 import axios, { AxiosError } from "axios";
 import { DownloadDb } from "~/lib/download";
 import * as Actions from "~/lib/actions";
+import { isP2PFragment } from "~/lib/transfer/p2p";
 
 const { uiBaseURL } = useRuntimeConfig().public;
 const store = useAppStore();
@@ -29,6 +32,7 @@ const props = defineProps<{
   openNote?: string;
   openSettings?: boolean;
 }>();
+const fileIsP2P = computed(() => !!props.openFile && isP2PFragment(window.location.href));
 
 // event to register in the dom to prevent closing the app if unsaved changes
 function beforeDomUnload(event: BeforeUnloadEvent) {

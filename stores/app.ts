@@ -5,6 +5,10 @@ import { OkDialog, YesNoDialog, type Dialog } from "~/lib/dialog"
 import { languageDefinitions } from "~/lib/monaco/languages"
 import type { LanguageDefinition } from "~/lib/monaco/types"
 
+// SDK 2.1.0 reads this field in P2PClient.isEnabled(), but its generated
+// InfoResponse predates the API's /info addition.
+type UiInfoResponse = InfoResponse & { p2pEnabled?: boolean }
+
 type UiConfig = {
   baseURL: string
   drawURL?: string
@@ -19,7 +23,7 @@ export const useAppStore = defineStore('app', {
       baseURL: '/api/',
       drawURL: 'https://draw.not-th.re'
     } as UiConfig,
-    info: {} as InfoResponse,
+    info: {} as UiInfoResponse,
     id: '',
     keepContent: false,
     settings: false,
@@ -27,6 +31,7 @@ export const useAppStore = defineStore('app', {
     content: '',
     loading: false,
     upload: false,
+    p2pSend: false,
     expires: null as Date | null,
     detectedLanguage: null as string | null,
     selectedLanguage: null as string | null,
