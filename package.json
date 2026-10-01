@@ -46,6 +46,8 @@
     "@types/markdown-it": "^14.2.0",
     "@types/papaparse": "^5.5.2",
     "@types/semver": "^7.7.1",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vue/test-utils": "^2.5.1",
     "coffeescript": "2.7.0",
     "esbuild": "^0.28.1",
     "eslint": "^9.25.0",

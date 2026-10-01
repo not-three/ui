@@ -393,18 +393,21 @@ watch(availableRunners, (list) => {
   if (!list.some((r) => r.id === engineId.value)) engineId.value = list[0]?.id ?? "";
 });
 
-watch(runner, (r, old) => {
+watch([runner, () => props.languageId], ([r, languageId], [old, oldLanguageId]) => {
   if (!r) {
     emit("close");
     return;
   }
-  if (r.id === old?.id) return;
-  evalInput.value = replHistory.switchRunner(old?.id ?? "", r.id, evalInput.value);
+  const runnerChanged = r.id !== old?.id;
+  if (!runnerChanged && languageId === oldLanguageId) return;
+  if (runnerChanged) {
+    evalInput.value = replHistory.switchRunner(old?.id ?? "", r.id, evalInput.value);
+    autoRun.value = resolveAutoRun(autoRunMemory, old?.id ?? null, autoRun.value, r);
+  }
   // Engine or language switched while the panel is open: never leave the
   // previous runner's document on screen. Heavy interpreters default to
   // manual runs so typing doesn't re-download/boot a wasm VM every second —
   // but only until the user says otherwise for that runner.
-  autoRun.value = resolveAutoRun(autoRunMemory, old?.id ?? null, autoRun.value, r);
   view.value = initialRunnerView(r);
   if (autoRun.value) run();
   else {
