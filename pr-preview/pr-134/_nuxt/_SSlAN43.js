@@ -1,0 +1,1 @@
+import{_ as n}from"./Cbg56Wlh.js";import{d as t,u as a,o as p,c as s,a as _}from"./BtsrAmS4.js";import"./C_-i0ggf.js";import"./Cmv0cGS0.js";const d=t({__name:"[id]",setup(r){const e=a().params.id;return(c,m)=>{const o=n;return p(),s(o,{"open-file":_(e)},null,8,["open-file"])}}});export{d as default};
