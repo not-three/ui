@@ -7,7 +7,7 @@ export const VueDefinition: LanguageDefinition = {
   mimeTypes: ["text/x-vue"],
   detectionPatterns: [
     { pattern: /^\s*<template>/m, weight: 3 },
-    { pattern: /^\s*<script(\s+setup)?(\s+lang="ts")?\s*>/m, weight: 2 },
+    { pattern: /^\s*<script(\s+setup)?(\s+lang="ts")?\s*>/im, weight: 2 },
     { pattern: /^\s*<style(\s+scoped)?\s*>/m, weight: 2 },
     { pattern: /\bdefineProps\s*\(|\bdefineEmits\s*\(/, weight: 3 },
   ],
