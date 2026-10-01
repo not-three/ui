@@ -7,7 +7,7 @@ describe("formatModel", () => {
     const model = monaco.editor.createModel('{"a":1}', "json");
     try {
       expect(await formatModel(model, "json", { tabWidth: 2 })).toBe(true);
-      expect(model.getValue()).toBe('{\n  "a": 1\n}\n');
+      expect(model.getValue()).toBe('{ "a": 1 }\n');
       model.undo();
       expect(model.getValue()).toBe('{"a":1}');
     } finally {

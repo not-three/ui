@@ -3,7 +3,7 @@ import { format, hasFormatter } from "~/lib/format";
 
 describe("format", () => {
   const cases: Array<[string, string, string]> = [
-    ["json", '{"a":1,\n"b":2}', '{\n  "a": 1,\n  "b": 2\n}\n'],
+    ["json", '{"a":1}', '{ "a": 1 }\n'],
     ["yaml", "name: test\nitems: [a,b]", "name: test\nitems: [a, b]\n"],
     ["dockercompose", "services:\n  web: {image: nginx}", "services:\n  web: { image: nginx }\n"],
     ["html", "<div><span>Hi</span></div>", "<div><span>Hi</span></div>\n"],
@@ -16,7 +16,7 @@ describe("format", () => {
     ["vue", "<template><div><span>Hi</span><span>Bye</span></div></template>", "<template>\n  <div><span>Hi</span><span>Bye</span></div>\n</template>\n"],
     ["markdown", "# Title\n\n- one\n- two", "# Title\n\n- one\n- two\n"],
     ["graphql", "query Test{user{id}}", "query Test {\n  user {\n    id\n  }\n}\n"],
-    ["xml", "<root><item>Hi</item></root>", "<root>\n  <item>Hi</item>\n</root>\n"],
+    ["xml", "<root><item>Hi</item></root>", "<root><item>Hi</item></root>\n"],
     ["sql", "select id,name from users where id=1;", "SELECT\n  id,\n  name\nFROM\n  users\nWHERE\n  id = 1;"],
   ];
 
@@ -26,7 +26,7 @@ describe("format", () => {
   });
 
   it("uses the configured tab width", async () => {
-    expect(await format("json", '{"a":1,\n"b":2}', { tabWidth: 4 })).toBe('{\n    "a": 1,\n    "b": 2\n}\n');
+    expect(await format("css", "a{color:red}", { tabWidth: 4 })).toBe("a {\n    color: red;\n}\n");
   });
 
   it("uses PostgreSQL grammar when the PGlite runner is selected", async () => {

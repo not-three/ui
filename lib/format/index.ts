@@ -4,11 +4,11 @@ export interface FormatOptions {
 }
 
 type PrettierParser =
-  | "json-stringify" | "yaml" | "html" | "css" | "scss" | "less"
+  | "json" | "yaml" | "html" | "css" | "scss" | "less"
   | "babel" | "typescript" | "vue" | "markdown" | "graphql" | "xml";
 
 const parsers: Record<string, PrettierParser> = {
-  json: "json-stringify",
+  json: "json",
   yaml: "yaml",
   dockercompose: "yaml",
   html: "html",
@@ -51,13 +51,12 @@ export async function format(languageId: string, source: string, opts: FormatOpt
     tabWidth: opts.tabWidth,
     useTabs: false,
     printWidth: 100,
-    xmlWhitespaceSensitivity: "preserve",
   });
 }
 
 async function loadPlugins(parser: PrettierParser) {
   switch (parser) {
-    case "json-stringify": return [await import("prettier/plugins/estree"), await import("prettier/plugins/babel")];
+    case "json": return [await import("prettier/plugins/estree"), await import("prettier/plugins/babel")];
     case "yaml": return [await import("prettier/plugins/yaml")];
     case "html":
     case "vue": return Promise.all([
