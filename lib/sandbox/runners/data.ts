@@ -18,7 +18,10 @@ export const DataTablesRunner: SandboxRunner = {
 (function () {
   var source = ${embedJson(content)};
   var first = source.trimStart();
-  var language = first.charAt(0) === "{" || first.charAt(0) === "[" ? "json" : /^(?:#{1,6}\\s|[\\s\\S]*\\|[ \\t]*:?-{3,})/m.test(first) ? "markdown" : "csv";
+  // A Markdown link also starts with '['; route it by its link syntax before
+  // treating a leading bracket as a JSON array.
+  var leadingLink = /^\\[[^\\r\\n]+?\\]\\([^\\r\\n]*?\\)/.test(first);
+  var language = first.charAt(0) === "{" || (first.charAt(0) === "[" && !leadingLink) ? "json" : /^(?:#{1,6}\\s|[\\s\\S]*\\|[ \\t]*:?-{3,})/m.test(first) ? "markdown" : "csv";
   var parse = (${parseDataTables.toString()});
   var query = (${queryDataRows.toString()});
   var result = parse(source, language, window.__not3Markdown && window.__not3Markdown.MarkdownIt, window.Papa);

@@ -57,3 +57,15 @@ test("top-level JSON array uses lowercase data table name", async ({ page }) => 
   await runNote(page, "data-tables", '[{"id":1},{"id":2}]');
   expect(await requestTables(page)).toEqual([{ name: "data", columns: ["id"], rowCount: 2 }]);
 });
+
+test("Markdown starting with a link still exposes a later GFM table", async ({ page }) => {
+  await runNote(page, "data-tables", "[Intro](#intro)\n\n# People\n\n| Name | Age |\n| --- | --- |\n| Ada | 36 |");
+  expect(await requestTables(page)).toEqual([{ name: "People", columns: ["Name", "Age"], rowCount: 1 }]);
+  expect((await requestRows(page, { id: 6, table: "People", offset: 0, limit: 50 })).rows).toEqual([["Ada", "36"]]);
+});
+
+test("a malformed JSON array still reports a JSON error", async ({ page }) => {
+  await runNote(page, "data-tables", '[{"id":1');
+  await expectConsole(page, "error", "Invalid JSON");
+  expect(await requestTables(page)).toEqual([]);
+});
