@@ -5,6 +5,8 @@ export interface RunnerContext {
   content: string;
   /** Absolute URL prefix for self-hosted interpreter assets, e.g. "https://host/vendor". */
   vendorBase: string;
+  /** Current editor theme; shared runner contract for themed vendor previews. */
+  theme: "dark" | "light";
 }
 
 export interface RunnerDocument {
@@ -39,5 +41,7 @@ export interface SandboxRunner {
    * the Tables tab.
    */
   tables?: boolean;
+  defaultTab?: "console" | "tables";
+  noRepl?: boolean;
   build(ctx: RunnerContext): RunnerDocument;
 }

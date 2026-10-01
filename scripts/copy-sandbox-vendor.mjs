@@ -79,6 +79,7 @@ const ENGINES = [
   },
   { from: "wasmoon/dist", to: "wasmoon", dir: true },
   { from: "sql.js/dist", to: "sql.js", files: ["sql-wasm.js", "sql-wasm.wasm"] },
+  { from: "markdown-it/dist/browser", to: "markdown-it", files: ["markdown-it.umd.min.js"] },
   // pglite/dist also ships ~150 optional Postgres extension .tar.gz files and
   // contrib/fs/live/vector/worker/ subtrees (extra build variants). Only the
   // core engine that `new PGlite()` loads is copied: the ESM entry, its five

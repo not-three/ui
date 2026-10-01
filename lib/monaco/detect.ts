@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { detectLanguageFromContent } from "./utils";
+import { detectLanguageFromContent, looksLikeCsv } from "./utils";
 import { languageDefinitions } from "./languages";
 
 export type ModelRunner = (
@@ -93,6 +93,7 @@ export async function detectLanguage(
   runner?: ModelRunner,
 ): Promise<string> {
   if (!content.trim()) return "plaintext";
+  if (looksLikeCsv(content)) return "csv";
   const model = runner ?? (await loadDefaultRunner());
   let result: string | null = null;
   if (model) {

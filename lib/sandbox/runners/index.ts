@@ -15,6 +15,7 @@ import { CppRunner } from "./cpp";
 import { CRunner } from "./c";
 import { VueRunner } from "./vue";
 import { SvelteRunner } from "./svelte";
+import { DataTablesRunner } from "./data";
 
 /** Order matters: the first runner for a language is its default engine. */
 export const SANDBOX_RUNNERS: SandboxRunner[] = [
@@ -39,6 +40,9 @@ export const SANDBOX_RUNNERS: SandboxRunner[] = [
   CRunner,
   VueRunner,
   SvelteRunner,
+  // Markdown preview is registered before this alternative table engine by
+  // the integration branch; it remains the default Markdown runner.
+  DataTablesRunner,
 ];
 
 export function runnersForLanguage(languageId: string | null | undefined): SandboxRunner[] {
