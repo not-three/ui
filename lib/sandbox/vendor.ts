@@ -5,6 +5,8 @@
  * runners must only ever load assets through these paths — never from a CDN.
  */
 export const VENDOR_PATHS = {
+  markdown: "markdown/markdown.min.js",
+  papaParse: "papaparse/papaparse.min.js",
   pyodide: "pyodide/pyodide.js",
   pyodideIndex: "pyodide/",
   wasmoon: "wasmoon/index.js",
@@ -44,7 +46,6 @@ export const VENDOR_PATHS = {
   rubyWasm: "ruby-wasm/ruby+stdlib.wasm",
   phpWeb: "php-wasm/PhpWeb.mjs",
   mermaid: "mermaid/mermaid.min.js",
-  markdown: "markdown/markdown.min.js",
   jscpp: "jscpp/JSCPP.es5.min.js",
   // dist/bundle.js is an ES module with top-level `import ... from 'path'`
   // (and 'fs', 'crypto', 'child_process') that a browser cannot resolve —

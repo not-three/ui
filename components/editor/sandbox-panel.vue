@@ -120,6 +120,7 @@ import { SANDBOX_IFRAME_SANDBOX, buildSrcdoc } from "~/lib/sandbox/srcdoc";
 import { runnersForLanguage } from "~/lib/sandbox/runners";
 import type { SandboxRunner } from "~/lib/sandbox/runners/types";
 import { resolveAutoRun } from "~/lib/sandbox/auto-run";
+import { initialRunnerView } from "~/lib/sandbox/runner-view";
 import { createReplHistory } from "~/lib/sandbox/repl-history";
 
 /**
@@ -324,12 +325,14 @@ function push(entry: Entry) {
 
 function run() {
   if (!runner.value) return;
+  view.value = initialRunnerView(runner.value);
   entries.value = [];
   resetTableState();
   token = nanoid();
   doc.value = buildSrcdoc({
     runner: runner.value,
     content: props.content,
+    languageId: props.languageId,
     token,
     allowNetwork: allowNetwork.value,
     origin: window.location.origin,
@@ -390,21 +393,28 @@ watch(availableRunners, (list) => {
   if (!list.some((r) => r.id === engineId.value)) engineId.value = list[0]?.id ?? "";
 });
 
-watch(runner, (r, old) => {
+watch([runner, () => props.languageId], ([r, languageId], [old, oldLanguageId]) => {
   if (!r) {
     emit("close");
     return;
   }
-  if (r.id === old?.id) return;
-  evalInput.value = replHistory.switchRunner(old?.id ?? "", r.id, evalInput.value);
+  const runnerChanged = r.id !== old?.id;
+  if (!runnerChanged && languageId === oldLanguageId) return;
+  if (runnerChanged) {
+    evalInput.value = replHistory.switchRunner(old?.id ?? "", r.id, evalInput.value);
+    autoRun.value = resolveAutoRun(autoRunMemory, old?.id ?? null, autoRun.value, r);
+  }
   // Engine or language switched while the panel is open: never leave the
   // previous runner's document on screen. Heavy interpreters default to
   // manual runs so typing doesn't re-download/boot a wasm VM every second —
   // but only until the user says otherwise for that runner.
-  autoRun.value = resolveAutoRun(autoRunMemory, old?.id ?? null, autoRun.value, r);
-  view.value = r.defaultTab ?? "console";
+  view.value = initialRunnerView(r);
   if (autoRun.value) run();
   else {
+    // The old iframe may still have queued messages after its document is
+    // cleared. Retire its token before clearing state so they cannot restore
+    // stale console output or table data.
+    token = nanoid();
     entries.value = [];
     resetTableState();
     doc.value = "";
