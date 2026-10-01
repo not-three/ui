@@ -29,6 +29,13 @@ describe("format", () => {
     expect(await format("css", "a{color:red}", { tabWidth: 4 })).toBe("a {\n    color: red;\n}\n");
   });
 
+  it("uses Prettier's default line width", async () => {
+    const source = '{"items":["' + "a".repeat(40) + '","' + "b".repeat(40) + '"]}';
+    expect(await format("json", source, { tabWidth: 2 })).toBe(
+      '{\n  "items": [\n    "' + "a".repeat(40) + '",\n    "' + "b".repeat(40) + '"\n  ]\n}\n',
+    );
+  });
+
   it("uses PostgreSQL grammar when the PGlite runner is selected", async () => {
     expect(await format("sql", "select $$hello world$$ as body;", {
       tabWidth: 2,
