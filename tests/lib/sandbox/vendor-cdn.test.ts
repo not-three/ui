@@ -13,11 +13,30 @@ describe("CDN URL replacement", () => {
     });
   });
 
-  it("matches host punctuation literally and only replaces a matching prefix", () => {
+  it("matches host punctuation literally without replacing a longer hostname", () => {
     const text = "https://cdn-jsdelivr.net/a https://cdnXjsdelivr.net/b https://cdn.jsdelivr.net.evil.example/c";
     expect(replaceCdnUrls(text, hosts, replacement)).toEqual({
-      text: "https://cdn-jsdelivr.net/a https://cdnXjsdelivr.net/b https://vendored.invalid.evil.example/c",
+      text,
+      count: 0,
+    });
+  });
+
+  it.each(["/", "?", "#", '"', "'", ""])("replaces a host followed by %j", (suffix) => {
+    expect(replaceCdnUrls(`https://unpkg.com${suffix}`, hosts, replacement)).toEqual({
+      text: `${replacement}${suffix}`,
       count: 1,
+    });
+  });
+
+  it.each([".evil.example", "-evil", "evil", "1"])("keeps a host followed by %j", (suffix) => {
+    const text = `https://unpkg.com${suffix}/pkg`;
+    expect(replaceCdnUrls(text, hosts, replacement)).toEqual({ text, count: 0 });
+  });
+
+  it("replaces adjacent occurrences including a host at end of text", () => {
+    expect(replaceCdnUrls("https://unpkg.com/a https://unpkg.com", hosts, replacement)).toEqual({
+      text: "https://vendored.invalid/a https://vendored.invalid",
+      count: 2,
     });
   });
 
