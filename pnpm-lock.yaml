@@ -82,8 +82,8 @@ importers:
   .:
     dependencies:
       '@not3/sdk':
-        specifier: ^2.1.0
-        version: 2.1.0
+        specifier: ^2.1.1
+        version: 2.1.1
       '@nuxt/eslint':
         specifier: ^1.16.0
         version: 1.16.0(@typescript-eslint/utils@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.39)(esbuild@0.28.1)(eslint-import-resolver-node@0.3.9)(eslint@9.39.4(jiti@2.7.0))(magicast@0.5.2)(oxc-parser@0.133.0)(rollup@4.62.2)(typescript@6.0.3)(vite@7.3.6(@types/node@24.2.1)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
@@ -1080,8 +1080,8 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@not3/sdk@2.1.0':
-    resolution: {integrity: sha512-V7pPTiJ+rIzZ/1OzcxSJ0rN5+0g+m3AZo+O0Liav+AjMb7Ya2fnMR06ucrwIPucowOuH21BuXNAahf6XFvHWIQ==}
+  '@not3/sdk@2.1.1':
+    resolution: {integrity: sha512-po+u5DGPWWnrnWI8RIZEpcq/mteDMK0LcO+H1I8/urAf4IhfhzeNQ5fW9GZWFUdMyJO7kBpmxFUi55153QoJbQ==}
 
   '@nuxt/cli@3.36.1':
     resolution: {integrity: sha512-qu0LLFjOr1alMSrcVb3k3fWYXGeETeOIN5UoGoGEjwWVtf+KxQbN5IAzdXb7ip5D3pfKLcrAOTbIGf9XFmeGFQ==}
@@ -7619,7 +7619,7 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
-  '@not3/sdk@2.1.0':
+  '@not3/sdk@2.1.1':
     dependencies:
       axios: 1.18.1
       semver: 7.8.5
