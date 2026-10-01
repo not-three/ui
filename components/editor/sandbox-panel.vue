@@ -411,6 +411,10 @@ watch([runner, () => props.languageId], ([r, languageId], [old, oldLanguageId]) 
   view.value = initialRunnerView(r);
   if (autoRun.value) run();
   else {
+    // The old iframe may still have queued messages after its document is
+    // cleared. Retire its token before clearing state so they cannot restore
+    // stale console output or table data.
+    token = nanoid();
     entries.value = [];
     resetTableState();
     doc.value = "";
