@@ -1,6 +1,7 @@
 export class DownloadDb {
-  static reset(name = 'download') {
-    indexedDB.deleteDatabase(name)
+  static reset(name: string | Event = 'download') {
+    // beforeunload also calls this method directly with its event argument.
+    indexedDB.deleteDatabase(typeof name === 'string' ? name : 'download')
   }
 
   static async open(name = 'download') {
