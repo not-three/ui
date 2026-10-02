@@ -41,8 +41,12 @@ function beforeDomUnload(event: BeforeUnloadEvent) {
 onMounted(async () => {
   window.addEventListener("beforeunload", beforeDomUnload);
   const lastContent = store.keepContent ? store.content : "";
+  // keepContent marks the readonly->editable handoff; keep the run/preview
+  // panel open across it (the user explicitly opened it for this content).
+  const keepSandbox = store.keepContent && store.sandbox;
   store.$reset();
   store.content = lastContent;
+  store.sandbox = keepSandbox;
   store.id = props.openNote || "";
 
   if (window.location.hash === "#duplicate") {

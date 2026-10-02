@@ -9,6 +9,7 @@ export const useSettingsStore = defineStore('settings', {
     warnings: {
       serverSideDecryption: true,
       unknownServer: true,
+      runCode: true,
     },
     editor: {
       fontSize: 14,

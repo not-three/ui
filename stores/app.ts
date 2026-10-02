@@ -38,6 +38,11 @@ export const useAppStore = defineStore('app', {
       mimeTypes: lang.mimeTypes || [],
     })).sort((a, b) => a.id.localeCompare(b.id)),
     excalidraw: false,
+    sandbox: false,
+    // Panel moved into its own window; the Window handle itself lives
+    // module-scope in lib/sandbox/popout-bridge.ts (pinia state must stay
+    // serializable).
+    sandboxPopout: false,
   }),
   actions: {
     async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean, openShareDialog?: 'url' | 'curl') {

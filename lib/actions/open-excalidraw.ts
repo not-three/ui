@@ -25,8 +25,8 @@ export const OPEN_EXCALIDRAW = () => {
         "Be aware that opening Excalidraw will overwrite the current note content.",
       ]),
     ].join(" "),
-    () => store.excalidraw = true,
+    () => { store.sandbox = false; store.excalidraw = true; },
     () => store.excalidraw = false,
   );
-  else store.excalidraw = true;
+  else { store.sandbox = false; store.excalidraw = true; }
 }

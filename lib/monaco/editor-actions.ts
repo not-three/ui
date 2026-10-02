@@ -20,4 +20,5 @@ export const EDITOR_ACTIONS: EditorActionDefinition[] = [
   { id: "openSettings", label: "!3: Open settings", run: Actions.OPEN_SETTINGS },
   { id: "fileTransfer", label: "!3: File transfer", run: Actions.OPEN_FILE_TRANSFER },
   { id: "excalidraw", label: "!3: Open excalidraw", run: Actions.OPEN_EXCALIDRAW },
+  { id: "sandbox", label: "!3: Run / preview note", run: Actions.OPEN_SANDBOX },
 ];
