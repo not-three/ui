@@ -14,7 +14,7 @@ describe("SvelteRunner", () => {
   it("ships an import map for bare svelte specifiers and the local compiler", () => {
     const doc = buildSrcdoc({
       runner: SvelteRunner, content: "<h1>hi</h1>", token: "tok",
-      allowNetwork: false, origin: ORIGIN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).toContain('<script type="importmap">');
     expect(doc).toContain(`${ORIGIN}/vendor/svelte/src/index-client.js`);

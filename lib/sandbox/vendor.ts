@@ -5,6 +5,8 @@
  * runners must only ever load assets through these paths — never from a CDN.
  */
 export const VENDOR_PATHS = {
+  markdown: "markdown/markdown.min.js",
+  papaParse: "papaparse/papaparse.min.js",
   pyodide: "pyodide/pyodide.js",
   pyodideIndex: "pyodide/",
   wasmoon: "wasmoon/index.js",

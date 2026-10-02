@@ -17,8 +17,48 @@ function withGlobalMultiline(pattern: RegExp): RegExp {
   return new RegExp(pattern.source, flags);
 }
 
+/** Strong CSV signal: three consecutive data-shaped records with the same width. */
+export function looksLikeCsv(content: string): boolean {
+  const sample = content.slice(0, MAX_DETECTION_LENGTH).trimStart();
+  if (sample.startsWith("{") || sample.startsWith("<") || sample.startsWith("[")) return false;
+  const lines = sample.split(/\r?\n/);
+  for (const separator of [",", ";", "\t"]) {
+    const fields = (line: string): string[] | null => {
+      const values: string[] = [];
+      let value = "";
+      let quoted = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          if (quoted && line[i + 1] === '"') { value += '"'; i++; }
+          else quoted = !quoted;
+        } else if (char === separator && !quoted) {
+          values.push(value.trim()); value = "";
+        } else value += char;
+      }
+      values.push(value.trim());
+      return quoted ? null : values;
+    };
+    for (let i = 0; i <= lines.length - 3; i++) {
+      const candidates = lines.slice(i, i + 3);
+      if (candidates.some((line) => /^\s*[<{]/.test(line))) continue;
+      const window = candidates.map(fields);
+      if (window.some((row) => row === null)) continue;
+      const [header, second, third] = window as [string[], string[], string[]];
+      if (header.length < 3 || header.length !== second.length || header.length !== third.length) continue;
+      // A sentence with two commas per line is still prose. Column headings
+      // are short labels, and tabular records do not end in sentence marks.
+      if (header.some((field) => !field || field.split(/\s+/).length > 2)) continue;
+      if ([header, second, third].some((row) => row.some((field) => /[.!?]$/.test(field)))) continue;
+      return true;
+    }
+  }
+  return false;
+}
+
 export function detectLanguageFromContent(content: string): string {
   if (!content.trim()) return "plaintext";
+  if (looksLikeCsv(content)) return "csv";
   const sample = content.slice(0, MAX_DETECTION_LENGTH);
 
   const results: DetectionResult[] = languageDefinitions

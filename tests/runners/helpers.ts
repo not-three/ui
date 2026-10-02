@@ -17,16 +17,18 @@ export const ORIGIN = "http://127.0.0.1:8788";
 type Recorded = Record<string, unknown>;
 
 /** Build a runner's document exactly as the panel does and mount it. */
-export async function runNote(page: Page, runnerId: string, content: string) {
+export async function runNote(page: Page, runnerId: string, content: string, theme: "dark" | "light" = "dark", languageId?: string) {
   const runner = getRunner(runnerId);
   if (!runner) throw new Error("unknown runner: " + runnerId);
   const srcdoc = buildSrcdoc({
     runner,
     content,
+    languageId,
     token: TOKEN,
     allowNetwork: false,
     origin: ORIGIN,
     basePath: "/",
+    theme,
   });
   await page.goto("/harness.html");
   await page.evaluate((doc) => (window as never as { __mount(d: string): void }).__mount(doc), srcdoc);
@@ -96,13 +98,14 @@ async function askUntilAnswered(
   request: Recorded,
   type: string,
   tries = 20,
+  matches: (message: Recorded) => boolean = () => true,
 ): Promise<Recorded> {
   for (let i = 0; i < tries; i++) {
     await post(page, request);
     const found = (await messages(page)).filter(
-      (m) => m.type === type && m.token === TOKEN,
+      (m) => m.type === type && m.token === TOKEN && matches(m),
     );
-    if (found.length) return found[found.length - 1];
+    if (found.length) return found[found.length - 1]!;
     await page.waitForTimeout(700);
   }
   throw new Error(`no ${type} after ${tries} requests`);
@@ -119,12 +122,14 @@ export async function requestTables(page: Page) {
 
 export async function requestRows(
   page: Page,
-  query: { id: number; table: string; offset: number; limit: number },
+  query: { id: number; table: string; offset: number; limit: number; sortBy?: string; sortDir?: "asc" | "desc"; search?: string },
 ) {
   const result = await askUntilAnswered(
     page,
     { type: SANDBOX_ROWS_REQUEST, token: TOKEN, query },
     SANDBOX_ROWS_RESULT,
+    20,
+    (message) => message.id === query.id,
   );
   return result as unknown as { id: number; rows: string[][]; total: number };
 }

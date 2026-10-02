@@ -15,6 +15,7 @@ export const EDITOR_ACTIONS: EditorActionDefinition[] = [
   { id: "duplicate", label: "!3: Duplicate note", run: Actions.DUPLICATE },
   { id: "new", label: "!3: New note", run: Actions.NEW },
   { id: "download", label: "!3: Download note as file", run: Actions.DOWNLOAD },
+  { id: "format", label: "!3: Format note", run: Actions.FORMAT },
   { id: "shareLink", label: "!3: Share link", run: Actions.SHARE_LINK },
   { id: "shareCurl", label: "!3: Share cURL command", run: Actions.SHARE_CURL },
   { id: "openSettings", label: "!3: Open settings", run: Actions.OPEN_SETTINGS },

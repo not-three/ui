@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   POPOUT_READY_MESSAGE,
   POPOUT_STATE_MESSAGE,
+  POPOUT_ENGINE_MESSAGE,
   parsePopoutMessage,
 } from "~/lib/sandbox/popout-bridge";
 
@@ -19,6 +20,14 @@ describe("parsePopoutMessage", () => {
       languageId: "sql",
     });
     expect(msg).toEqual({ type: POPOUT_STATE_MESSAGE, content: "x", languageId: "sql" });
+  });
+
+  it("accepts only known SQL engine selections from the popout", () => {
+    expect(parsePopoutMessage({ type: POPOUT_ENGINE_MESSAGE, engineId: "sql-pglite" })).toEqual({
+      type: POPOUT_ENGINE_MESSAGE,
+      engineId: "sql-pglite",
+    });
+    expect(parsePopoutMessage({ type: POPOUT_ENGINE_MESSAGE, engineId: "other" })).toBeNull();
   });
 
   it("rejects wrong shapes", () => {

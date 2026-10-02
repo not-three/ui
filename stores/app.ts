@@ -43,6 +43,7 @@ export const useAppStore = defineStore('app', {
     // module-scope in lib/sandbox/popout-bridge.ts (pinia state must stay
     // serializable).
     sandboxPopout: false,
+    sandboxEngineId: '',
   }),
   actions: {
     async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean, openShareDialog?: 'url' | 'curl') {

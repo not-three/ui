@@ -6,7 +6,7 @@ import { CRunner } from "~/lib/sandbox/runners/c";
 import { embedJson } from "~/lib/sandbox/runners/util";
 
 const ORIGIN = "https://app.example";
-const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN };
+const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN, theme: "dark" as const };
 
 describe("CppRunner", () => {
   it("is the default engine for cpp notes", () => {
@@ -25,6 +25,7 @@ describe("CppRunner std:: preprocessing", () => {
     const doc = CppRunner.build({
       content: 'std::cout << "hi" << std::endl;',
       vendorBase: `${ORIGIN}/vendor`,
+      theme: "dark",
     });
     expect(doc.body).toContain(embedJson('cout << "hi" << endl;'));
     // The console note below deliberately mentions "std::", so only the
@@ -34,11 +35,11 @@ describe("CppRunner std:: preprocessing", () => {
   });
 
   it("notes the stripping in the console only when something was stripped", () => {
-    const stripped = CppRunner.build({ content: "std::cout << 1;", vendorBase: "v" });
+    const stripped = CppRunner.build({ content: "std::cout << 1;", vendorBase: "v", theme: "dark" });
     expect(stripped.body).toContain("STRIPPED = true");
     const untouched = CppRunner.build({
       content: "using namespace std;\nint main() { cout << 1; }",
-      vendorBase: "v",
+      vendorBase: "v", theme: "dark",
     });
     expect(untouched.body).toContain("STRIPPED = false");
   });

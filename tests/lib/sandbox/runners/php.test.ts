@@ -20,7 +20,7 @@ describe("PhpRunner", () => {
   it("loads the self-hosted PhpWeb module and embeds the note as code to run", () => {
     const doc = buildSrcdoc({
       runner: PhpRunner, content: "<?php echo 6 * 7;", token: "tok",
-      allowNetwork: false, origin: ORIGIN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).toContain(`${ORIGIN}/vendor/php-wasm/PhpWeb.mjs`);
     expect(doc).toContain("new PhpWeb()");
@@ -31,7 +31,7 @@ describe("PhpRunner", () => {
   // navigator.locks.request, which rejects outright in the sandbox iframe's
   // opaque origin — the shim must be installed before the module loads.
   it("shims the Web Locks API before importing PhpWeb", () => {
-    const doc = PhpRunner.build({ content: "<?php echo 1;", vendorBase: "v" });
+    const doc = PhpRunner.build({ content: "<?php echo 1;", vendorBase: "v", theme: "dark" });
     const importAt = doc.body.indexOf("import(");
     const shimAt = doc.body.indexOf('"locks"');
     expect(shimAt).toBeGreaterThan(-1);
