@@ -5,7 +5,7 @@ import { SqlJsRunner } from "~/lib/sandbox/runners/sqljs";
 import { PgliteRunner } from "~/lib/sandbox/runners/pglite";
 
 const ORIGIN = "https://app.example";
-const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN };
+const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN, theme: "dark" as const };
 
 describe("sql runners", () => {
   it("offers two engines for sql, sql.js first", () => {

@@ -14,7 +14,7 @@ describe("PythonRunner", () => {
   it("loads self-hosted pyodide with the right indexURL", () => {
     const doc = buildSrcdoc({
       runner: PythonRunner, content: 'print("hi")', token: "tok",
-      allowNetwork: false, origin: ORIGIN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).toContain(`${ORIGIN}/vendor/pyodide/pyodide.js`);
     expect(doc).toContain(`indexURL: "${ORIGIN}/vendor/pyodide/"`);
@@ -25,7 +25,7 @@ describe("PythonRunner", () => {
   it("auto-loads vendored wheels and explains missing ones", () => {
     const doc = buildSrcdoc({
       runner: PythonRunner, content: "import numpy", token: "tok",
-      allowNetwork: false, origin: ORIGIN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).toContain("loadPackagesFromImports");
     expect(doc).toContain("standard library");
@@ -35,7 +35,7 @@ describe("PythonRunner", () => {
     expect(PythonRunner.replLanguage).toBe("Python");
     const doc = buildSrcdoc({
       runner: PythonRunner, content: "print(1)", token: "tok",
-      allowNetwork: false, origin: ORIGIN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).toContain("__not3Eval__");
     expect(doc).toContain("runPythonAsync");

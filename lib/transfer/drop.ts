@@ -12,14 +12,16 @@ export function isFileDrag(types: readonly string[] | undefined): boolean {
 /**
  * Whether a file drop should open the transfer. Mirrors the guards of the
  * toolbar's "file transfer" action: the server must allow transfers, and we
- * must not hijack the settings editor or interrupt an in-progress upload.
+ * must not hijack the settings editor or a P2P transfer, or interrupt an
+ * in-progress upload.
  */
 export function canStartDropUpload(opts: {
   fileTransferEnabled: boolean;
   settingsOpen: boolean;
   uploadActive: boolean;
+  p2pSendActive: boolean;
 }): boolean {
   return (
-    opts.fileTransferEnabled && !opts.settingsOpen && !opts.uploadActive
+    opts.fileTransferEnabled && !opts.settingsOpen && !opts.uploadActive && !opts.p2pSendActive
   );
 }

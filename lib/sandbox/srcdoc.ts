@@ -55,10 +55,13 @@ export function buildCsp(opts: CspOptions): string {
 export interface SrcdocOptions {
   runner: SandboxRunner;
   content: string;
+  /** Selected Monaco language, forwarded to runners that support several formats. */
+  languageId?: string;
   token: string;
   allowNetwork: boolean;
   /** window.location.origin of the app; vendor assets are loaded from it. */
   origin: string;
+  theme: "dark" | "light";
   /**
    * The app's base path (Nuxt's NUXT_APP_BASE_URL, exposed as
    * runtimeConfig.public.uiBaseURL). Deployments served from a subpath — the
@@ -80,7 +83,9 @@ export function vendorBaseFor(origin: string, basePath?: string): string {
 export function buildSrcdoc(opts: SrcdocOptions): string {
   const doc = opts.runner.build({
     content: opts.content,
+    languageId: opts.languageId,
     vendorBase: vendorBaseFor(opts.origin, opts.basePath),
+    theme: opts.theme,
   });
   const csp = buildCsp({
     allowNetwork: opts.allowNetwork,

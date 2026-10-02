@@ -4,7 +4,7 @@ import { defaultRunnerForLanguage, runnersForLanguage } from "~/lib/sandbox/runn
 import { ReactRunner } from "~/lib/sandbox/runners/react";
 
 const ORIGIN = "https://app.example";
-const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN };
+const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN, theme: "dark" as const };
 
 describe("ReactRunner", () => {
   it("is the default for jsx and an alternative engine for javascript", () => {
@@ -32,7 +32,7 @@ describe("ReactRunner", () => {
   });
 
   it("compiles with the commonjs module transform and a require shim", () => {
-    const doc = ReactRunner.build({ content: "export default () => null;", vendorBase: "v" });
+    const doc = ReactRunner.build({ content: "export default () => null;", vendorBase: "v", theme: "dark" });
     expect(doc.body).toContain("transform-modules-commonjs");
     expect(doc.body).toContain('if (name === "react") return React;');
     expect(doc.body).toContain("moduleShim.exports.default");

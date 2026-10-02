@@ -35,6 +35,7 @@ const BUDGET_MB: Record<string, number> = {
   coffeescript: 2,
   jscpp: 0.6,
   "picoc-js": 3,
+  markdown: 2,
 };
 const TOTAL_BUDGET_MB = 200;
 

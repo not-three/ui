@@ -9,6 +9,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildSync } from "esbuild";
 import { replaceCdnUrls } from "./vendor-cdn.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -79,6 +80,7 @@ const ENGINES = [
   },
   { from: "wasmoon/dist", to: "wasmoon", dir: true },
   { from: "sql.js/dist", to: "sql.js", files: ["sql-wasm.js", "sql-wasm.wasm"] },
+  { from: "papaparse", to: "papaparse", files: ["papaparse.min.js"] },
   // pglite/dist also ships ~150 optional Postgres extension .tar.gz files and
   // contrib/fs/live/vector/worker/ subtrees (extra build variants). Only the
   // core engine that `new PGlite()` loads is copied: the ESM entry, its five
@@ -256,6 +258,27 @@ for (const engine of ENGINES) {
   }
   ok++;
 }
+// One browser bundle keeps the parser, task-list plugin and common syntax
+// highlighter self-hosted while avoiding Node-style require() in the iframe.
+const markdownDir = join(target, "markdown");
+mkdirSync(markdownDir, { recursive: true });
+buildSync({
+  stdin: {
+    contents: `import MarkdownIt from "markdown-it";
+import taskLists from "markdown-it-task-lists";
+import hljs from "highlight.js/lib/common";
+window.__not3Markdown = { MarkdownIt, taskLists, hljs };`,
+    resolveDir: root,
+    sourcefile: "sandbox-markdown-entry.js",
+  },
+  bundle: true,
+  minify: true,
+  platform: "browser",
+  format: "iife",
+  outfile: join(markdownDir, "markdown.min.js"),
+});
+const markdownMb = sizeOf(markdownDir) / 1048576;
+if (markdownMb >= 2) throw new Error(`markdown vendor bundle exceeds 2 MB: ${markdownMb.toFixed(2)} MB`);
 const filesSanitized = existsSync(target) ? sanitizeCdnReferences(target) : 0;
 const mb = existsSync(target) ? sizeOf(target) / 1048576 : 0;
 console.log(`[vendor] ${ok}/${ENGINES.length} engines, ${mb.toFixed(1)} MB in public/vendor`);
