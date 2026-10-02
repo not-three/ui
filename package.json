@@ -58,7 +58,7 @@
     "jscpp": "npm:JSCPP@2.0.6",
     "markdown-it": "^15.0.2",
     "markdown-it-task-lists": "^2.1.1",
-    "mermaid": "11.4.1",
+    "mermaid": "11.16.1",
     "papaparse": "^5.7.0",
     "php-wasm": "0.1.0",
     "picoc-js": "1.0.12",
