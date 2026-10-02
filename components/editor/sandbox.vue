@@ -19,6 +19,7 @@
       :resizing="resizing"
       @close="store.sandbox = false"
       @popout="openPopout"
+      @engine="store.sandboxEngineId = $event"
     />
   </div>
 </template>
@@ -26,19 +27,18 @@
 <script lang="ts" setup>
 import { OkDialog } from "~/lib/dialog";
 import { setPopoutWindow } from "~/lib/sandbox/popout-bridge";
+import { clampPanelWidthPct, loadPanelWidth, savePanelWidth } from "~/lib/sandbox/panel-width";
 
 /**
  * In-editor host for the sandbox panel: store bindings, the drag-resizable
  * width (meaningless in the popout, so it lives here rather than in the
  * panel core) and launching the popout window.
  */
-const MIN_WIDTH_PCT = 20;
-const MAX_WIDTH_PCT = 80;
-
 const store = useAppStore();
+const settings = useSettingsStore();
 const { uiBaseURL } = useRuntimeConfig().public;
 const root = ref<HTMLDivElement>();
-const widthPct = ref(50);
+const widthPct = ref(loadPanelWidth(settings));
 const resizing = ref(false);
 
 // Pointer events unify mouse/touch/pen; touch-action: none on the handle
@@ -55,10 +55,11 @@ function onResizeMove(event: PointerEvent) {
   const rect = parent.getBoundingClientRect();
   if (!(rect.width > 0)) return;
   const pct = ((rect.right - event.clientX) / rect.width) * 100;
-  widthPct.value = Math.min(MAX_WIDTH_PCT, Math.max(MIN_WIDTH_PCT, pct));
+  widthPct.value = clampPanelWidthPct(pct);
 }
 
 function stopResize() {
+  if (resizing.value) savePanelWidth(settings, widthPct.value);
   resizing.value = false;
 }
 

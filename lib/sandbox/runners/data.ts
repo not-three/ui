@@ -1,0 +1,37 @@
+import { VENDOR_PATHS } from "../vendor";
+import type { SandboxRunner } from "./types";
+import { parseDataTables, queryDataRows } from "./data-parsers";
+import { embedJson } from "./util";
+
+export const DataTablesRunner: SandboxRunner = {
+  id: "data-tables",
+  label: "Data tables",
+  languages: ["csv", "json", "markdown"],
+  layout: "console",
+  tables: true,
+  defaultTab: "tables",
+  noRepl: true,
+  usesVendor: true,
+  build: ({ content, vendorBase, languageId }) => ({
+    head: `<script src="${vendorBase}/${VENDOR_PATHS.markdown}"></script><script src="${vendorBase}/${VENDOR_PATHS.papaParse}"></script>`,
+    body: `<script>
+(function () {
+  var source = ${embedJson(content)};
+  var language = ${embedJson(languageId ?? "csv")};
+  var parse = (${parseDataTables.toString()});
+  var query = (${queryDataRows.toString()});
+  var result = parse(source, language, window.__not3Markdown && window.__not3Markdown.MarkdownIt, window.Papa);
+  var tables = result.tables;
+  window.__not3Tables__ = function () {
+    return tables.map(function (table) {
+      return { name: table.name, columns: table.columns, rowCount: table.rows.length };
+    });
+  };
+  window.__not3Rows__ = function (request) { return query(tables, request); };
+  if (result.error) console.error(result.error);
+  else if (result.message) console.info(result.message);
+  else tables.forEach(function (table) { console.info("Parsed " + table.rows.length + " rows × " + table.columns.length + " columns"); });
+})();
+</script>`,
+  }),
+};

@@ -5,7 +5,7 @@ import { TypescriptRunner } from "~/lib/sandbox/runners/typescript";
 import { CoffeescriptRunner } from "~/lib/sandbox/runners/coffeescript";
 
 const ORIGIN = "https://app.example";
-const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN };
+const OPTS = { token: "tok", allowNetwork: false, origin: ORIGIN, theme: "dark" as const };
 
 describe("TypescriptRunner", () => {
   it("is the default engine for typescript notes", () => {

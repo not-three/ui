@@ -3,8 +3,12 @@ export type RunnerLayout = "console" | "preview";
 export interface RunnerContext {
   /** Plaintext note content (the code to run). */
   content: string;
+  /** Selected Monaco language; data runners use it instead of guessing from content. */
+  languageId?: string;
   /** Absolute URL prefix for self-hosted interpreter assets, e.g. "https://host/vendor". */
   vendorBase: string;
+  /** Preview palette selected by the parent panel. */
+  theme: "dark" | "light";
 }
 
 export interface RunnerDocument {
@@ -39,5 +43,9 @@ export interface SandboxRunner {
    * the Tables tab.
    */
   tables?: boolean;
+  /** Initial panel tab when this runner becomes active. */
+  defaultTab?: "console" | "tables";
+  /** Hide the JavaScript REPL for formats that only render content. */
+  noRepl?: boolean;
   build(ctx: RunnerContext): RunnerDocument;
 }
