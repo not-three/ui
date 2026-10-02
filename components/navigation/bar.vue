@@ -18,6 +18,15 @@
       <icon :name="store.sandbox ? 'lucide:square' : 'lucide:play'" class="mb-0.5" />
       {{ store.sandbox ? "Stop" : "Run" }}
     </button>
+    <button
+      v-if="formatAvailable"
+      class="border border-white px-2 py-0.5 -my-1 hidden sm:flex items-center gap-1"
+      title="Format this note"
+      @click="Actions.FORMAT()"
+    >
+      <icon name="lucide:align-left" class="mb-0.5" />
+      Format
+    </button>
     <navigation-language v-if="!store.excalidraw" />
     <button v-if="store.excalidraw" class="border border-white px-2 py-0.5 -my-1 hidden sm:block" @click="store.excalidraw = false">
       Close Excalidraw
@@ -38,10 +47,12 @@ import { YesNoDialog } from '~/lib/dialog';
 import type { NavigationEntry } from '~/lib/navigation';
 import * as Actions from '~/lib/actions';
 import { isRunnableLanguage } from '~/lib/sandbox/runners';
+import { canFormatNote } from '~/lib/format/availability';
 const store = useAppStore();
 const settings = useSettingsStore();
 
 const runnable = computed(() => isRunnableLanguage(store.getCurrentLanguage().id));
+const formatAvailable = computed(() => canFormatNote(store, store.getCurrentLanguage().id));
 
 const entries = computed<NavigationEntry[]>(() => [
   {
@@ -94,6 +105,7 @@ const entries = computed<NavigationEntry[]>(() => [
   {
     name: "Tools",
     entries: [
+      ...(formatAvailable.value ? [{ name: "Format", onClick: Actions.FORMAT }] : []),
       {
         name: "Edit Settings",
         onClick: Actions.OPEN_SETTINGS,

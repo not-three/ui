@@ -6,6 +6,7 @@
       :language-id="languageId"
       popout
       @close="selfClose"
+      @engine="sendEngine"
     />
     <div
       v-else
@@ -21,6 +22,7 @@
 import {
   POPOUT_READY_MESSAGE,
   POPOUT_STATE_MESSAGE,
+  POPOUT_ENGINE_MESSAGE,
   parsePopoutMessage,
 } from "~/lib/sandbox/popout-bridge";
 
@@ -49,6 +51,12 @@ function onMessage(event: MessageEvent) {
 
 function selfClose() {
   window.close();
+}
+
+function sendEngine(engineId: string) {
+  if (languageId.value !== "sql") return;
+  if (engineId !== "sql-sqljs" && engineId !== "sql-pglite") return;
+  window.opener?.postMessage({ type: POPOUT_ENGINE_MESSAGE, engineId }, window.location.origin);
 }
 
 onMounted(() => {

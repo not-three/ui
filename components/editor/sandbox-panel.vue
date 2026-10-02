@@ -88,12 +88,14 @@
         :class="LEVEL_CLASSES[entry.level]"
       ><span v-for="(segment, j) in segmentsOf(entry)" :key="j" :style="segment.css">{{ segment.text }}</span></div>
     </div>
-    <form class="flex items-center border-t border-black" @submit.prevent="submitEval">
+    <form v-if="!runner?.noRepl" class="flex items-center border-t border-black" @submit.prevent="submitEval">
       <span class="pl-2 pr-1 py-1 text-green-400 font-mono text-xs select-none">&gt;</span>
       <input
         v-model="evalInput"
         class="flex-grow bg-transparent font-mono text-xs py-1 pr-2 outline-none"
         :placeholder="`Run ${runner?.replLanguage ?? 'JavaScript'} in the sandbox…`"
+        @keydown.up.prevent="navigateHistory('up')"
+        @keydown.down.prevent="navigateHistory('down')"
       >
     </form>
   </div>
@@ -118,6 +120,8 @@ import { SANDBOX_IFRAME_SANDBOX, buildSrcdoc } from "~/lib/sandbox/srcdoc";
 import { runnersForLanguage } from "~/lib/sandbox/runners";
 import type { SandboxRunner } from "~/lib/sandbox/runners/types";
 import { resolveAutoRun } from "~/lib/sandbox/auto-run";
+import { initialRunnerView } from "~/lib/sandbox/runner-view";
+import { createReplHistory } from "~/lib/sandbox/repl-history";
 
 /**
  * The sandbox panel itself: toolbar, sandboxed iframe, console and REPL.
@@ -134,7 +138,7 @@ const props = defineProps<{
   resizing?: boolean;
 }>();
 
-const emit = defineEmits<{ close: []; popout: [] }>();
+const emit = defineEmits<{ close: []; popout: []; engine: [id: string] }>();
 
 const MAX_ENTRIES = 500;
 
@@ -164,6 +168,7 @@ const iframe = ref<HTMLIFrameElement>();
 const output = ref<HTMLDivElement>();
 const entries = ref<Entry[]>([]);
 const evalInput = ref("");
+const replHistory = createReplHistory();
 const autoRun = ref(true);
 const allowNetwork = ref(false);
 const doc = ref("");
@@ -175,6 +180,7 @@ let token = "";
 const autoRunMemory = new Map<string, boolean>();
 
 const engineId = ref("");
+watch(engineId, (id) => emit("engine", id));
 const availableRunners = computed(() => runnersForLanguage(props.languageId));
 const runner = computed<SandboxRunner | null>(
   () =>
@@ -319,16 +325,19 @@ function push(entry: Entry) {
 
 function run() {
   if (!runner.value) return;
+  view.value = initialRunnerView(runner.value);
   entries.value = [];
   resetTableState();
   token = nanoid();
   doc.value = buildSrcdoc({
     runner: runner.value,
     content: props.content,
+    languageId: props.languageId,
     token,
     allowNetwork: allowNetwork.value,
     origin: window.location.origin,
     basePath: uiBaseURL as string,
+    theme: "dark",
   });
   if (runner.value.tables) requestTables();
 }
@@ -362,10 +371,16 @@ function onMessage(event: MessageEvent) {
 function submitEval() {
   const code = evalInput.value.trim();
   if (!code || !iframe.value?.contentWindow) return;
+  if (runner.value) replHistory.record(runner.value.id, code);
   push({ level: "input", text: "> " + code });
   view.value = "console"; // so the answer is visible
   postToFrame({ type: SANDBOX_EVAL_MESSAGE, code });
   evalInput.value = "";
+}
+
+function navigateHistory(direction: "up" | "down") {
+  if (!runner.value) return;
+  evalInput.value = replHistory.navigate(runner.value.id, direction, evalInput.value);
 }
 
 const rerun = debounce(() => {
@@ -378,20 +393,28 @@ watch(availableRunners, (list) => {
   if (!list.some((r) => r.id === engineId.value)) engineId.value = list[0]?.id ?? "";
 });
 
-watch(runner, (r, old) => {
+watch([runner, () => props.languageId], ([r, languageId], [old, oldLanguageId]) => {
   if (!r) {
     emit("close");
     return;
   }
-  if (r.id === old?.id) return;
+  const runnerChanged = r.id !== old?.id;
+  if (!runnerChanged && languageId === oldLanguageId) return;
+  if (runnerChanged) {
+    evalInput.value = replHistory.switchRunner(old?.id ?? "", r.id, evalInput.value);
+    autoRun.value = resolveAutoRun(autoRunMemory, old?.id ?? null, autoRun.value, r);
+  }
   // Engine or language switched while the panel is open: never leave the
   // previous runner's document on screen. Heavy interpreters default to
   // manual runs so typing doesn't re-download/boot a wasm VM every second —
   // but only until the user says otherwise for that runner.
-  autoRun.value = resolveAutoRun(autoRunMemory, old?.id ?? null, autoRun.value, r);
-  if (!r.tables) view.value = "console";
+  view.value = initialRunnerView(r);
   if (autoRun.value) run();
   else {
+    // The old iframe may still have queued messages after its document is
+    // cleared. Retire its token before clearing state so they cannot restore
+    // stale console output or table data.
+    token = nanoid();
     entries.value = [];
     resetTableState();
     doc.value = "";

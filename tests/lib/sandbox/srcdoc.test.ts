@@ -8,6 +8,8 @@ import {
 import { PythonRunner } from "~/lib/sandbox/runners/python";
 import { JavascriptRunner } from "~/lib/sandbox/runners/javascript";
 import { HtmlRunner } from "~/lib/sandbox/runners/html";
+import { MarkdownRunner } from "~/lib/sandbox/runners/markdown";
+import type { SandboxRunner } from "~/lib/sandbox/runners/types";
 
 const TOKEN = "tok-xyz";
 const ORIGIN = "https://app.example";
@@ -90,10 +92,28 @@ describe("buildCsp", () => {
 });
 
 describe("buildSrcdoc", () => {
+  it("passes the selected editor language into runner build", () => {
+    const runner: SandboxRunner = {
+      id: "probe", label: "Probe", languages: ["markdown"], layout: "console", usesVendor: false,
+      build: ({ languageId }) => ({ body: `<p>language:${languageId}</p>` }),
+    };
+    const doc = buildSrcdoc({ runner, content: "x", languageId: "markdown", token: TOKEN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark" });
+    expect(doc).toContain("language:markdown");
+  });
+  it("passes the selected theme into markdown rendering", () => {
+    const dark = buildSrcdoc({ runner: MarkdownRunner, content: "# Theme", token: TOKEN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark" });
+    const light = buildSrcdoc({ runner: MarkdownRunner, content: "# Theme", token: TOKEN,
+      allowNetwork: false, origin: ORIGIN, theme: "light" });
+    expect(dark).toContain('data-theme="dark"');
+    expect(light).toContain('data-theme="light"');
+    expect(dark).not.toEqual(light);
+  });
   it("embeds bootstrap (with token) before the user code for javascript", () => {
     const doc = buildSrcdoc({
       runner: JavascriptRunner, content: "console.log(1)", token: TOKEN,
-      allowNetwork: false, origin: ORIGIN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).toContain(TOKEN);
     expect(doc).toContain("console.log(1)");
@@ -104,7 +124,7 @@ describe("buildSrcdoc", () => {
   it("escapes closing script tags in javascript content", () => {
     const doc = buildSrcdoc({
       runner: JavascriptRunner, content: 'const s = "</script><img src=x>";',
-      token: TOKEN, allowNetwork: false, origin: ORIGIN,
+      token: TOKEN, allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).not.toContain('"</script><img');
     expect(doc).toContain("<\\/script><img src=x>");
@@ -113,7 +133,7 @@ describe("buildSrcdoc", () => {
   it("prepends CSP and bootstrap to html content and strips a leading doctype", () => {
     const doc = buildSrcdoc({
       runner: HtmlRunner, content: "<!DOCTYPE html><h1>Hi</h1>",
-      token: TOKEN, allowNetwork: false, origin: ORIGIN,
+      token: TOKEN, allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc.startsWith("<!doctype html>")).toBe(true);
     expect(doc).toContain("<h1>Hi</h1>");
@@ -125,7 +145,7 @@ describe("buildSrcdoc", () => {
   it("does not leak the app origin into non-vendor runners", () => {
     const doc = buildSrcdoc({
       runner: JavascriptRunner, content: "1", token: TOKEN,
-      allowNetwork: false, origin: ORIGIN,
+      allowNetwork: false, origin: ORIGIN, theme: "dark",
     });
     expect(doc).not.toContain(ORIGIN);
   });
@@ -136,7 +156,7 @@ describe("buildSrcdoc", () => {
     // origin 404s and every vendor-backed runner fails.
     const doc = buildSrcdoc({
       runner: PythonRunner, content: 'print("hi")', token: TOKEN,
-      allowNetwork: false, origin: ORIGIN, basePath: "/pr-preview/pr-122/",
+      allowNetwork: false, origin: ORIGIN, theme: "dark", basePath: "/pr-preview/pr-122/",
     });
     expect(doc).toContain(`${ORIGIN}/pr-preview/pr-122/vendor/pyodide/pyodide.js`);
     expect(doc).toContain(`indexURL: "${ORIGIN}/pr-preview/pr-122/vendor/pyodide/"`);

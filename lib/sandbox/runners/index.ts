@@ -4,6 +4,7 @@ import { HtmlRunner } from "./html";
 import { TypescriptRunner } from "./typescript";
 import { CoffeescriptRunner } from "./coffeescript";
 import { MermaidRunner } from "./mermaid";
+import { MarkdownRunner } from "./markdown";
 import { ReactRunner } from "./react";
 import { PythonRunner } from "./python";
 import { LuaRunner } from "./lua";
@@ -15,6 +16,7 @@ import { CppRunner } from "./cpp";
 import { CRunner } from "./c";
 import { VueRunner } from "./vue";
 import { SvelteRunner } from "./svelte";
+import { DataTablesRunner } from "./data";
 
 /** Order matters: the first runner for a language is its default engine. */
 export const SANDBOX_RUNNERS: SandboxRunner[] = [
@@ -23,6 +25,7 @@ export const SANDBOX_RUNNERS: SandboxRunner[] = [
   TypescriptRunner,
   CoffeescriptRunner,
   MermaidRunner,
+  MarkdownRunner,
   // Must come after JavascriptRunner: ReactRunner also claims "javascript"
   // as an alternative engine, but registration order defines the default,
   // and plain JS notes must keep JavascriptRunner as their default.
@@ -39,6 +42,9 @@ export const SANDBOX_RUNNERS: SandboxRunner[] = [
   CRunner,
   VueRunner,
   SvelteRunner,
+  // Keep Markdown preview before this alternative table engine so preview
+  // remains the default for Markdown notes.
+  DataTablesRunner,
 ];
 
 export function runnersForLanguage(languageId: string | null | undefined): SandboxRunner[] {

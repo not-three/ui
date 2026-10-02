@@ -3,6 +3,7 @@ import type { LanguageDefinition } from "./types";
 import { TypeScriptDefinition } from "./languages/typescript";
 import { JavascriptDefinition } from "./languages/javascript";
 import { JsonDefinition } from "./languages/json";
+import { CsvDefinition } from "./languages/csv";
 import { YamlDefinition } from "./languages/yaml";
 import { CppDefinition } from "./languages/cpp";
 import { GoDefinition } from "./languages/go";
@@ -44,6 +45,7 @@ export const languageDefinitions: LanguageDefinition[] = [
   TypeScriptDefinition,
   JavascriptDefinition,
   JsonDefinition,
+  CsvDefinition,
   YamlDefinition,
   CppDefinition,
   GoDefinition,
