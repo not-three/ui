@@ -23,6 +23,12 @@ describe("keybinding parser", () => {
     expect(parseChord("ctrl+k ctrl+s ctrl+p")).toBeNull();
     expect(strokeFromEvent(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }))).toBeNull();
   });
+
+  it("uses physical codes for numpad and shifted punctuation", () => {
+    expect(strokeFromEvent(new KeyboardEvent("keydown", { key: "0", code: "Numpad0" }))).toBe("numpad0");
+    expect(strokeFromEvent(new KeyboardEvent("keydown", { key: ":", code: "Semicolon", shiftKey: true }))).toBe("shift+;");
+    expect(strokeFromEvent(new KeyboardEvent("keydown", { key: "!", code: "Digit1", shiftKey: true }))).toBe("shift+1");
+  });
 });
 
 describe("when clauses", () => {
@@ -98,7 +104,15 @@ describe("compiled keybindings", () => {
   it("allows removing Monaco's format default before a formatter is available", () => {
     const compiled = compileKeybindings([{ key: "shift+alt+f", command: "-editor.action.formatDocument" }]);
     expect(compiled.invalid).toEqual([]);
-    expect(compiled.monacoRules).toContainEqual({ keybinding: 1572, command: "-editor.action.formatDocument", when: "editorTextFocus" });
+    expect(compiled.monacoRules).toContainEqual({ keybinding: 1572, command: "-editor.action.formatDocument" });
+  });
+
+  it("removes only the named format command", () => {
+    const monacoRemoval = compileKeybindings([{ key: "shift+alt+f", command: "-editor.action.formatDocument" }]);
+    expect(monacoRemoval.resolve("editorTextFocus", "shift+alt+f", 0)).toMatchObject({ kind: "command", command: "not3.format" });
+    const appRemoval = compileKeybindings([{ key: "shift+alt+f", command: "-not3.format" }]);
+    expect(appRemoval.resolve("editorTextFocus", "shift+alt+f", 0)).toEqual({ kind: "none" });
+    expect(appRemoval.monacoRules).toContainEqual({ keybinding: 1572, command: "-not3.format" });
   });
 });
 
@@ -123,6 +137,26 @@ describe("page adapter", () => {
     expect(commands).toEqual(["not3.save"]);
     teardown();
     title.remove(); input.remove(); monaco.remove();
+  });
+
+  it("dispatches numpad and shifted punctuation bindings from page content", () => {
+    const commands: string[] = [];
+    const compiled = compileKeybindings([
+      { key: "numpad0", command: "not3.save" },
+      { key: "shift+;", command: "not3.new" },
+    ]);
+    const teardown = installPageKeybindings(window, () => compiled, (command) => commands.push(command));
+    const title = document.createElement("div");
+    document.body.append(title);
+    const numpad = new KeyboardEvent("keydown", { key: "0", code: "Numpad0", bubbles: true, cancelable: true });
+    const punctuation = new KeyboardEvent("keydown", { key: ":", code: "Semicolon", shiftKey: true, bubbles: true, cancelable: true });
+    title.dispatchEvent(numpad);
+    title.dispatchEvent(punctuation);
+    expect(numpad.defaultPrevented).toBe(true);
+    expect(punctuation.defaultPrevented).toBe(true);
+    expect(commands).toEqual(["not3.save", "not3.new"]);
+    teardown();
+    title.remove();
   });
 });
 
@@ -154,6 +188,8 @@ describe("keymap view", () => {
     expect(view.not3DefaultsPerContext["not3.page"]).toContainEqual({ key: "ctrl+s", command: "not3.save" });
     expect(view.monacoCommands).toContainEqual({ id: "actions.find", label: "Find" });
     expect(view.monacoDefaults).toContain("https://code.visualstudio.com/docs/getstarted/keybindings");
+    expect(view.formatBindings).toContain("-not3.format");
+    expect(view.formatBindings).toContain("-editor.action.formatDocument");
     warn.mockRestore();
   });
 });

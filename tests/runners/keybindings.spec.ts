@@ -41,20 +41,47 @@ test("Ctrl+K Ctrl+S opens the read-only keymap view", async ({ page }) => {
   await expect(page.locator(".monaco-editor")).toContainText("invalidUserEntries");
 });
 
-test("settings can unbind formatting and bind a Monaco command", async ({ page }) => {
-  await saveSettings(page, [
-    { key: "shift+alt+f", command: "-not3.format" },
-    { key: "shift+alt+f", command: "-editor.action.formatDocument" },
-    { key: "alt+f", command: "actions.find", when: "editorTextFocus" },
-  ]);
+test("Numpad0 binding runs from the title bar", async ({ page }) => {
+  await saveSettings(page, [{ key: "numpad0", command: "not3.openKeybindings" }]);
+  await page.locator("#logo").click();
+  await page.keyboard.press("Numpad0");
+  await expect(page).toHaveURL("http://127.0.0.1:8789/keybindings");
+});
+
+test("shifted punctuation binding runs from the title bar", async ({ page }) => {
+  await saveSettings(page, [{ key: "shift+;", command: "not3.openKeybindings" }]);
+  await page.locator("#logo").click();
+  await page.keyboard.press("Shift+Semicolon");
+  await expect(page).toHaveURL("http://127.0.0.1:8789/keybindings");
+});
+
+test("a negative Monaco binding removes the built-in Find shortcut", async ({ page }) => {
+  await openApp(page);
   await page.locator(".monaco-editor").click();
-  await page.keyboard.press("Alt+f");
+  await page.keyboard.press("Control+f");
   await expect(page.locator(".find-widget")).toBeVisible();
-  await page.keyboard.press("Escape");
+
+  await saveSettings(page, [{ key: "ctrl+f", command: "-actions.find" }]);
   await page.locator(".monaco-editor").click();
-  await page.keyboard.insertText('{"a":1}');
-  await expect(page.locator(".monaco-editor .view-lines")).toContainText('{"a":1}');
-  const before = await page.locator(".monaco-editor .view-lines").innerText();
+  await page.keyboard.press("Control+f");
+  await expect(page.locator(".find-widget")).toBeHidden();
+});
+
+test("removing not3.format prevents its formatter notification", async ({ page }) => {
+  await openApp(page);
+  await page.locator("select").first().selectOption("json");
+  await page.locator(".monaco-editor").click();
+  await page.keyboard.insertText("invalid json");
+  await expect(page.locator(".monaco-editor .view-lines")).toContainText("invalid json");
   await page.keyboard.press("Shift+Alt+f");
-  expect(await page.locator(".monaco-editor .view-lines").innerText()).toBe(before);
+  await expect(page.locator(".notification-container p")).toContainText("Could not format note:");
+
+  await saveSettings(page, [{ key: "shift+alt+f", command: "-not3.format" }]);
+  await page.locator("select").first().selectOption("json");
+  await page.locator(".monaco-editor").click();
+  await page.keyboard.insertText("invalid json");
+  await expect(page.locator(".monaco-editor .view-lines")).toContainText("invalid json");
+  await page.keyboard.press("Shift+Alt+f");
+  await page.waitForTimeout(1000);
+  await expect(page.locator(".notification-container p")).not.toContainText("Could not format note:");
 });

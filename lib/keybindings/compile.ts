@@ -116,7 +116,9 @@ export function compileKeybindings(userEntries: unknown, monacoIds: Iterable<str
       keybinding: entry.parsed.monaco, command: entry.command, when: "editorTextFocus", commandArgs: entry.args,
     })),
     ...removals.filter((entry) => entry.contexts.includes("editorTextFocus")).map((entry) => ({
-      keybinding: entry.parsed.monaco, command: entry.command, when: "editorTextFocus",
+      // Monaco matches a negative rule's when against the default rule's when.
+      // Omitting it removes this command/key across the default's contexts.
+      keybinding: entry.parsed.monaco, command: entry.command,
     })),
   ];
   return { invalid, effective, overrides, byContext, monacoRules, resolve };

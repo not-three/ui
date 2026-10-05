@@ -9,6 +9,15 @@ const aliases: Record<string, string> = {
   arrowleft: "left", arrowright: "right", arrowup: "up", arrowdown: "down",
 };
 const order = ["ctrl", "winctrl", "shift", "alt"];
+const physicalKeys: Record<string, string> = {
+  Semicolon: ";", Equal: "=", Comma: ",", Minus: "-", Period: ".",
+  Slash: "/", Backquote: "`", BracketLeft: "[", Backslash: "\\",
+  BracketRight: "]", Quote: "'",
+};
+for (let i = 0; i <= 9; i++) {
+  physicalKeys[`Digit${i}`] = String(i);
+  physicalKeys[`Numpad${i}`] = `numpad${i}`;
+}
 
 export interface ParsedChord { strokes: string[]; monaco: number }
 
@@ -50,7 +59,7 @@ export function strokeFromEvent(event: KeyboardEvent): string | null {
   if (event.isComposing) return null;
   const raw = event.key.toLowerCase();
   if (["control", "meta", "shift", "alt", "altgraph"].includes(raw)) return null;
-  const key = aliases[raw] ?? raw;
+  const key = physicalKeys[event.code] ?? aliases[raw] ?? raw;
   if (KEY_CODES[key] === undefined) return null;
   const mac = typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
   const modifiers = [

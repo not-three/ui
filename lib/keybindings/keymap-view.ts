@@ -19,5 +19,6 @@ export function buildKeymapView(
     ])),
     monacoCommands: monacoActions.filter((action) => !action.id.startsWith("not3.")).sort((a, b) => a.id.localeCompare(b.id)),
     monacoDefaults: "Monaco uses VS Code default keybindings. See https://code.visualstudio.com/docs/getstarted/keybindings for the reference; Monaco does not expose its default keymap through a public API.",
+    formatBindings: "Shift+Alt+F can invoke both not3.format and Monaco's editor.action.formatDocument. Use -not3.format to remove the !3 formatter binding; -editor.action.formatDocument removes only Monaco's built-in binding.",
   }, null, 2);
 }
