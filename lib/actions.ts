@@ -12,3 +12,4 @@ export * from './actions/save-until-read';
 export * from './actions/save';
 export * from './actions/share-curl';
 export * from './actions/share-link';
+export * from './actions/start-cowork';

@@ -6,6 +6,7 @@
     <misc-loading-spinner :visible="loading > 0 || store.loading" />
     <file-upload />
     <p2p-send />
+    <cowork-share />
     <transition-fade>
       <file-p2p-receive v-if="openFile && loading <= 0 && fileIsP2P" :file="openFile" />
       <file-download v-else-if="openFile && loading <= 0" :file="openFile" />
@@ -22,6 +23,8 @@ import axios, { AxiosError } from "axios";
 import { DownloadDb } from "~/lib/download";
 import * as Actions from "~/lib/actions";
 import { isP2PFragment } from "~/lib/transfer/p2p";
+import { activeCowork, leaveCowork } from '~/lib/cowork/active';
+import { joinCowork } from '~/lib/actions/start-cowork';
 
 const { uiBaseURL } = useRuntimeConfig().public;
 const store = useAppStore();
@@ -31,6 +34,7 @@ const props = defineProps<{
   openFile?: string;
   openNote?: string;
   openSettings?: boolean;
+  coworkRoom?: string;
 }>();
 const fileIsP2P = computed(() => !!props.openFile && isP2PFragment(window.location.href));
 
@@ -44,6 +48,7 @@ function beforeDomUnload(event: BeforeUnloadEvent) {
 
 onMounted(async () => {
   window.addEventListener("beforeunload", beforeDomUnload);
+  leaveCowork();
   const lastContent = store.keepContent ? store.content : "";
   // keepContent marks the readonly->editable handoff; keep the run/preview
   // panel open across it (the user explicitly opened it for this content).
@@ -165,6 +170,8 @@ onMounted(async () => {
     }
     errorMsg += ' Check the URL and try again.';
     store.dialog = new OkDialog("Error", errorMsg, () => useRouter().push("/"));
+  } else if (props.coworkRoom) {
+    await joinCowork(props.coworkRoom, window.location.href);
   } else if (props.openSettings) {
     store.settings = true;
     store.content = JSON.stringify(useSettingsStore().$state, null, 2);
@@ -187,6 +194,18 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", beforeDomUnload);
+  leaveCowork();
+});
+
+watch(() => activeCowork.value?.session.state.language, language => {
+  if (language) store.selectedLanguage = language;
+});
+watch(() => [store.selectedLanguage, store.detectedLanguage] as const, ([selected, detected]) => {
+  const session = activeCowork.value?.session;
+  if (!session) return;
+  const language = selected || detected || 'plaintext';
+  if (session.isCreator && language !== session.language) void session.setLanguage(language);
+  else if (!session.isCreator && session.language && language !== session.language) store.selectedLanguage = session.language;
 });
 
 console.warn(

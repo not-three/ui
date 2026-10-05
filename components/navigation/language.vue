@@ -2,6 +2,7 @@
   <div :key="store.selectedLanguage || undefined" class="border border-white px-2 py-0.5 -my-1 print:hidden">
     <select
       v-model="currentLanguage"
+      :disabled="!!activeCowork && !activeCowork.session.isCreator"
       class="bg-black text-white focus:outline-none cursor-pointer"
     >
       <option v-if="!store.detectedLanguage" value="" disabled>
@@ -22,6 +23,7 @@
 </template>
 
 <script lang="ts" setup>
+import { activeCowork } from '~/lib/cowork/active';
 const store = useAppStore();
 const currentLanguage = computed({
   get: () => store.selectedLanguage || store.detectedLanguage,

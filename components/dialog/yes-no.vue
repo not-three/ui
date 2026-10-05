@@ -1,12 +1,10 @@
 <template>
   <div class="flex justify-end gap-4">
     <button @click="onYes()">
-      <span class="underline font-bold">Y</span>
-      <span>es</span>
+      {{ data.yesLabel }}
     </button>
     <button @click="onNo()">
-      <span class="underline font-bold">N</span>
-      <span>o</span>
+      {{ data.noLabel }}
     </button>
   </div>
 </template>

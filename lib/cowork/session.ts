@@ -62,6 +62,7 @@ export class CoworkSession {
 
   constructor(private readonly options: CoworkSessionOptions) { this.state.language = options.language || '' }
   get status() { return this.state.status }
+  get isCreator() { return this.creator }
   get roomId() { return this.state.roomId }
   get banner() { return this.state.banner }
   get participants() { return this.state.participants }

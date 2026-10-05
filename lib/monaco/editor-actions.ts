@@ -1,4 +1,5 @@
 import * as Actions from "~/lib/actions";
+import { activeCowork } from '~/lib/cowork/active';
 
 export interface EditorActionDefinition {
   /** Also the key used in settings.editor.keybindings */
@@ -22,4 +23,9 @@ export const EDITOR_ACTIONS: EditorActionDefinition[] = [
   { id: "fileTransfer", label: "!3: File transfer", run: Actions.OPEN_FILE_TRANSFER },
   { id: "excalidraw", label: "!3: Open excalidraw", run: Actions.OPEN_EXCALIDRAW },
   { id: "sandbox", label: "!3: Run / preview note", run: Actions.OPEN_SANDBOX },
+  { id: "startCowork", label: "!3: Start cowork session", run: Actions.START_COWORK },
 ];
+
+export function canStartCowork(store: ReturnType<typeof useAppStore>): boolean {
+  return !!store.info.p2pRooms && !store.readonly && !store.settings && !store.excalidraw && !activeCowork.value
+}
