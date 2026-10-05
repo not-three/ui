@@ -23,11 +23,10 @@ export function reconcileDraw(elements: readonly DrawElement[], incoming: readon
     byId.set(element.id, current ? preferred(current, element) : element)
   }
   return [...byId.values()].sort((a, b) => {
-    if (a.index != null && b.index != null) {
-      if (a.index !== b.index) return a.index < b.index ? -1 : 1
-      if (a.id !== b.id) return a.id < b.id ? -1 : 1
-    }
-    return 0
+    if (a.index == null && b.index != null) return 1
+    if (a.index != null && b.index == null) return -1
+    if (a.index != null && b.index != null && a.index !== b.index) return a.index < b.index ? -1 : 1
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
   })
 }
 
@@ -97,6 +96,12 @@ export class CoworkDraw {
       this.startRetry = null
       if (JSON.stringify(this.scene) !== JSON.stringify(payload.elements)) this.post('elements', { elements: this.scene })
       if (JSON.stringify(before) !== JSON.stringify(this.scene)) this.publish()
+      const previous = new Map(before.map(element => [element.id, element]))
+      const changed = payload.elements.filter(element => {
+        const winner = this.scene.find(item => item.id === element.id)
+        return winner === element && JSON.stringify(previous.get(element.id)) !== JSON.stringify(element)
+      })
+      if (changed.length) void this.session.send(3, encoder.encode(JSON.stringify(changed)))
       for (const peerId of this.pendingRequests) this.sendScene(peerId)
       this.pendingRequests.clear()
       for (const finish of this.pendingCaptures) finish()

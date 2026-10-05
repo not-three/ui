@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CoworkDraw } from '~/lib/cowork/draw'
+import { CoworkDraw, reconcileDraw } from '~/lib/cowork/draw'
 import type { RoomFrame } from '~/lib/cowork/session'
 
 type Element = { id: string; version: number; versionNonce: number; isDeleted: boolean; index: string | null }
@@ -29,6 +29,15 @@ function setup(initial: Element[] = []) {
 }
 
 describe('drawing cowork relay', () => {
+  it('orders mixed indexed and unindexed elements identically regardless of arrival order', () => {
+    const indexedLow = shape('indexed-low', 1, 20, false, 'a1')
+    const indexedHigh = shape('indexed-high', 1, 20, false, 'a2')
+    const unindexed = shape('unindexed', 1, 20, false, null)
+    const expected = [indexedLow, indexedHigh, unindexed]
+    expect(reconcileDraw([unindexed, indexedHigh], [indexedLow])).toEqual(expected)
+    expect(reconcileDraw([indexedLow], [indexedHigh, unindexed])).toEqual(expected)
+  })
+
   it('sends only local changed elements and awareness with identity', () => {
     const t = setup()
     t.adapter.start()
@@ -46,10 +55,10 @@ describe('drawing cowork relay', () => {
     t.iframe('scene', { elements: [shape('rect', 2, 10)] })
     t.receive('bob', 3, [shape('rect', 1, 1), shape('circle')])
     t.receive('bob', 2, { pointer: { x: 3, y: 4 }, selected: ['circle'], name: 'Bob', color: '#def' })
-    expect(t.target.postMessage).toHaveBeenCalledWith({ type: 'not3/draw/collab/elements', payload: { elements: [shape('rect', 2, 10), shape('circle')] } }, 'https://draw.example')
+    expect(t.target.postMessage).toHaveBeenCalledWith({ type: 'not3/draw/collab/elements', payload: { elements: [shape('circle'), shape('rect', 2, 10)] } }, 'https://draw.example')
     expect(t.target.postMessage).toHaveBeenCalledWith({ type: 'not3/draw/collab/pointers', payload: { peers: [{ id: 'bob', name: 'Bob', color: '#def', pointer: { x: 3, y: 4 }, selected: ['circle'] }] } }, 'https://draw.example')
     expect(t.sent.filter(frame => frame.type === 3)).toEqual([])
-    expect(JSON.parse(t.content).data).toEqual([shape('rect', 2, 10), shape('circle')])
+    expect(JSON.parse(t.content).data).toEqual([shape('circle'), shape('rect', 2, 10)])
   })
 
   it('requests an existing peer scene after a late iframe mount', () => {
@@ -66,7 +75,7 @@ describe('drawing cowork relay', () => {
     t.receive('bob', 4)
     t.adapter.start()
     t.iframe('scene', { elements: [shape('rect'), shape('circle')] })
-    expect(t.sent).toContainEqual({ type: 3, payload: [shape('rect'), shape('circle')], peerId: 'bob' })
+    expect(t.sent).toContainEqual({ type: 3, payload: [shape('circle'), shape('rect')], peerId: 'bob' })
   })
 
   it('resolves concurrent versions, lower nonces, deletion ties, and mixed indices', () => {
@@ -74,9 +83,9 @@ describe('drawing cowork relay', () => {
     t.adapter.start()
     t.iframe('scene', { elements: [shape('a', 2, 30), shape('b', 3, 4), shape('c', 1, 9, false, 'a2')] })
     t.receive('bob', 3, [shape('a', 3, 90), shape('b', 3, 2), shape('c', 1, 9, true, 'a2'), shape('d', 1, 1, false, null)])
-    expect(JSON.parse(t.content).data).toEqual([shape('a', 3, 90), shape('b', 3, 2), shape('c', 1, 9, true, 'a2'), shape('d', 1, 1, false, null)])
+    expect(JSON.parse(t.content).data).toEqual([shape('c', 1, 9, true, 'a2'), shape('a', 3, 90), shape('b', 3, 2), shape('d', 1, 1, false, null)])
     t.iframe('delta', { elements: [shape('a', 2, 1), shape('b', 3, 8)] })
-    expect(JSON.parse(t.content).data[0]).toEqual(shape('a', 3, 90))
+    expect(JSON.parse(t.content).data.find((element: Element) => element.id === 'a')).toEqual(shape('a', 3, 90))
     expect(t.sent.filter(frame => frame.type === 3)).toEqual([])
   })
 
@@ -89,6 +98,15 @@ describe('drawing cowork relay', () => {
     t.iframe('scene', { elements: [shape('fresh')] })
     await capture
     expect(JSON.parse(t.content).data).toEqual([shape('fresh')])
+  })
+
+  it('relays a locally captured scene if save beats the coalesced delta', () => {
+    const t = setup()
+    t.adapter.start()
+    t.iframe('scene', { elements: [] })
+    t.iframe('scene', { elements: [shape('fresh')] })
+    t.iframe('delta', { elements: [shape('fresh')] })
+    expect(t.sent.filter(frame => frame.type === 3)).toEqual([{ type: 3, payload: [shape('fresh')], peerId: undefined }])
   })
 
   it('rejects messages from another source or origin and clears pointers on leave', () => {
