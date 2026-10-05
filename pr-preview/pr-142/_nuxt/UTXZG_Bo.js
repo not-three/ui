@@ -1,1 +1,0 @@
-import{_ as r}from"./5B54aGY2.js";import{d as t,u as n,o as a,c as s,a as _}from"./CVQzbXP-.js";import"./D8c5Ezcs.js";import"./Bwn5fe01.js";const l=t({__name:"[id]",setup(c){const o=n();return(m,p)=>{const e=r;return a(),s(e,{"cowork-room":String(_(o).params.id)},null,8,["cowork-room"])}}});export{l as default};
