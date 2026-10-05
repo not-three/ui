@@ -141,6 +141,7 @@ export class CoworkSession {
     room.onPeerJoined = (id) => {
       this.addPeer(id, this.participants.find(p => p.peerId === id)?.name || id, true)
       void this.sendHello(id).then(() => {
+        if (this.room !== room || this.stopped) return
         for (const listener of this.peerListeners) listener(id, true)
       }).catch(error => this.options.onError?.(error as Error))
     }
@@ -157,6 +158,10 @@ export class CoworkSession {
     }
     room.onClose = (error) => {
       if (this.room !== room || this.stopped) return
+      for (const peer of [...this.participants]) if (peer.peerId !== this.peerId) {
+        this.removePeer(peer.peerId)
+        for (const listener of this.peerListeners) listener(peer.peerId, false)
+      }
       this.detachRoom()
       if (this.roomId && this.everJoined) this.scheduleRejoin()
       else { this.state.status = 'closed'; if (error) this.options.onError?.(error) }

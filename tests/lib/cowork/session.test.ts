@@ -131,4 +131,21 @@ describe('session membership', () => {
       session.leave()
     } finally { vi.useRealTimers() }
   })
+
+  it('clears old peer awareness listeners when an isolated room closes', async () => {
+    vi.useFakeTimers()
+    try {
+      const first = new FakeRoom(), second = new FakeRoom()
+      const rooms = [first, second]
+      const session = new CoworkSession({ makeRoom: () => rooms.shift()! as never, seed: 'seed', kind: 'text', name: 'Bob' })
+      const departed: string[] = []
+      session.onPeer((id, joined) => { if (!joined) departed.push(id) })
+      await session.join('room')
+      first.onPeerJoined?.('creator')
+      first.onClose?.()
+      expect(departed).toContain('creator')
+      expect(session.participants.some(peer => peer.peerId === 'creator')).toBe(false)
+      session.leave()
+    } finally { vi.useRealTimers() }
+  })
 })
