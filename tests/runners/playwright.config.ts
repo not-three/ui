@@ -7,6 +7,7 @@
 // prod build swallowing warnings) is invisible to string matching. The runners
 // need real wasm, a real CSP and a real opaque-origin iframe.
 import { defineConfig } from "@playwright/test";
+import { drawCheckout } from "./draw-path.mjs";
 
 export default defineConfig({
   testDir: ".",
@@ -27,5 +28,11 @@ export default defineConfig({
       reuseExistingServer: true,
       timeout: 120_000,
     },
+    ...(drawCheckout ? [{
+      command: "node serve-draw.mjs",
+      port: 8790,
+      reuseExistingServer: true,
+      timeout: 120_000,
+    }] : []),
   ],
 });

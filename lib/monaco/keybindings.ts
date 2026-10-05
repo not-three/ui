@@ -9,7 +9,7 @@ export const KEY_MOD = {
   WinCtrl: 256,
 } as const;
 
-const KEY_CODES: Record<string, number> = {
+export const KEY_CODES: Record<string, number> = {
   backspace: 1,
   tab: 2,
   enter: 3,
@@ -42,6 +42,7 @@ const KEY_CODES: Record<string, number> = {
 for (let i = 0; i <= 9; i++) KEY_CODES[String(i)] = 21 + i; // Digit0-9
 for (let i = 0; i < 26; i++) KEY_CODES[String.fromCharCode(97 + i)] = 31 + i; // KeyA-Z
 for (let i = 1; i <= 24; i++) KEY_CODES[`f${i}`] = 58 + i; // F1-F24
+for (let i = 0; i <= 9; i++) KEY_CODES[`numpad${i}`] = 98 + i;
 
 const MODIFIERS: Record<string, number> = {
   ctrl: KEY_MOD.CtrlCmd,
