@@ -17,6 +17,12 @@ it('strips CSS comments and whitespace without changing strings or URLs', async 
   expect(await minify('a { /* remove */ content: "a /* keep */ b"; background: url("a b.png"); color: red; }', 'css')).toMatchObject({ kind: 'text', text: 'a{content:"a /* keep */ b";background:url("a b.png");color:red}', language: 'css' });
 });
 
+it('preserves required spaces in nested calc arithmetic', async () => {
+  expect(await minify('a { width: calc(100% + 1px); height: calc(50% - var(--gap)); }', 'css')).toMatchObject({
+    kind: 'text', text: 'a{width:calc(100% + 1px);height:calc(50% - var(--gap))}', language: 'css',
+  });
+});
+
 it('keeps meaningful HTML text spacing and pre, script and style bodies', async () => {
   const source = '<div>hello <b>world</b> friend</div><!-- remove --><pre>  a\n b </pre><script>const x = "a  b";</script><style>a { color: red; }</style>';
   const result = await minify(source, 'html');

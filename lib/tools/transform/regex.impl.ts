@@ -1,5 +1,7 @@
 import type { ToolRun, ToolReportItem } from '../types';
-import { errorReport, offsetPosition, requireText } from './shared';
+import { errorReport, requireText } from './shared';
+
+const MAX_MATCHES = 1000;
 
 export const run: ToolRun = async (inputs, options) => {
   const source = requireText(inputs.input);
@@ -9,10 +11,21 @@ export const run: ToolRun = async (inputs, options) => {
   try { expression = new RegExp(pattern, flags); } catch (error) { return errorReport(error instanceof Error ? error.message : String(error)); }
   const items: ToolReportItem[] = [];
   const matcher = new RegExp(expression.source, expression.flags.includes('g') ? expression.flags : expression.flags + 'g');
+  let scanned = 0;
+  let line = 1;
+  let column = 1;
   let match: RegExpExecArray | null;
   while ((match = matcher.exec(source))) {
-    items.push({ level: 'info', message: match[0] ? `Match: ${match[0]}` : 'Zero-width match', position: offsetPosition(source, match.index) });
-    if (match[0].length === 0) matcher.lastIndex += expression.unicode ? [...source.slice(matcher.lastIndex)][0]?.length ?? 1 : 1;
+    if (items.length >= MAX_MATCHES) {
+      items.push({ level: 'warning', message: `Additional matches omitted after ${MAX_MATCHES}` });
+      break;
+    }
+    for (; scanned < match.index; scanned++) {
+      if (source[scanned] === '\n') { line++; column = 1; }
+      else column++;
+    }
+    items.push({ level: 'info', message: match[0] ? `Match: ${match[0]}` : 'Zero-width match', position: { line, column } });
+    if (match[0].length === 0) matcher.lastIndex += (flags.includes('u') || flags.includes('v')) && (source.codePointAt(matcher.lastIndex) ?? 0) > 0xffff ? 2 : 1;
   }
   const report = { kind: 'report' as const, items: items.length ? items : [{ level: 'info' as const, message: 'No matches' }] };
   if (String(options.replacement ?? '') === '') return report;

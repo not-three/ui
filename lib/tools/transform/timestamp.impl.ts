@@ -21,6 +21,15 @@ export const run: ToolRun = async (inputs, options) => {
   const source = requireText(inputs.input).trim();
   const format = String(options.format ?? 'iso');
   const timezone = String(options.timezone ?? 'UTC').trim();
+  const isoDate = /^(\d{4})-(\d{2})-(\d{2})T/.exec(source);
+  if (isoDate) {
+    const year = Number(isoDate[1]);
+    const month = Number(isoDate[2]);
+    const day = Number(isoDate[3]);
+    const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const days = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (month < 1 || month > 12 || day < 1 || day > days[month - 1]!) return errorReport('Invalid ISO calendar date');
+  }
   const epoch = /^-?\d+(?:\.\d+)?$/.test(source) ? Number(source) * 1000
     : /^(?:\d{4}-\d{2}-\d{2}T|[A-Za-z]{3},\s)/.test(source) ? Date.parse(source) : NaN;
   if (!Number.isFinite(epoch) || !Number.isFinite(new Date(epoch).getTime())) return errorReport('Invalid timestamp');

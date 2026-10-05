@@ -20,3 +20,12 @@ it('surfaces invalid patterns and terminates zero-width global matches', async (
   expect(result).toMatchObject({ kind: 'report' });
   if (result.kind === 'report') expect(result.items).toHaveLength(2);
 });
+
+it('bounds zero-width match reports for large text', async () => {
+  const result = await run({ input: textInput('x'.repeat(20_000)) }, { pattern: '', flags: 'g', replacement: '' }, context);
+  expect(result.kind).toBe('report');
+  if (result.kind === 'report') {
+    expect(result.items).toHaveLength(1001);
+    expect(result.items.at(-1)).toMatchObject({ level: 'warning', message: expect.stringContaining('omitted') });
+  }
+});

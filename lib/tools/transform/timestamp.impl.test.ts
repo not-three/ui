@@ -24,3 +24,9 @@ it('rejects invalid dates and timezones', async () => {
   expect(await convert('not a date', 'iso')).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
   expect(await convert('0', 'iso', 'Nowhere/Invalid')).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
 });
+
+it('rejects impossible ISO calendar dates without rolling into another month', async () => {
+  expect(await convert('2024-02-30T00:00:00Z', 'iso')).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+  expect(await convert('2023-02-29T12:00:00+01:00', 'unix')).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+  expect(await convert('2024-02-29T00:00:00Z', 'unix')).toMatchObject({ kind: 'text', text: '1709164800' });
+});

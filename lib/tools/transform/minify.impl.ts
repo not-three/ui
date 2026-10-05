@@ -25,6 +25,24 @@ function minifyCss(source: string): string {
       }
       continue;
     }
+    if (source.slice(i, i + 5).toLowerCase() === 'calc(') {
+      if (space && out && !/[{(:,;>+~]$/.test(out)) out += ' ';
+      space = false;
+      let end = i + 5;
+      let depth = 1;
+      let quote = '';
+      while (end < source.length && depth > 0) {
+        const next = source[end++]!;
+        if (next === '\\') { end++; continue; }
+        if (quote) { if (next === quote) quote = ''; continue; }
+        if (next === '"' || next === "'") quote = next;
+        else if (next === '(') depth++;
+        else if (next === ')') depth--;
+      }
+      out += source.slice(i, end);
+      i = end;
+      continue;
+    }
     if (source.slice(i, i + 4).toLowerCase() === 'url(') {
       if (space && out && !/[{(:,;>+~]$/.test(out)) out += ' ';
       space = false;
