@@ -3,6 +3,7 @@ import { FragmentData } from '@not3/sdk'
 import { reactive } from 'vue'
 
 export type CoworkKind = 'text' | 'draw'
+export type CoworkSessionKind = CoworkKind | 'unknown'
 export type FrameType = 0 | 1 | 2 | 3 | 4
 export type Participant = { peerId: string; name: string; color: string; connected: boolean }
 export type RoomFrame = { type: FrameType; payload: Uint8Array }
@@ -38,17 +39,18 @@ type RoomOptions = { seed: string; onSignalingLost?: () => void }
 export type CoworkSessionOptions = {
   makeRoom: (options: RoomOptions) => P2PRoom
   seed: string
-  kind: CoworkKind
+  kind: CoworkSessionKind
   name: string
   language?: string
   onKindMismatch?: () => void
+  onKindResolved?: (kind: CoworkKind) => void
   onError?: (error: Error) => void
   onIdentity?: (peerId: string) => void
   saveAsNote?: () => Promise<void>
 }
 
 export class CoworkSession {
-  readonly state = reactive({ status: 'idle' as 'idle' | 'joining' | 'joined' | 'closed', banner: '', participants: [] as Participant[], language: '', roomId: '' })
+  readonly state = reactive({ status: 'idle' as 'idle' | 'joining' | 'joined' | 'closed', banner: '', participants: [] as Participant[], language: '', roomId: '', kind: 'unknown' as CoworkSessionKind })
   peerId = ''
   private room: P2PRoom | null = null
   private creator = false
@@ -59,9 +61,11 @@ export class CoworkSession {
   private everJoined = false
   private frameListeners = new Set<(peerId: string, frame: RoomFrame) => void>()
   private peerListeners = new Set<(peerId: string, joined: boolean) => void>()
+  private pendingHelloPeers = new Set<string>()
 
-  constructor(private readonly options: CoworkSessionOptions) { this.state.language = options.language || '' }
+  constructor(private readonly options: CoworkSessionOptions) { this.state.language = options.language || ''; this.state.kind = options.kind }
   get status() { return this.state.status }
+  get kind() { return this.state.kind }
   get isCreator() { return this.creator }
   get roomId() { return this.state.roomId }
   get banner() { return this.state.banner }
@@ -133,6 +137,7 @@ export class CoworkSession {
     this.state.status = 'closed'
     this.state.banner = ''
     this.state.participants.splice(0)
+    this.pendingHelloPeers.clear()
   }
 
   private attachRoom() {
@@ -140,12 +145,14 @@ export class CoworkSession {
     this.room = room
     room.onPeerJoined = (id) => {
       this.addPeer(id, this.participants.find(p => p.peerId === id)?.name || id, true)
+      if (this.kind === 'unknown') { this.pendingHelloPeers.add(id); return }
       void this.sendHello(id).then(() => {
         if (this.room !== room || this.stopped) return
         for (const listener of this.peerListeners) listener(id, true)
       }).catch(error => this.options.onError?.(error as Error))
     }
     room.onPeerLeft = (id) => {
+      this.pendingHelloPeers.delete(id)
       this.removePeer(id)
       for (const listener of this.peerListeners) listener(id, false)
     }
@@ -173,6 +180,7 @@ export class CoworkSession {
     const room = this.room
     if (!room) return
     this.room = null
+    this.pendingHelloPeers.clear()
     room.onMessage = room.onPeerJoined = room.onPeerLeft = room.onClose = null
     room.leave()
   }
@@ -215,8 +223,8 @@ export class CoworkSession {
   }
 
   private async sendHello(peerId?: string) {
-    if (!this.peerId) return
-    const hello: Hello = { v: 1, kind: this.options.kind, name: this.options.name, color: colorForPeer(this.peerId), creator: this.creator }
+    if (!this.peerId || this.kind === 'unknown') return
+    const hello: Hello = { v: 1, kind: this.kind, name: this.options.name, color: colorForPeer(this.peerId), creator: this.creator }
     if (this.language) hello.language = this.language
     await this.send(0, encoder.encode(JSON.stringify(hello)), peerId)
   }
@@ -224,16 +232,26 @@ export class CoworkSession {
   private receiveHello(peerId: string, payload: Uint8Array) {
     const hello = JSON.parse(decoder.decode(payload)) as Hello
     if (hello.v !== 1 || !['text', 'draw'].includes(hello.kind) || typeof hello.name !== 'string' || typeof hello.color !== 'string') throw new Error('Invalid cowork hello')
-    if (hello.kind !== this.options.kind) {
+    if (this.kind !== 'unknown' && hello.kind !== this.kind) {
       this.options.onKindMismatch?.()
       this.leave()
       return
     }
     this.addPeer(peerId, hello.name, true)
+    if (this.kind === 'unknown') {
+      this.state.kind = hello.kind
+      this.options.onKindResolved?.(hello.kind)
+      this.pendingHelloPeers.add(peerId)
+      for (const id of this.pendingHelloPeers) void this.sendHello(id).then(() => {
+        if (this.stopped) return
+        for (const listener of this.peerListeners) listener(id, true)
+      }).catch(error => this.options.onError?.(error as Error))
+      this.pendingHelloPeers.clear()
+    }
     // A rejoin gives the creator a new SDK peer ID; the role travels in each hello.
     if (!this.creator && hello.creator === true) this.creatorPeerId = peerId
     const fromCreator = hello.creator === true || (hello.creator === undefined && peerId === this.creatorPeerId)
-    if (this.options.kind === 'text' && !this.creator && fromCreator && typeof hello.language === 'string') this.state.language = hello.language
+    if (this.kind === 'text' && !this.creator && fromCreator && typeof hello.language === 'string') this.state.language = hello.language
   }
 
   private addPeer(peerId: string, name: string, connected: boolean) {
