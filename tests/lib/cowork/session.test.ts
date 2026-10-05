@@ -3,6 +3,7 @@ import { decodeFrame, encodeFrame, colorForPeer, CoworkSession } from '~/lib/cow
 
 class FakeRoom {
   peerId: string | null = null
+  joinError: Error | null = null
   onMessage: ((id: string, data: ArrayBuffer | string) => void) | null = null
   onPeerJoined: ((id: string) => void) | null = null
   onPeerLeft: ((id: string) => void) | null = null
@@ -10,7 +11,7 @@ class FakeRoom {
   sent: { id: string; data: Uint8Array }[] = []
   members: { id: string; connected: boolean }[] = []
   async create() { this.peerId = 'creator'; return { roomId: 'room', peerId: 'creator' } }
-  async join() { this.peerId = 'joiner'; return { peerId: 'joiner', peers: ['creator'] } }
+  async join() { if (this.joinError) { this.onClose?.(this.joinError); throw this.joinError } this.peerId = 'joiner'; return { peerId: 'joiner', peers: ['creator'] } }
   peers() { return this.members }
   async send(id: string, data: Uint8Array) { this.sent.push({ id, data }) }
   async broadcast(data: Uint8Array) { for (const member of this.members) if (member.connected) await this.send(member.id, data) }
@@ -112,6 +113,44 @@ describe('session membership', () => {
       session.leave()
       expect(first.onClose).toBeNull()
       expect(second.onClose).toBeNull()
+    } finally { vi.useRealTimers() }
+  })
+
+  it.each(['not-found', 'session-full'])('stops rejoining when a previously joined room returns %s', async code => {
+    vi.useFakeTimers()
+    try {
+      const first = new FakeRoom(), rejected = new FakeRoom()
+      rejected.joinError = Object.assign(new Error(code), { code })
+      const rooms = [first, rejected]
+      const errors: Error[] = []
+      const session = new CoworkSession({ makeRoom: () => rooms.shift()! as never, seed: 'seed', kind: 'text', name: 'Alice', onError: error => errors.push(error) })
+      await session.join('room')
+      first.onClose?.()
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(session.status).toBe('closed')
+      expect(errors).toEqual([rejected.joinError])
+      await vi.advanceTimersByTimeAsync(60000)
+      expect(rooms).toHaveLength(0)
+      session.leave()
+    } finally { vi.useRealTimers() }
+  })
+
+  it('uses exponential backoff after a transient rejoin failure', async () => {
+    vi.useFakeTimers()
+    try {
+      const first = new FakeRoom(), rejected = new FakeRoom(), recovered = new FakeRoom()
+      rejected.joinError = new Error('temporary gateway outage')
+      const rooms = [first, rejected, recovered]
+      const session = new CoworkSession({ makeRoom: () => rooms.shift()! as never, seed: 'seed', kind: 'text', name: 'Alice' })
+      await session.join('room')
+      first.onClose?.()
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(session.status).toBe('joining')
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(recovered.peerId).toBeNull()
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(session.status).toBe('joined')
+      session.leave()
     } finally { vi.useRealTimers() }
   })
 

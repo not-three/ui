@@ -23,6 +23,16 @@ const server = createServer(async (req, res) => {
     for (const peer of room.values()) peer.close()
     return json(res, 200, { ok: true })
   }
+  if (path === '/test/expire-room' && req.method === 'POST') {
+    let raw = ''
+    for await (const chunk of req) raw += chunk
+    const roomId = JSON.parse(raw).roomId
+    const room = rooms.get(roomId)
+    if (!room) return json(res, 404, { error: 'not-found' })
+    rooms.delete(roomId)
+    for (const peer of room.values()) peer.close()
+    return json(res, 200, { ok: true })
+  }
   if (path === '/note/json' && req.method === 'POST') {
     let raw = ''
     for await (const chunk of req) raw += chunk

@@ -92,6 +92,24 @@ test('an expired room offers the plain note escape hatch', async ({ browser }) =
   } finally { await visitor.context.close() }
 })
 
+test('an expired room after editing offers recovery without losing content', async ({ browser, request }) => {
+  const alice = await openContext(browser)
+  try {
+    await alice.page.goto('/')
+    await alice.page.getByRole('button', { name: 'Start cowork' }).click()
+    await nameParticipant(alice.page, 'Alice')
+    const link = (await alice.page.getByTestId('cowork-link').textContent())!
+    await alice.page.getByRole('button', { name: 'Close' }).click()
+    await edit(alice.page, 'Keep this draft')
+    const roomId = new URL(link).pathname.split('/').at(-1)!
+    expect((await request.post('http://127.0.0.1:18890/test/expire-room', { data: { roomId } })).ok()).toBe(true)
+    await expect(alice.page.getByText('Session not found')).toBeVisible({ timeout: 10000 })
+    await alice.page.getByRole('button', { name: 'Copy content and open as plain note' }).click()
+    await expect(alice.page).toHaveURL('http://127.0.0.1:18889/')
+    await expectEditor(alice.page, 'Keep this draft')
+  } finally { await alice.context.close() }
+})
+
 test('a custom cowork server asks for the same trust decision as a note', async ({ browser }) => {
   const visitor = await openContext(browser)
   try {

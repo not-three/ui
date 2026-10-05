@@ -39,7 +39,11 @@ function buildSession(client: Not3Client, seed: string, name: string, initial: s
     makeRoom: options => client.p2p().room(options) as P2PRoom,
     seed, kind: 'text', name, language,
     onKindMismatch: () => { store.dialog = new OkDialog('Cowork error', 'This link is for a different document kind.'); leaveCowork() },
-    onError: error => console.error('Cowork room error', error),
+    onError: error => {
+      const code = (error as { code?: string }).code
+      if (code === 'not-found' || code === 'session-full') showJoinError(error)
+      else console.error('Cowork room error', error)
+    },
     onIdentity: id => text.setIdentity(id, colorForPeer(id)),
     saveAsNote: () => store.saveCoworkSnapshot(),
   })

@@ -198,6 +198,15 @@ export class CoworkSession {
         this.retryDelay = 1000
       } catch (error) {
         this.detachRoom()
+        if (this.retryTimer) clearTimeout(this.retryTimer)
+        this.retryTimer = null
+        const code = (error as { code?: string })?.code
+        if (code === 'not-found' || code === 'session-full') {
+          this.stopped = true
+          this.state.status = 'closed'
+          this.options.onError?.(error as Error)
+          return
+        }
         this.options.onError?.(error as Error)
         this.retryDelay = Math.min(this.retryDelay * 2, 30000)
         this.scheduleRejoin()
