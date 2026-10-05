@@ -16,6 +16,11 @@ export const useSettingsStore = defineStore('settings', {
     sandbox: {
       panelWidthPct: 50,
     },
+    tools: {
+      panelWidthPct: 50,
+      rememberOptions: true,
+      lastOptions: {} as Record<string, Record<string, string | number | boolean>>,
+    },
     warnings: {
       serverSideDecryption: true,
       unknownServer: true,
