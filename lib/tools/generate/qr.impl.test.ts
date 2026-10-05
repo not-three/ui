@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import { inflateSync } from 'node:zlib';
 import { run } from './qr.impl';
 import { textInput } from '../testing';
 const context = { signal: new AbortController().signal, reportProgress() {} };
@@ -8,6 +9,12 @@ test('generates PNG bytes for text with size options', async () => {
   if (result.kind !== 'bytes') return;
   expect(Array.from(result.bytes.slice(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
   expect(new DataView(result.bytes.buffer).getUint32(16)).toBe(256);
+  const view = new DataView(result.bytes.buffer);
+  const idatLength = view.getUint32(33);
+  const pixels = inflateSync(result.bytes.subarray(41, 41 + idatLength));
+  expect(pixels).toHaveLength(256 * 257);
+  expect(pixels.some(pixel => pixel === 0)).toBe(true);
+  expect(pixels.some(pixel => pixel === 255)).toBe(true);
 });
 test('QR content and error correction change the PNG', async () => {
   const first = await run({ input: textInput('alpha') }, { width: 128, errorCorrection: 'L' }, context);

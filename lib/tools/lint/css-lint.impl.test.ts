@@ -6,5 +6,5 @@ test('accepts structural CSS', async () => {
   expect(await run({ input: textInput('a { color: red; }') }, {}, context)).toMatchObject({ kind: 'report', items: [{ level: 'success' }] });
 });
 test('reports CSS parse errors', async () => {
-  expect(await run({ input: textInput('a { color: red;') }, {}, context)).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+  expect(await run({ input: textInput('a { color: red;') }, {}, context)).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 1, column: 1 } }] });
 });
