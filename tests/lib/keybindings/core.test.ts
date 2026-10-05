@@ -184,12 +184,28 @@ describe("keymap view", () => {
     const compiled = compileKeybindings([{ key: "bogus", command: "not3.save" }, { key: "alt+s", command: "not3.save" }]);
     const view = JSON.parse(buildKeymapView(compiled, [{ id: "actions.find", label: "Find" }]));
     expect(view.invalidUserEntries[0].reason).toMatch(/key/i);
-    expect(view.effectiveOverrides).toContainEqual({ key: "alt+s", command: "not3.save" });
+    expect(view.effectiveOverrides).toContainEqual({ key: "alt+s", command: "not3.save", effectiveContexts: ["editorTextFocus", "not3.page", "not3.draw"] });
     expect(view.not3DefaultsPerContext["not3.page"]).toContainEqual({ key: "ctrl+s", command: "not3.save" });
     expect(view.monacoCommands).toContainEqual({ id: "actions.find", label: "Find" });
     expect(view.monacoDefaults).toContain("https://code.visualstudio.com/docs/getstarted/keybindings");
     expect(view.formatBindings).toContain("-not3.format");
     expect(view.formatBindings).toContain("-editor.action.formatDocument");
     warn.mockRestore();
+  });
+
+  it("lists only winning override contexts and keeps meaningful removals", () => {
+    const compiled = compileKeybindings([
+      { key: "alt+s", command: "not3.save" },
+      { key: "alt+s", command: "not3.new" },
+      { key: "alt+d", command: "not3.save" },
+      { key: "alt+d", command: "not3.new", when: "not3.page" },
+      { key: "ctrl+s", command: "-not3.save" },
+    ]);
+    const view = JSON.parse(buildKeymapView(compiled, []));
+    expect(view.effectiveOverrides).not.toContainEqual(expect.objectContaining({ key: "alt+s", command: "not3.save" }));
+    expect(view.effectiveOverrides).toContainEqual({ key: "alt+s", command: "not3.new", effectiveContexts: ["editorTextFocus", "not3.page", "not3.draw"] });
+    expect(view.effectiveOverrides).toContainEqual({ key: "alt+d", command: "not3.save", effectiveContexts: ["editorTextFocus", "not3.draw"] });
+    expect(view.effectiveOverrides).toContainEqual({ key: "alt+d", command: "not3.new", when: "not3.page", effectiveContexts: ["not3.page"] });
+    expect(view.effectiveOverrides).toContainEqual({ key: "ctrl+s", command: "-not3.save", effectiveContexts: ["editorTextFocus", "not3.page", "not3.draw"] });
   });
 });
