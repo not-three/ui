@@ -103,11 +103,11 @@ export function compileKeybindings(userEntries: unknown, monacoIds: Iterable<str
       const match = bindings.findLast((entry) => entry.parsed.strokes[0] === held.first && entry.parsed.strokes[1] === key);
       if (match) return { kind: "command", command: match.command, ...(match.args === undefined ? {} : { args: match.args }) };
     }
-    if (bindings.some((entry) => entry.parsed.strokes.length === 2 && entry.parsed.strokes[0] === key)) {
+    const match = bindings.findLast((entry) => entry.parsed.strokes[0] === key);
+    if (match?.parsed.strokes.length === 2) {
       pending.set(context, { first: key, at: timestamp });
       return { kind: "pending" };
     }
-    const match = bindings.findLast((entry) => entry.parsed.strokes.length === 1 && entry.parsed.strokes[0] === key);
     return match ? { kind: "command", command: match.command, ...(match.args === undefined ? {} : { args: match.args }) } : { kind: "none" };
   };
 

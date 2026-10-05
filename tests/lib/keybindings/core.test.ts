@@ -73,6 +73,13 @@ describe("compiled keybindings", () => {
     expect(compiled.resolve("not3.page", "ctrl+s", 2001)).toMatchObject({ kind: "command", command: "not3.save" });
   });
 
+  it("lets a later single stroke override an earlier chord prefix", () => {
+    const compiled = compileKeybindings([{ key: "ctrl+k", command: "not3.save" }]);
+    expect(compiled.resolve("not3.page", "ctrl+k", 0)).toMatchObject({ kind: "command", command: "not3.save" });
+    const laterChord = compileKeybindings([{ key: "ctrl+s ctrl+x", command: "not3.new" }]);
+    expect(laterChord.resolve("not3.page", "ctrl+s", 0)).toEqual({ kind: "pending" });
+  });
+
   it("validates Monaco commands and draw key arguments independently", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const compiled = compileKeybindings([

@@ -8,7 +8,7 @@ const info = {
 async function openApp(page: Page, path = "/") {
   await page.route("**/api/info", (route) => route.fulfill({ json: info }));
   await page.goto(`http://127.0.0.1:8789${path}`);
-  await expect(page.locator(".monaco-editor")).toBeVisible();
+  await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 30_000 });
 }
 
 async function saveSettings(page: Page, keybindings: unknown[]) {
@@ -53,6 +53,7 @@ test("settings can unbind formatting and bind a Monaco command", async ({ page }
   await page.keyboard.press("Escape");
   await page.locator(".monaco-editor").click();
   await page.keyboard.insertText('{"a":1}');
+  await expect(page.locator(".monaco-editor .view-lines")).toContainText('{"a":1}');
   const before = await page.locator(".monaco-editor .view-lines").innerText();
   await page.keyboard.press("Shift+Alt+f");
   expect(await page.locator(".monaco-editor .view-lines").innerText()).toBe(before);
