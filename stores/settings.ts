@@ -3,6 +3,7 @@ import { migrateSettings } from "~/lib/settings-migration";
 export const useSettingsStore = defineStore('settings', {
   state: () => ({
     version: 3,
+    cowork: { displayName: '' },
     customServer: {
       url: null as string | null,
       password: null as string | null,

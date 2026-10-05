@@ -1,7 +1,9 @@
 import { FragmentData, ShareGenerator } from "@not3/sdk";
 import { TextOutputDialog } from "../dialog";
+import { activeCowork } from '~/lib/cowork/active';
 
 export const SHARE_CURL = () => {
+  if (activeCowork.value) return;
   const store = useAppStore();
   if (!store.readonly) {
     store.saveEncryptedNote(undefined, undefined, 'curl');

@@ -17,6 +17,8 @@ export class YesNoDialog extends DialogBase {
     public readonly text: string,
     public readonly onYes: () => void,
     public readonly onNo: () => void = () => {},
+    public readonly yesLabel: string = 'Yes',
+    public readonly noLabel: string = 'No',
   ) { super(); }
 }
 
