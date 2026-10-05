@@ -1,0 +1,121 @@
+import { describe, expect, it, vi } from 'vitest'
+import { decodeFrame, encodeFrame, colorForPeer, CoworkSession } from '~/lib/cowork/session'
+
+class FakeRoom {
+  peerId: string | null = null
+  onMessage: ((id: string, data: ArrayBuffer | string) => void) | null = null
+  onPeerJoined: ((id: string) => void) | null = null
+  onPeerLeft: ((id: string) => void) | null = null
+  onClose: ((error?: Error) => void) | null = null
+  sent: { id: string; data: Uint8Array }[] = []
+  members: { id: string; connected: boolean }[] = []
+  async create() { this.peerId = 'creator'; return { roomId: 'room', peerId: 'creator' } }
+  async join() { this.peerId = 'joiner'; return { peerId: 'joiner', peers: ['creator'] } }
+  peers() { return this.members }
+  async send(id: string, data: Uint8Array) { this.sent.push({ id, data }) }
+  async broadcast(data: Uint8Array) { for (const member of this.members) if (member.connected) await this.send(member.id, data) }
+  leave() { this.onClose?.() }
+}
+
+describe('room frames', () => {
+  it('roundtrips the binary protocol including draw frame types', () => {
+    for (const type of [0, 1, 2, 3, 4] as const) {
+      const payload = type === 4 ? new Uint8Array() : new Uint8Array([7, 8])
+      const frame = decodeFrame(encodeFrame(type, payload))
+      expect(frame.type).toBe(type)
+      expect([...frame.payload]).toEqual([...payload])
+    }
+  })
+
+  it('rejects malformed and unknown frames', () => {
+    expect(() => decodeFrame(new Uint8Array())).toThrow()
+    expect(() => decodeFrame(new Uint8Array([9]))).toThrow()
+    expect(() => decodeFrame(new Uint8Array([4, 1]))).toThrow()
+    expect(() => decodeFrame('hello')).toThrow()
+  })
+})
+
+describe('session membership', () => {
+  it('assigns a stable palette color and removes a departed participant', async () => {
+    const room = new FakeRoom()
+    const session = new CoworkSession({ makeRoom: () => room as never, seed: 'seed', kind: 'text', name: 'Alice', language: 'typescript' })
+    await session.create()
+    room.onPeerJoined?.('bob')
+    room.onMessage?.('bob', encodeFrame(0, new TextEncoder().encode(JSON.stringify({ v: 1, kind: 'text', name: 'Bob', color: '#000', language: 'python' }))).buffer as ArrayBuffer)
+    expect(session.participants.find(p => p.peerId === 'bob')).toEqual({ peerId: 'bob', name: 'Bob', color: colorForPeer('bob'), connected: true })
+    expect(colorForPeer('bob')).toBe(colorForPeer('bob'))
+    room.onPeerLeft?.('bob')
+    expect(session.participants.map(p => p.peerId)).toEqual(['creator'])
+  })
+
+  it('keeps creator language authoritative and propagates later changes', async () => {
+    const room = new FakeRoom()
+    const session = new CoworkSession({ makeRoom: () => room as never, seed: 'seed', kind: 'text', name: 'Alice', language: 'typescript' })
+    await session.create()
+    room.onPeerJoined?.('bob')
+    room.onMessage?.('bob', encodeFrame(0, new TextEncoder().encode(JSON.stringify({ v: 1, kind: 'text', name: 'Bob', color: '#000', language: 'python' }))).buffer as ArrayBuffer)
+    expect(session.language).toBe('typescript')
+    room.members = [{ id: 'bob', connected: true }]
+    await session.setLanguage('javascript')
+    expect(JSON.parse(new TextDecoder().decode(decodeFrame(room.sent.at(-1)!.data).payload)).language).toBe('javascript')
+  })
+
+  it('reports a mismatched document kind and leaves', async () => {
+    const room = new FakeRoom()
+    const mismatch = vi.fn()
+    const session = new CoworkSession({ makeRoom: () => room as never, seed: 'seed', kind: 'text', name: 'Alice', onKindMismatch: mismatch })
+    await session.create()
+    room.onMessage?.('bob', encodeFrame(0, new TextEncoder().encode(JSON.stringify({ v: 1, kind: 'draw', name: 'Bob', color: '#fff' }))).buffer as ArrayBuffer)
+    expect(mismatch).toHaveBeenCalledOnce()
+    expect(session.status).toBe('closed')
+  })
+
+  it('saves a snapshot without closing the room', async () => {
+    const room = new FakeRoom()
+    const save = vi.fn(async () => {})
+    const session = new CoworkSession({ makeRoom: () => room as never, seed: 'seed', kind: 'text', name: 'Alice', saveAsNote: save })
+    await session.create()
+    await session.saveAsNote()
+    expect(save).toHaveBeenCalledOnce()
+    expect(session.status).toBe('joined')
+  })
+
+  it('keeps live peers on signaling loss and retries with a new room after isolation', async () => {
+    vi.useFakeTimers()
+    try {
+      const first = new FakeRoom()
+      const second = new FakeRoom()
+      const rooms = [first, second]
+      const session = new CoworkSession({ makeRoom: () => rooms.shift()! as never, seed: 'seed', kind: 'text', name: 'Alice' })
+      await session.join('room')
+      first.members = [{ id: 'creator', connected: true }]
+      session.signalingLost()
+      expect(session.banner).toBe('Connection to server lost: current participants can keep working, new ones cannot join')
+      first.members = []
+      first.onClose?.()
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(second.peerId).toBe('joiner')
+      expect(session.banner).toBe('')
+      session.leave()
+      expect(first.onClose).toBeNull()
+      expect(second.onClose).toBeNull()
+    } finally { vi.useRealTimers() }
+  })
+
+  it('ignores callbacks from a room replaced during rejoin', async () => {
+    vi.useFakeTimers()
+    try {
+      const first = new FakeRoom(), second = new FakeRoom()
+      const rooms = [first, second]
+      const lost: (() => void)[] = []
+      const session = new CoworkSession({ makeRoom: options => { lost.push(options.onSignalingLost!); return rooms.shift()! as never }, seed: 'seed', kind: 'text', name: 'Alice' })
+      await session.join('room')
+      first.onClose?.()
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(session.status).toBe('joined')
+      lost[0]!()
+      expect(session.banner).toBe('')
+      session.leave()
+    } finally { vi.useRealTimers() }
+  })
+})
