@@ -216,7 +216,7 @@ watch(() => activeCowork.value?.session.state.language, language => {
 });
 watch(() => [store.selectedLanguage, store.detectedLanguage] as const, ([selected, detected]) => {
   const session = activeCowork.value?.session;
-  if (!session) return;
+  if (!session || session.kind !== 'text') return;
   const language = selected || detected || 'plaintext';
   if (session.isCreator && language !== session.language) void session.setLanguage(language);
   else if (!session.isCreator && session.language && language !== session.language) store.selectedLanguage = session.language;

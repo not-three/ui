@@ -28,7 +28,7 @@ export const EDITOR_ACTIONS: EditorActionDefinition[] = [
 ];
 
 export function canStartCowork(store: ReturnType<typeof useAppStore>): boolean {
-  return !!store.info.p2pRooms && !store.readonly && !store.settings && !store.excalidraw && !activeCowork.value;
+  return !!store.info.p2pRooms && !store.readonly && !store.settings && (!store.excalidraw || !!store.config.drawURL) && !activeCowork.value;
 }
 
 export function dispatchNot3Action(command: string): boolean {
