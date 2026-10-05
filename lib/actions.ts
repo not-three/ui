@@ -7,6 +7,8 @@ export * from './actions/open-file-transfer';
 export * from './actions/open-p2p-send';
 export * from './actions/open-sandbox';
 export * from './actions/open-settings';
+export * from './actions/open-keybindings';
+export * from './actions/open-tools';
 export * from './actions/save-for-custom-time';
 export * from './actions/save-until-read';
 export * from './actions/save';

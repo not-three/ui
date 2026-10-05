@@ -7,6 +7,7 @@
     </div>
     <editor-sandbox v-if="store.sandbox && !store.sandboxPopout" />
     <editor-sandbox-popout-bridge v-if="store.sandbox && store.sandboxPopout" />
+    <tools-panel v-if="store.sidePanel === 'tools'" />
   </div>
 </template>
 
@@ -16,10 +17,12 @@ import { detectLanguageFromContent, debounce } from "~/lib/monaco/utils";
 import { detectLanguage } from "~/lib/monaco/detect";
 import { setupMonaco } from "~/lib/monaco/setup";
 import { YesNoDialog } from "~/lib/dialog";
-import { parseKeybinding } from "~/lib/monaco/keybindings";
 import { EDITOR_ACTIONS, canStartCowork } from "~/lib/monaco/editor-actions";
 import { activeCowork } from '~/lib/cowork/active';
+import { createMonacoKeybindingAdapter } from "~/lib/monaco/keybindings-adapter";
+import { setMonacoActions, subscribeKeybindings } from "~/lib/keybindings/runtime";
 import { registerFormatEditor } from "~/lib/actions/format";
+import { registerToolEditor } from '~/lib/tools/hosts';
 import { canFormatNote } from "~/lib/format/availability";
 import * as monaco from "monaco-editor";
 
@@ -51,24 +54,32 @@ const updateLanguage = debounce((content: string) => {
 }, 500);
 
 let actionDisposables: monaco.IDisposable[] = [];
+const bindingAdapter = createMonacoKeybindingAdapter((rules) => monaco.editor.addKeybindingRules(rules));
+let stopBindings: (() => void) | null = null;
 function registerEditorActions() {
   actionDisposables.forEach((d) => d.dispose());
   actionDisposables = [];
   if (!editor) return;
   for (const action of EDITOR_ACTIONS) {
-    if (action.id === "format" && !canFormatNote(store, store.getCurrentLanguage().id)) continue;
-    if (action.id === 'startCowork' && !canStartCowork(store)) continue;
-    if (activeCowork.value && ['saveUntilRead', 'saveForCustomTime', 'shareCurl', 'excalidraw'].includes(action.id)) continue;
-    const keybinding = parseKeybinding(settings.editor.keybindings[action.id]);
+    if (action.id === "not3.format" && !canFormatNote(store, store.getCurrentLanguage().id)) continue;
+    if (action.id === "not3.startCowork" && !canStartCowork(store)) continue;
+    if (activeCowork.value && ['not3.saveUntilRead', 'not3.saveForCustomTime', 'not3.shareCurl', 'not3.excalidraw'].includes(action.id)) continue;
     actionDisposables.push(
-      editor.addAction({
-        id: `not3.${action.id}`,
+      monaco.editor.addEditorAction({
+        id: action.id,
         label: action.label,
-        keybindings: keybinding !== null ? [keybinding] : [],
+        keybindings: [],
+        run: () => action.run(),
+      }),
+      editor.addAction({
+        id: action.id,
+        label: action.label,
+        keybindings: [],
         run: () => action.run(),
       }),
     );
   }
+  setMonacoActions(editor.getSupportedActions().map(({ id, label }) => ({ id, label })));
 }
 
 function applyEditorSettings() {
@@ -82,7 +93,6 @@ function applyEditorSettings() {
     stickyScroll: { enabled: settings.editor.stickyScroll },
   });
   editor.getModel()?.updateOptions({ tabSize: settings.editor.tabSize });
-  registerEditorActions();
 }
 
 onMounted(async () => {
@@ -109,8 +119,10 @@ onMounted(async () => {
     renderWhitespace: settings.editor.renderWhitespace ? "all" : "none",
     stickyScroll: { enabled: settings.editor.stickyScroll },
   });
+  registerToolEditor(editor);
 
   registerFormatEditor(editor);
+  stopBindings = subscribeKeybindings((compiled) => bindingAdapter.apply(compiled));
   registerEditorActions();
 
   // Handle content changes
@@ -143,7 +155,10 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   unbindCowork?.();
   actionDisposables.forEach((d) => d.dispose());
+  stopBindings?.();
+  bindingAdapter.dispose();
   registerFormatEditor(null);
+  registerToolEditor(null);
   editor?.dispose();
 });
 

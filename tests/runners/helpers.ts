@@ -14,6 +14,21 @@ import {
 export const TOKEN = "e2e-token";
 export const ORIGIN = "http://127.0.0.1:8788";
 
+/** Arm immediately before a tool run, then call assertNoNetwork after its output appears. App asset chunks and workers remain available. */
+export async function withNoNetwork(page: Page) {
+  const unexpected: string[] = [];
+  await page.route('**/*', async route => {
+    const url = new URL(route.request().url());
+    if (url.origin === 'http://127.0.0.1:8789' && (url.pathname.startsWith('/_nuxt/') || url.pathname.startsWith('/assets/'))) {
+      await route.continue();
+      return;
+    }
+    unexpected.push(route.request().url());
+    await route.abort();
+  });
+  return { assertNoNetwork: () => expect(unexpected, `tool sent requests outside app assets: ${unexpected.join(', ')}`).toEqual([]) };
+}
+
 type Recorded = Record<string, unknown>;
 
 /** Build a runner's document exactly as the panel does and mount it. */

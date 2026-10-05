@@ -7,6 +7,7 @@
       ref="iframe"
       :src="store.config.drawURL"
       class="w-full h-full border-none"
+      @load="keybindings.reset()"
     />
   </div>
 </template>
@@ -14,13 +15,22 @@
 <script lang="ts" setup>
 import { OkDialog } from '~/lib/dialog';
 import * as Actions from "~/lib/actions";
+import { createDrawKeybindingAdapter } from "~/lib/keybindings/draw-adapter";
+import { getKeybindingResolver } from "~/lib/keybindings/runtime";
+import { dispatchNot3Action } from "~/lib/monaco/editor-actions";
 
 const iframe = ref<HTMLIFrameElement>();
 const store = useAppStore();
 const timeout = ref<number | null>(null);
+const keybindings = createDrawKeybindingAdapter(
+  () => iframe.value?.contentWindow,
+  getKeybindingResolver,
+  dispatchNot3Action,
+);
 
 function onChildMessage(event: MessageEvent) {
-  if (typeof event.data !== "object") return;
+  if (!iframe.value?.contentWindow || event.source !== iframe.value.contentWindow) return;
+  if (!event.data || typeof event.data !== "object") return;
   switch (event.data.type) {
     case "not3/draw/load": {
       if (timeout.value) window.clearTimeout(timeout.value);
@@ -42,6 +52,7 @@ function onChildMessage(event: MessageEvent) {
           readonly: store.readonly,
         },
       }, "*");
+      iframe.value?.contentWindow?.postMessage({ type: "not3/draw/keys/1/enable" }, "*");
       window.setTimeout(() => {
         store.loading = false;
       }, 250);
@@ -64,6 +75,9 @@ function onChildMessage(event: MessageEvent) {
       Actions.SAVE();
       break;
     }
+    case "not3/draw/keys/1/keydown":
+      keybindings.handleMessage(event);
+      break;
   }
 }
 

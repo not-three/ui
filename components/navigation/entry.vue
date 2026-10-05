@@ -2,12 +2,15 @@
   <div class="border-l-2 border-white/20 h-full content-[''] print:hidden" />
   <div ref="container" class="relative print:hidden z-20">
     <h2
+      tabindex="0"
       class="select-none underline-offset-2"
       :class="{
         'brightness-50 cursor-not-allowed': config.disabled,
         'hover:underline cursor-pointer': !config.disabled,
       }"
       @click="active = config.disabled ? false : !active"
+      @keydown.enter.prevent="active = config.disabled ? false : !active"
+      @keydown.space.prevent="active = config.disabled ? false : !active"
     >
       {{ config.name }}
     </h2>
@@ -23,17 +26,21 @@
             class="w-0 h-0 border-x-[1rem] border-x-transparent border-b-[1rem] border-b-black mt-2"
           />
           <div class="bg-black p-2">
+            <div v-for="entry in config.entries" :key="entry.name">
             <button
-              v-for="entry in config.entries"
-              :key="entry.name"
               :disabled="entry.disabled"
               class="w-full text-left whitespace-nowrap bg-white/5 my-1 px-2 py-1 transition-colors"
               :class="entry.disabled ? 'cursor-not-allowed line-through' : 'hover:bg-white/10'"
               :title="entry.title ? entry.title : entry.disabled ? 'This action is disabled by config or the server.' : ''"
-              @click="execFunction(entry.onClick)"
+              :aria-expanded="entry.entries ? !!openSubmenus[entry.name] : undefined"
+              @click="entry.entries ? openSubmenus[entry.name] = !openSubmenus[entry.name] : execFunction(entry.onClick)"
             >
-              <span>{{ entry.name }}</span>
+              <span>{{ entry.name }}{{ entry.entries ? ' ▸' : '' }}</span>
             </button>
+            <div v-if="entry.entries && openSubmenus[entry.name]" class="pl-3 border-l border-white/30">
+              <button v-for="child in entry.entries" :key="child.name" class="w-full text-left whitespace-nowrap bg-white/5 my-1 px-2 py-1 hover:bg-white/10" @click="execFunction(child.onClick)">{{ child.name }}</button>
+            </div>
+            </div>
           </div>
         </div>
       </transition-fade>
@@ -46,15 +53,16 @@ import type { NavigationEntry } from '~/lib/navigation';
 
 const container = ref() as Ref<HTMLDivElement>;
 const active = ref(false);
+const openSubmenus = ref<Record<string, boolean>>({});
 defineProps<{config: NavigationEntry}>();
 
 function outsideClickListener(event: MouseEvent | TouchEvent) {
   if (!container.value.contains(event.target as Node)) active.value = false;
 }
 
-function execFunction(fn: () => void) {
+function execFunction(fn?: () => void) {
   active.value = false;
-  fn();
+  fn?.();
 }
 
 onMounted(() => {

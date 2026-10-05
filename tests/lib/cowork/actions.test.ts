@@ -4,6 +4,8 @@ import { SHARE_LINK } from '~/lib/actions/share-link'
 import { SAVE_FOR_CUSTOM_TIME } from '~/lib/actions/save-for-custom-time'
 import { SAVE_UNTIL_READ } from '~/lib/actions/save-until-read'
 import { OPEN_EXCALIDRAW } from '~/lib/actions/open-excalidraw'
+import { compileKeybindings } from '~/lib/keybindings/compile'
+import { EDITOR_ACTIONS } from '~/lib/monaco/editor-actions'
 
 afterEach(() => { activeCowork.value = null; coworkShareOpen.value = false; vi.unstubAllGlobals() })
 
@@ -34,4 +36,13 @@ it('keeps text mode active while the cowork text session is open', () => {
   activeCowork.value = { session: {} } as never
   OPEN_EXCALIDRAW()
   expect(store.excalidraw).toBe(false)
+})
+
+it('registers Start cowork through the shared command and keybinding path', () => {
+  const action = EDITOR_ACTIONS.find(item => item.id === 'not3.startCowork')
+  expect(action?.run).toBeDefined()
+  const compiled = compileKeybindings([{ key: 'ctrl+alt+c', command: 'not3.startCowork' }], EDITOR_ACTIONS.map(item => item.id))
+  expect(compiled.invalid).toEqual([])
+  expect(compiled.resolve('not3.page', 'ctrl+alt+c', 0)).toMatchObject({ kind: 'command', command: 'not3.startCowork' })
+  expect(compiled.resolve('editorTextFocus', 'ctrl+alt+c', 0)).toMatchObject({ kind: 'command', command: 'not3.startCowork' })
 })
