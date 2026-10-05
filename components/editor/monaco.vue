@@ -16,10 +16,12 @@ import { detectLanguageFromContent, debounce } from "~/lib/monaco/utils";
 import { detectLanguage } from "~/lib/monaco/detect";
 import { setupMonaco } from "~/lib/monaco/setup";
 import { YesNoDialog } from "~/lib/dialog";
-import { EDITOR_ACTIONS } from "~/lib/monaco/editor-actions";
+import { EDITOR_ACTIONS, canStartCowork } from "~/lib/monaco/editor-actions";
+import { activeCowork } from '~/lib/cowork/active';
 import { createMonacoKeybindingAdapter } from "~/lib/monaco/keybindings-adapter";
 import { setMonacoActions, subscribeKeybindings } from "~/lib/keybindings/runtime";
 import { registerFormatEditor } from "~/lib/actions/format";
+import { canFormatNote } from "~/lib/format/availability";
 import * as monaco from "monaco-editor";
 
 const store = useAppStore();
@@ -27,6 +29,7 @@ const settings = useSettingsStore();
 const emit = defineEmits(["loaded"]);
 const container = ref() as Ref<HTMLDivElement>;
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
+let unbindCowork: (() => void) | null = null;
 const currentLanguage = ref<string>("plaintext");
 
 const setEditorLanguage = (languageId: string) => {
@@ -56,6 +59,9 @@ function registerEditorActions() {
   actionDisposables = [];
   if (!editor) return;
   for (const action of EDITOR_ACTIONS) {
+    if (action.id === "not3.format" && !canFormatNote(store, store.getCurrentLanguage().id)) continue;
+    if (action.id === "not3.startCowork" && !canStartCowork(store)) continue;
+    if (activeCowork.value && ['not3.saveUntilRead', 'not3.saveForCustomTime', 'not3.shareCurl', 'not3.excalidraw'].includes(action.id)) continue;
     actionDisposables.push(
       monaco.editor.addEditorAction({
         id: action.id,
@@ -117,6 +123,8 @@ onMounted(async () => {
     updateLanguage(value);
   });
 
+  if (activeCowork.value) void bindCowork();
+
   // Handle edit while readonly
   editor.onDidAttemptReadOnlyEdit(() => {
     store.dialog = new YesNoDialog(
@@ -136,12 +144,24 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  unbindCowork?.();
   actionDisposables.forEach((d) => d.dispose());
   stopBindings?.();
   bindingAdapter.dispose();
   registerFormatEditor(null);
   editor?.dispose();
 });
+
+async function bindCowork() {
+  unbindCowork?.();
+  unbindCowork = null;
+  if (!editor || !activeCowork.value) return;
+  const text = activeCowork.value.text;
+  const unbind = await text.bindMonaco(editor.getModel()!, editor);
+  if (activeCowork.value?.text === text && editor) unbindCowork = unbind;
+  else unbind();
+}
+watch(activeCowork, () => { void bindCowork(); });
 
 // Watch for prop changes
 watch(
@@ -174,4 +194,8 @@ watch(
 );
 
 watch(() => settings.editor, applyEditorSettings, { deep: true });
+watch(
+  () => [store.readonly, store.settings, store.excalidraw, store.selectedLanguage, store.detectedLanguage, store.info.p2pRooms, activeCowork.value],
+  registerEditorActions,
+);
 </script>

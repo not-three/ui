@@ -1,7 +1,9 @@
 import { YesNoDialog } from "../dialog";
+import { activeCowork } from '~/lib/cowork/active';
 
 export const OPEN_EXCALIDRAW = () => {
   const store = useAppStore();
+  if (activeCowork.value) return;
   if (!store.config.drawURL) return;
   if (store.settings) return;
   if (store.excalidraw) {

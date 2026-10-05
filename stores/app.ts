@@ -1,14 +1,14 @@
 import type { InfoResponse, Not3Client } from "@not3/sdk"
-import { Crypto, FragmentData } from "@not3/sdk"
 import { AxiosError } from "axios"
-import { OkDialog, YesNoDialog, type Dialog } from "~/lib/dialog"
+import { OkDialog, TextOutputDialog, YesNoDialog, type Dialog } from "~/lib/dialog"
+import { createNoteSnapshot } from '~/lib/cowork/snapshot'
 import { languageDefinitions } from "~/lib/monaco/languages"
 import type { LanguageDefinition } from "~/lib/monaco/types"
 import { migrateSettings } from "~/lib/settings-migration"
 
 // SDK 2.1.0 reads this field in P2PClient.isEnabled(), but its generated
 // InfoResponse predates the API's /info addition.
-type UiInfoResponse = InfoResponse & { p2pEnabled?: boolean }
+type UiInfoResponse = InfoResponse & { p2pEnabled?: boolean; p2pRooms?: boolean }
 
 type UiConfig = {
   baseURL: string
@@ -85,16 +85,16 @@ export const useAppStore = defineStore('app', {
         this.loading = true
         if (!expiresIn) expiresIn = this.info.maxStorageTimeDays * 24 * 60 * 60 - 60
         if (!selfDestruct) selfDestruct = false
-        const seed = Crypto.generateSeed()
-        const key = await Crypto.generateKey(seed)
-        const content = await Crypto.encrypt(this.content, key)
         const mime = this.languageDefinitions.find((lang) => lang.id === this.selectedLanguage)?.mimeTypes[0] || 'text/plain'
-        const res = await this.api.notes().create({ content, expiresIn, selfDestruct, mime })
-        const options = this.api.getOptions()
-        const server = options.baseUrl !== this.config.baseURL ? options.baseUrl : undefined
-        const fragment = new FragmentData({ seed, selfDestruct, server })
+        const link = await createNoteSnapshot({
+          api: this.api, content: this.content, mime, expiresIn, selfDestruct,
+          uiUrl: new URL(useRuntimeConfig().public.uiBaseURL || '/', window.location.origin).toString(),
+          defaultApiBase: this.config.baseURL,
+        })
+        const url = new URL(link)
+        if (openShareDialog) url.searchParams.set('share', openShareDialog)
         this.readonly = true
-        this.pushToRouter(`/q/${res.id}${openShareDialog ? '?share=' + openShareDialog : ''}#${fragment.toString()}`, true)
+        this.pushToRouter(url.pathname + url.search + url.hash, true)
       } catch (error) {
         console.error(error)
         if (error instanceof AxiosError && error.response?.status === 413) {
@@ -105,6 +105,26 @@ export const useAppStore = defineStore('app', {
       } finally {
         this.loading = false
       }
+    },
+    async saveCoworkSnapshot() {
+      if (!this.content) {
+        this.dialog = new OkDialog('Empty content', 'You cannot save an empty note. Please add some content before saving.')
+        return
+      }
+      this.loading = true
+      try {
+        const mime = this.languageDefinitions.find(lang => lang.id === this.selectedLanguage)?.mimeTypes[0] || 'text/plain'
+        const link = await createNoteSnapshot({
+          api: this.api, content: this.content, mime,
+          expiresIn: this.info.maxStorageTimeDays * 24 * 60 * 60 - 60,
+          uiUrl: new URL(useRuntimeConfig().public.uiBaseURL || '/', window.location.origin).toString(),
+          defaultApiBase: this.config.baseURL,
+        })
+        this.dialog = new TextOutputDialog('Saved note', 'This snapshot is a separate encrypted note. Copy its link:', link)
+      } catch (error) {
+        console.error(error)
+        this.dialog = new OkDialog('Error', 'Failed to save note. Please try again later.')
+      } finally { this.loading = false }
     },
     getCurrentLanguage(): LanguageDefinition {
       return this.languageDefinitions.find((l) => l.id === (

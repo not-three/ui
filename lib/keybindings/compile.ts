@@ -12,7 +12,7 @@ const contexts: KeyContext[] = ["editorTextFocus", "not3.page", "not3.draw"];
 export const NOT3_COMMANDS = [
   "save", "saveUntilRead", "saveForCustomTime", "duplicate", "new", "download",
   "format", "shareLink", "shareCurl", "openSettings", "fileTransfer",
-  "excalidraw", "sandbox", "openKeybindings",
+  "excalidraw", "sandbox", "openKeybindings", "startCowork",
 ].map((id) => `not3.${id}`);
 const not3Commands = new Set(NOT3_COMMANDS);
 const drawTools = new Set(["selection", "rectangle", "diamond", "ellipse", "arrow", "line", "freedraw", "text", "image", "eraser", "hand", "laser", "frame"]);

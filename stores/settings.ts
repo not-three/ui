@@ -7,6 +7,7 @@ export const useSettingsStore = defineStore('settings', {
     // VS Code keybindings.json entries. Later entries override earlier ones.
     // Prefix a command with "-" to remove its default binding.
     keybindings: [] as KeybindingEntry[],
+    cowork: { displayName: '' },
     customServer: {
       url: null as string | null,
       password: null as string | null,

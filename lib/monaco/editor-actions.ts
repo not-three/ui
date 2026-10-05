@@ -1,4 +1,5 @@
 import * as Actions from "~/lib/actions";
+import { activeCowork } from '~/lib/cowork/active';
 
 export interface EditorActionDefinition {
   /** Shared command id used by page, Monaco and draw. */
@@ -23,7 +24,12 @@ export const EDITOR_ACTIONS: EditorActionDefinition[] = [
   { id: "not3.excalidraw", label: "!3: Open excalidraw", run: Actions.OPEN_EXCALIDRAW },
   { id: "not3.sandbox", label: "!3: Run / preview note", run: Actions.OPEN_SANDBOX },
   { id: "not3.openKeybindings", label: "!3: Show keybindings", run: Actions.OPEN_KEYBINDINGS },
+  { id: "not3.startCowork", label: "!3: Start cowork session", run: Actions.START_COWORK },
 ];
+
+export function canStartCowork(store: ReturnType<typeof useAppStore>): boolean {
+  return !!store.info.p2pRooms && !store.readonly && !store.settings && !store.excalidraw && !activeCowork.value;
+}
 
 export function dispatchNot3Action(command: string): boolean {
   const action = EDITOR_ACTIONS.find((item) => item.id === command);
