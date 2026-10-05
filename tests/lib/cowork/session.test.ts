@@ -60,6 +60,19 @@ describe('session membership', () => {
     expect(JSON.parse(new TextDecoder().decode(decodeFrame(room.sent.at(-1)!.data).payload)).language).toBe('javascript')
   })
 
+  it('accepts language updates only from the creator on a joiner', async () => {
+    const room = new FakeRoom()
+    const session = new CoworkSession({ makeRoom: () => room as never, seed: 'seed', kind: 'text', name: 'Bob' })
+    await session.join('room')
+    const hello = (name: string, language: string) => encodeFrame(0, new TextEncoder().encode(JSON.stringify({ v: 1, kind: 'text', name, color: '#fff', language }))).buffer as ArrayBuffer
+    room.onMessage?.('creator', hello('Alice', 'typescript'))
+    expect(session.language).toBe('typescript')
+    room.onMessage?.('cara', hello('Cara', 'python'))
+    expect(session.language).toBe('typescript')
+    room.onMessage?.('creator', hello('Alice', 'javascript'))
+    expect(session.language).toBe('javascript')
+  })
+
   it('reports a mismatched document kind and leaves', async () => {
     const room = new FakeRoom()
     const mismatch = vi.fn()

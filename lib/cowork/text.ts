@@ -26,6 +26,7 @@ export class CoworkText {
   private readonly unsubscribePeer: () => void
   private binding: MonacoBinding | null = null
   private style: HTMLStyleElement | null = null
+  private bindGeneration = 0
   private disposed = false
 
   constructor(private readonly transport: Transport, private readonly options: Options) {
@@ -96,14 +97,24 @@ export class CoworkText {
   }
 
   async bindMonaco(model: monaco.editor.ITextModel, editor: monaco.editor.IStandaloneCodeEditor): Promise<() => void> {
+    const generation = ++this.bindGeneration
     const { MonacoBinding } = await import('y-monaco')
+    if (this.disposed || generation !== this.bindGeneration) return () => {}
     this.binding?.destroy()
-    this.binding = new MonacoBinding(this.text, model, new Set([editor]), this.awareness)
+    const binding = new MonacoBinding(this.text, model, new Set([editor]), this.awareness)
+    this.binding = binding
     this.style?.remove()
-    this.style = document.createElement('style')
-    document.head.append(this.style)
+    const style = document.createElement('style')
+    this.style = style
+    document.head.append(style)
     this.updateCaretStyles()
-    return () => { this.binding?.destroy(); this.binding = null; this.style?.remove(); this.style = null }
+    return () => {
+      if (this.binding !== binding) return
+      binding.destroy()
+      this.binding = null
+      style.remove()
+      if (this.style === style) this.style = null
+    }
   }
 
   private updateCaretStyles() {
@@ -120,6 +131,7 @@ export class CoworkText {
 
   destroy() {
     this.disposed = true
+    this.bindGeneration++
     clearInterval(this.heartbeat)
     this.unsubscribeFrame()
     this.unsubscribePeer()

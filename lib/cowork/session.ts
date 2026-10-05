@@ -135,8 +135,7 @@ export class CoworkSession {
   }
 
   private attachRoom() {
-    let room: P2PRoom
-    room = this.options.makeRoom({ seed: this.options.seed, onSignalingLost: () => { if (this.room === room) this.signalingLost() } })
+    const room = this.options.makeRoom({ seed: this.options.seed, onSignalingLost: () => { if (this.room === room) this.signalingLost() } })
     this.room = room
     room.onPeerJoined = (id) => {
       this.addPeer(id, this.participants.find(p => p.peerId === id)?.name || id, true)
