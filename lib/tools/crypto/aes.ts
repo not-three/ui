@@ -1,6 +1,6 @@
 import type { ToolDefinition } from '../types';
 export const aes: ToolDefinition = {
-  id: 'aes', title: 'AES encrypt/decrypt', category: 'crypto', description: 'Encrypt or decrypt AES-GCM/CBC with a password or hex key. Output includes salt and IV. Web Crypto buffers each operation; maximum 64 MiB.',
+  id: 'aes', title: 'AES encrypt/decrypt', category: 'crypto', description: 'Encrypt or decrypt AES-GCM/CBC with a password or hex key. Output includes salt and IV. Web Crypto buffers each operation; maximum 64 MiB. For larger files, use File Transfer, which encrypts in chunks.',
   keywords: ['cipher', 'encryption', 'pbkdf2'],
   inputs: [{ id: 'input', label: 'Input', kind: 'bytes', defaultSource: 'selection' }, { id: 'key', label: 'Password or hex key', kind: 'text', defaultSource: 'empty' }],
   options: [
