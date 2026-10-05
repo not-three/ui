@@ -1,0 +1,41 @@
+import type { ToolRun } from '../types';
+import { errorReport, requireText } from './shared';
+
+function zonedParts(date: Date, timezone: string) {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short', hourCycle: 'h23',
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(date).map(part => [part.type, part.value]));
+  const year = Number(parts.year);
+  const month = Number(parts.month);
+  const day = Number(parts.day);
+  const hour = Number(parts.hour);
+  const minute = Number(parts.minute);
+  const second = Number(parts.second);
+  const offsetMinutes = Math.round((Date.UTC(year, month - 1, day, hour, minute, second) - Math.floor(date.getTime() / 1000) * 1000) / 60000);
+  return { year, month, day, hour, minute, second, weekday: parts.weekday!, offsetMinutes };
+}
+
+export const run: ToolRun = async (inputs, options) => {
+  const source = requireText(inputs.input).trim();
+  const format = String(options.format ?? 'iso');
+  const timezone = String(options.timezone ?? 'UTC').trim();
+  const epoch = /^-?\d+(?:\.\d+)?$/.test(source) ? Number(source) * 1000
+    : /^(?:\d{4}-\d{2}-\d{2}T|[A-Za-z]{3},\s)/.test(source) ? Date.parse(source) : NaN;
+  if (!Number.isFinite(epoch) || !Number.isFinite(new Date(epoch).getTime())) return errorReport('Invalid timestamp');
+  if (format === 'unix') return { kind: 'text', text: String(Math.floor(epoch / 1000)) };
+  let parts: ReturnType<typeof zonedParts>;
+  try { parts = zonedParts(new Date(epoch), timezone); } catch { return errorReport('Invalid timezone'); }
+  const pad = (number: number) => String(number).padStart(2, '0');
+  const sign = parts.offsetMinutes < 0 ? '-' : '+';
+  const absolute = Math.abs(parts.offsetMinutes);
+  const offset = sign + pad(Math.floor(absolute / 60)) + pad(absolute % 60);
+  const date = `${parts.year}-${pad(parts.month)}-${pad(parts.day)}`;
+  const time = `${pad(parts.hour)}:${pad(parts.minute)}:${pad(parts.second)}`;
+  if (format === 'rfc') {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return { kind: 'text', text: `${parts.weekday}, ${pad(parts.day)} ${months[parts.month - 1]} ${parts.year} ${time} ${offset}` };
+  }
+  return { kind: 'text', text: `${date}T${time}${offset.slice(0, 3)}:${offset.slice(3)}`, language: 'text' };
+};
