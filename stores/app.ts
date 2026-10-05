@@ -4,6 +4,7 @@ import { AxiosError } from "axios"
 import { OkDialog, YesNoDialog, type Dialog } from "~/lib/dialog"
 import { languageDefinitions } from "~/lib/monaco/languages"
 import type { LanguageDefinition } from "~/lib/monaco/types"
+import { migrateSettings } from "~/lib/settings-migration"
 
 // SDK 2.1.0 reads this field in P2PClient.isEnabled(), but its generated
 // InfoResponse predates the API's /info addition.
@@ -54,7 +55,10 @@ export const useAppStore = defineStore('app', {
     async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean, openShareDialog?: 'url' | 'curl') {
       if (this.settings) try {
         const parsed = JSON.parse(this.content);
-        useSettingsStore().$patch(parsed);
+        const settingsStore = useSettingsStore();
+        const migrated = migrateSettings(parsed);
+        delete (settingsStore.editor as typeof settingsStore.editor & { keybindings?: unknown }).keybindings;
+        settingsStore.$patch(migrated);
         this.pushToRouter("/", true);
       } catch (e) {
         console.error(e);

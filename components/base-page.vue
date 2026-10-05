@@ -22,6 +22,9 @@ import axios, { AxiosError } from "axios";
 import { DownloadDb } from "~/lib/download";
 import * as Actions from "~/lib/actions";
 import { isP2PFragment } from "~/lib/transfer/p2p";
+import { installPageKeybindings } from "~/lib/keybindings/page-adapter";
+import { getKeybindingResolver, getKeymapView, setUserKeybindings } from "~/lib/keybindings/runtime";
+import { dispatchNot3Action } from "~/lib/monaco/editor-actions";
 
 const { uiBaseURL } = useRuntimeConfig().public;
 const store = useAppStore();
@@ -31,8 +34,12 @@ const props = defineProps<{
   openFile?: string;
   openNote?: string;
   openSettings?: boolean;
+  openKeybindings?: boolean;
 }>();
 const fileIsP2P = computed(() => !!props.openFile && isP2PFragment(window.location.href));
+let stopPageKeys: (() => void) | null = null;
+
+watch(() => settings.keybindings, (value) => setUserKeybindings(value), { deep: true });
 
 // event to register in the dom to prevent closing the app if unsaved changes
 function beforeDomUnload(event: BeforeUnloadEvent) {
@@ -43,6 +50,8 @@ function beforeDomUnload(event: BeforeUnloadEvent) {
 }
 
 onMounted(async () => {
+  setUserKeybindings(settings.keybindings);
+  stopPageKeys = installPageKeybindings(window, getKeybindingResolver, dispatchNot3Action);
   window.addEventListener("beforeunload", beforeDomUnload);
   const lastContent = store.keepContent ? store.content : "";
   // keepContent marks the readonly->editable handoff; keep the run/preview
@@ -168,6 +177,10 @@ onMounted(async () => {
   } else if (props.openSettings) {
     store.settings = true;
     store.content = JSON.stringify(useSettingsStore().$state, null, 2);
+  } else if (props.openKeybindings) {
+    store.readonly = true;
+    store.selectedLanguage = "json";
+    store.content = getKeymapView();
   }
 
   loading.value--;
@@ -186,6 +199,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  stopPageKeys?.();
   window.removeEventListener("beforeunload", beforeDomUnload);
 });
 
