@@ -23,12 +23,12 @@ function field(source: string, minimum: number, maximum: number, names: string[]
 }
 
 function localParts(date: Date, formatter: Intl.DateTimeFormat, timezone: string): number[] {
-  if (timezone === 'UTC') return [date.getUTCMinutes(), date.getUTCHours(), date.getUTCDate(), date.getUTCMonth() + 1, date.getUTCDay()];
+  if (timezone === 'UTC') return [date.getUTCMinutes(), date.getUTCHours(), date.getUTCDate(), date.getUTCMonth() + 1, date.getUTCDay(), date.getUTCFullYear()];
   const parts = Object.fromEntries(formatter.formatToParts(date).map(part => [part.type, part.value]));
   const year = Number(parts.year);
   const month = Number(parts.month);
   const day = Number(parts.day);
-  return [Number(parts.minute), Number(parts.hour), day, month, new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
+  return [Number(parts.minute), Number(parts.hour), day, month, new Date(Date.UTC(year, month - 1, day)).getUTCDay(), year];
 }
 
 function explain(parts: string[], timezone: string): string {
@@ -62,15 +62,27 @@ export const run: ToolRun = async (inputs, options, context) => {
     const start = options.from ? new Date(String(options.from)) : new Date();
     if (!Number.isFinite(start.getTime())) throw new Error('Invalid start time');
     const rows: string[][] = [];
-    let time = Math.floor(start.getTime() / 60000) * 60000 + 60000;
-    const limit = time + 5 * 366 * 24 * 60 * 60000;
-    for (; time <= limit && rows.length < 5; time += 60000) {
+    const firstMinute = Math.floor(start.getTime() / 60000) * 60000 + 60000;
+    const firstDay = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() - 1));
+    const limit = new Date(firstDay);
+    limit.setUTCFullYear(limit.getUTCFullYear() + 30);
+    for (let localDay = firstDay.getTime(); localDay <= limit.getTime() && rows.length < 5; localDay += 86400000) {
       if (context.signal.aborted) throw new DOMException('Aborted', 'AbortError');
-      const [minute, hour, day, month, weekday] = localParts(new Date(time), formatter, timezone);
+      const date = new Date(localDay);
+      const day = date.getUTCDate();
+      const month = date.getUTCMonth() + 1;
+      const weekday = date.getUTCDay();
       const dayMatches = parts[2] === '*' && parts[4] === '*' ? true : parts[2] === '*' ? weekdaysSet.has(weekday!) : parts[4] === '*' ? days.has(day!) : days.has(day!) || weekdaysSet.has(weekday!);
-      if (minutes.has(minute!) && hours.has(hour!) && monthsSet.has(month!) && dayMatches) rows.push([new Date(time).toISOString()]);
+      if (!monthsSet.has(month) || !dayMatches) continue;
+      const windowStart = Math.max(firstMinute, localDay - 15 * 3600000);
+      const windowEnd = localDay + 39 * 3600000;
+      for (let time = windowStart; time < windowEnd && rows.length < 5; time += 60000) {
+        if (context.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+        const [minute, hour, localDate, localMonth, , year] = localParts(new Date(time), formatter, timezone);
+        if (year === date.getUTCFullYear() && localMonth === month && localDate === day && minutes.has(minute!) && hours.has(hour!)) rows.push([new Date(time).toISOString()]);
+      }
     }
-    if (rows.length < 5) throw new Error('No five runs found within five years');
+    if (rows.length < 5) throw new Error('No five runs found within thirty years');
     const expression = explain(parts, timezone);
     return { kind: 'multi', parts: [
       { label: 'Explanation', output: { kind: 'text', text: expression } },

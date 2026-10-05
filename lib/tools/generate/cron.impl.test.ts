@@ -16,6 +16,23 @@ test('accounts for daylight saving time in Europe/Berlin', async () => {
     expect(result.parts[1].output.rows.map(row => row[0])).not.toContain('2026-03-29T01:30:00.000Z');
   }
 });
+test('lists both repeated local times when daylight saving ends', async () => {
+  const result = await run({ input: textInput('30 2 * * *') }, { timezone: 'Europe/Berlin', from: '2026-10-24T23:59:00Z' }, context);
+  expect(result.kind).toBe('multi');
+  if (result.kind === 'multi' && result.parts[1]?.output.kind === 'table') {
+    expect(result.parts[1].output.rows.slice(0, 2)).toEqual([['2026-10-25T00:30:00.000Z'], ['2026-10-25T01:30:00.000Z']]);
+  }
+});
 test('reports invalid timezone', async () => {
   expect(await run({ input: textInput('* * * * *') }, { timezone: 'Nowhere/Imaginary' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+});
+test('finds five leap-day runs across multiple years', async () => {
+  const result = await run({ input: textInput('0 0 29 2 *') }, { timezone: 'UTC', from: '2025-01-01T00:00:00Z' }, context);
+  expect(result.kind).toBe('multi');
+  if (result.kind === 'multi' && result.parts[1]?.output.kind === 'table') {
+    expect(result.parts[1].output.rows).toEqual([
+      ['2028-02-29T00:00:00.000Z'], ['2032-02-29T00:00:00.000Z'], ['2036-02-29T00:00:00.000Z'],
+      ['2040-02-29T00:00:00.000Z'], ['2044-02-29T00:00:00.000Z'],
+    ]);
+  }
 });
