@@ -8,4 +8,5 @@ export const DEFAULT_KEYBINDINGS: KeybindingEntry[] = [
   { key: "ctrl+shift+s", command: "not3.download" },
   { key: "shift+alt+f", command: "not3.format" },
   { key: "ctrl+k ctrl+s", command: "not3.openKeybindings" },
+  { key: "ctrl+alt+t", command: "not3.tools" },
 ];

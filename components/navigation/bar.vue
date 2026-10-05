@@ -67,6 +67,7 @@ import { isRunnableLanguage } from '~/lib/sandbox/runners';
 import { canFormatNote } from '~/lib/format/availability';
 import { canStartCowork } from '~/lib/monaco/editor-actions';
 import { activeCowork, coworkShareOpen, leaveCowork } from '~/lib/cowork/active';
+import { TOOLS } from '~/lib/tools/registry';
 const store = useAppStore();
 const settings = useSettingsStore();
 const membersOpen = ref(false);
@@ -129,6 +130,11 @@ const entries = computed<NavigationEntry[]>(() => [
   {
     name: "Tools",
     entries: [
+      { name: 'Tools…', onClick: Actions.OPEN_TOOLS },
+      ...[...new Set(TOOLS.map(tool => tool.category))].map(category => ({
+        name: category.charAt(0).toUpperCase() + category.slice(1),
+        entries: TOOLS.filter(tool => tool.category === category).map(tool => ({ name: tool.title, onClick: () => Actions.OPEN_TOOL(tool.id) })),
+      })),
       ...(formatAvailable.value ? [{ name: "Format", onClick: Actions.FORMAT }] : []),
       {
         name: "Edit Settings",

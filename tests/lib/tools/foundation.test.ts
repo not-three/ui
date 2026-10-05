@@ -9,6 +9,7 @@ describe('tool registry', () => {
     expect(new Set(TOOLS.map(tool => tool.id)).size).toBe(TOOLS.length);
     for (const tool of TOOLS) {
       expect(tool.id).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+      expect(tool.keywords.length).toBeGreaterThan(0);
       expect(getTool(tool.id)).toBe(tool);
     }
     expect(getTool('missing')).toBeUndefined();

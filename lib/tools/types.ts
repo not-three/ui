@@ -22,13 +22,14 @@ export type ToolInput =
   | { kind: 'bytes'; stream: ReadableStream<Uint8Array>; size?: number; name?: string; source?: ToolSource };
 
 export interface ToolPosition { line: number; column: number; endLine?: number; endColumn?: number }
-export interface ToolReportItem { severity: 'error' | 'warning' | 'info' | 'success'; message: string; position?: ToolPosition }
+export interface ToolReportItem { level: 'error' | 'warning' | 'info' | 'success'; message: string; position?: ToolPosition }
 export type ToolOutput =
   | { kind: 'text'; text: string; language?: string; filename?: string }
   | { kind: 'bytes'; bytes: Uint8Array; filename?: string; mimeType?: string }
-  | { kind: 'diff'; left: string; right: string; language?: string }
+  | { kind: 'diff'; left: string; right: string; displayLeft?: string; displayRight?: string; language?: string }
   | { kind: 'report'; items: ToolReportItem[]; text?: string; language?: string }
-  | { kind: 'table'; columns: string[]; rows: (string | number | boolean | null)[][] };
+  | { kind: 'table'; columns: string[]; rows: (string | number | boolean | null)[][] }
+  | { kind: 'multi'; parts: { label: string; output: ToolOutput }[] };
 
 export interface ToolContext {
   signal: AbortSignal;
@@ -39,6 +40,7 @@ export interface ToolDefinition {
   id: string;
   title: string;
   description: string;
+  keywords: string[];
   category: ToolCategory;
   inputs: ToolInputSpec[];
   options: ToolOptionSpec[];

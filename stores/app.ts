@@ -45,6 +45,7 @@ const useAppStoreBase = defineStore('app', {
     })).sort((a, b) => a.id.localeCompare(b.id)),
     excalidraw: false,
     sidePanel: null as 'sandbox' | 'tools' | null,
+    activeToolId: 'base64',
     // Panel moved into its own window; the Window handle itself lives
     // module-scope in lib/sandbox/popout-bridge.ts (pinia state must stay
     // serializable).

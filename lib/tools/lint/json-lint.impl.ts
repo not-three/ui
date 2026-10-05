@@ -15,8 +15,8 @@ export const run: ToolRun = async (inputs) => {
   if (!input || input.kind !== 'text') throw new Error('Text input is required');
   try {
     JSON.parse(input.text);
-    return { kind: 'report', items: [{ severity: 'success', message: 'Valid JSON' }] };
+    return { kind: 'report', items: [{ level: 'success', message: 'Valid JSON' }] };
   } catch (error) {
-    return { kind: 'report', items: [{ severity: 'error', message: error instanceof Error ? error.message : String(error), position: errorPosition(error, input.text) }] };
+    return { kind: 'report', items: [{ level: 'error', message: error instanceof Error ? error.message : String(error), position: errorPosition(error, input.text) }] };
   }
 };

@@ -1,0 +1,24 @@
+import { expect, it, vi } from 'vitest';
+import { mount } from '@vue/test-utils';
+import { ref, onMounted, onUnmounted } from 'vue';
+vi.stubGlobal('ref', ref);
+vi.stubGlobal('onMounted', onMounted);
+vi.stubGlobal('onUnmounted', onUnmounted);
+const { default: NavigationEntry } = await import('~/components/navigation/entry.vue');
+
+it('opens and activates a nested tool using keyboard controls', async () => {
+  const run = vi.fn();
+  const wrapper = mount(NavigationEntry, {
+    props: { config: { name: 'Tools', entries: [{ name: 'Encode', entries: [{ name: 'Base64', onClick: run }] }] } },
+    global: { stubs: { TransitionFade: { template: '<div><slot /></div>' } } },
+  });
+  const heading = wrapper.get('h2');
+  expect(heading.attributes('tabindex')).toBe('0');
+  await heading.trigger('keydown.enter');
+  await wrapper.get('button[aria-expanded="false"]').trigger('click');
+  const base64 = wrapper.findAll('button').find(button => button.text() === 'Base64');
+  expect(base64).toBeDefined();
+  await base64!.trigger('click');
+  expect(run).toHaveBeenCalledOnce();
+  wrapper.unmount();
+});

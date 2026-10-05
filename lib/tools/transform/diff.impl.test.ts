@@ -6,5 +6,7 @@ it('returns both sides and preserves language', async () => {
   expect(await run({ left: textInput('{"a":1}', 'json'), right: textInput('{"a":2}') }, { ignoreWhitespace: false }, context)).toMatchObject({ kind: 'diff', left: '{"a":1}', right: '{"a":2}', language: 'json' });
 });
 it('normalizes whitespace only when selected', async () => {
-  expect(await run({ left: textInput('a  b\n'), right: textInput('a b') }, { ignoreWhitespace: true }, context)).toMatchObject({ kind: 'diff', left: 'a b', right: 'a b' });
+  expect(await run({ left: textInput('a  b\n'), right: textInput('a b') }, { ignoreWhitespace: true }, context)).toMatchObject({
+    kind: 'diff', left: 'a  b\n', right: 'a b', displayLeft: 'a b', displayRight: 'a b',
+  });
 });
