@@ -33,7 +33,7 @@ export function decodeFrame(input: ArrayBuffer | Uint8Array | string): RoomFrame
   return { type: bytes[0] as FrameType, payload: bytes.subarray(1) }
 }
 
-type Hello = { v: 1; kind: CoworkKind; name: string; color: string; language?: string }
+type Hello = { v: 1; kind: CoworkKind; name: string; color: string; language?: string; creator?: boolean }
 type RoomOptions = { seed: string; onSignalingLost?: () => void }
 export type CoworkSessionOptions = {
   makeRoom: (options: RoomOptions) => P2PRoom
@@ -216,7 +216,7 @@ export class CoworkSession {
 
   private async sendHello(peerId?: string) {
     if (!this.peerId) return
-    const hello: Hello = { v: 1, kind: this.options.kind, name: this.options.name, color: colorForPeer(this.peerId) }
+    const hello: Hello = { v: 1, kind: this.options.kind, name: this.options.name, color: colorForPeer(this.peerId), creator: this.creator }
     if (this.language) hello.language = this.language
     await this.send(0, encoder.encode(JSON.stringify(hello)), peerId)
   }
@@ -230,7 +230,10 @@ export class CoworkSession {
       return
     }
     this.addPeer(peerId, hello.name, true)
-    if (this.options.kind === 'text' && !this.creator && peerId === this.creatorPeerId && typeof hello.language === 'string') this.state.language = hello.language
+    // A rejoin gives the creator a new SDK peer ID; the role travels in each hello.
+    if (!this.creator && hello.creator === true) this.creatorPeerId = peerId
+    const fromCreator = hello.creator === true || (hello.creator === undefined && peerId === this.creatorPeerId)
+    if (this.options.kind === 'text' && !this.creator && fromCreator && typeof hello.language === 'string') this.state.language = hello.language
   }
 
   private addPeer(peerId: string, name: string, connected: boolean) {

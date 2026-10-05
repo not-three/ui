@@ -3,6 +3,8 @@ import { decodeFrame, encodeFrame, colorForPeer, CoworkSession } from '~/lib/cow
 
 class FakeRoom {
   peerId: string | null = null
+  joinPeerId = 'joiner'
+  joinPeers = ['creator']
   joinError: Error | null = null
   onMessage: ((id: string, data: ArrayBuffer | string) => void) | null = null
   onPeerJoined: ((id: string) => void) | null = null
@@ -11,7 +13,7 @@ class FakeRoom {
   sent: { id: string; data: Uint8Array }[] = []
   members: { id: string; connected: boolean }[] = []
   async create() { this.peerId = 'creator'; return { roomId: 'room', peerId: 'creator' } }
-  async join() { if (this.joinError) { this.onClose?.(this.joinError); throw this.joinError } this.peerId = 'joiner'; return { peerId: 'joiner', peers: ['creator'] } }
+  async join() { if (this.joinError) { this.onClose?.(this.joinError); throw this.joinError } this.peerId = this.joinPeerId; return { peerId: this.joinPeerId, peers: this.joinPeers } }
   peers() { return this.members }
   async send(id: string, data: Uint8Array) { this.sent.push({ id, data }) }
   async broadcast(data: Uint8Array) { for (const member of this.members) if (member.connected) await this.send(member.id, data) }
@@ -72,6 +74,45 @@ describe('session membership', () => {
     expect(session.language).toBe('typescript')
     room.onMessage?.('creator', hello('Alice', 'javascript'))
     expect(session.language).toBe('javascript')
+  })
+
+  it('keeps creator language authority when the creator rejoins with a new peer ID', async () => {
+    vi.useFakeTimers()
+    try {
+      const original = new FakeRoom(), rejoined = new FakeRoom(), joinerRoom = new FakeRoom()
+      rejoined.joinPeerId = 'creator-2'
+      rejoined.joinPeers = ['joiner']
+      const creatorRooms = [original, rejoined]
+      const creator = new CoworkSession({ makeRoom: () => creatorRooms.shift()! as never, seed: 'seed', kind: 'text', name: 'Alice', language: 'typescript' })
+      const joiner = new CoworkSession({ makeRoom: () => joinerRoom as never, seed: 'seed', kind: 'text', name: 'Bob' })
+      await creator.create()
+      await joiner.join('room')
+      original.onPeerJoined?.('joiner')
+      joinerRoom.onMessage?.('creator', original.sent.at(-1)!.data.buffer as ArrayBuffer)
+      expect(joiner.language).toBe('typescript')
+
+      original.onClose?.()
+      joinerRoom.onPeerLeft?.('creator')
+      await vi.advanceTimersByTimeAsync(1000)
+      rejoined.members = [{ id: 'joiner', connected: true }]
+      await creator.setLanguage('javascript')
+      joinerRoom.onMessage?.('creator-2', rejoined.sent.at(-1)!.data.buffer as ArrayBuffer)
+      expect(joiner.language).toBe('javascript')
+      creator.leave()
+      joiner.leave()
+    } finally { vi.useRealTimers() }
+  })
+
+  it('accepts the creator language for a late joiner when another joiner is the oldest peer', async () => {
+    const room = new FakeRoom()
+    room.joinPeers = ['existing-joiner', 'creator-2']
+    const session = new CoworkSession({ makeRoom: () => room as never, seed: 'seed', kind: 'text', name: 'Cara' })
+    await session.join('room')
+    room.onMessage?.('existing-joiner', encodeFrame(0, new TextEncoder().encode(JSON.stringify({ v: 1, kind: 'text', name: 'Bob', color: '#fff', creator: false, language: 'stale' }))).buffer as ArrayBuffer)
+    expect(session.language).toBe('')
+    room.onMessage?.('creator-2', encodeFrame(0, new TextEncoder().encode(JSON.stringify({ v: 1, kind: 'text', name: 'Alice', color: '#fff', creator: true, language: 'python' }))).buffer as ArrayBuffer)
+    expect(session.language).toBe('python')
+    session.leave()
   })
 
   it('reports a mismatched document kind and leaves', async () => {
