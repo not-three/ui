@@ -38,7 +38,7 @@ test('sorts selected lines in the editor locally', async ({ page }) => {
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('a');
   await panel.getByRole('button', { name: 'Replace selection' }).click();
-  await expect(page.locator('.monaco-editor').first()).toContainText('a');
+  await expect.poll(async () => (await page.locator('.monaco-editor').first().locator('.view-line').allTextContents()).slice(0, 2)).toEqual(['a', 'z']);
   network.assertNoNetwork();
 });
 
