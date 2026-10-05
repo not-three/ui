@@ -1,0 +1,2 @@
+import type { ToolDefinition } from '../types';
+export const caesar: ToolDefinition = { id: 'caesar', title: 'Caesar cipher', category: 'crypto', description: 'Shift ASCII letters by a chosen amount; leave other characters unchanged.', keywords: ['shift', 'rotate', 'substitution'], inputs: [{ id: 'input', label: 'Input', kind: 'text', defaultSource: 'selection' }], options: [{ id: 'shift', label: 'Shift', type: 'number', default: 3, min: -25, max: 25 }], load: () => import('./caesar.impl') };
