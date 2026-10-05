@@ -22,6 +22,31 @@ async function expectEditor(page: Page, text: string) {
   await expect.poll(async () => (await page.locator('.monaco-editor .view-line').allTextContents()).join('\n').replaceAll('\u00a0', ' ')).toContain(text)
 }
 
+async function editorText(page: Page) {
+  return (await page.locator('.monaco-editor .view-line').allTextContents()).join('\n').replaceAll('\u00a0', ' ')
+}
+
+test('two browsers typing concurrently converge on both edits', async ({ browser }) => {
+  const alice = await openContext(browser)
+  const bob = await openContext(browser)
+  try {
+    await alice.page.goto('/')
+    await alice.page.getByRole('button', { name: 'Start cowork' }).click()
+    await nameParticipant(alice.page, 'Alice')
+    const link = (await alice.page.getByTestId('cowork-link').textContent())!
+    await alice.page.getByRole('button', { name: 'Close' }).click()
+    await bob.page.goto(link)
+    await nameParticipant(bob.page, 'Bob')
+    await expect(alice.page.getByRole('button', { name: 'Cowork participants' }).locator('[title="Bob"]')).toBeVisible()
+    await Promise.all([edit(alice.page, 'alpha'), edit(bob.page, 'bravo')])
+    for (const page of [alice.page, bob.page]) {
+      await expect.poll(() => editorText(page)).toContain('alpha')
+      await expect.poll(() => editorText(page)).toContain('bravo')
+    }
+    await expect.poll(() => editorText(alice.page)).toBe(await editorText(bob.page))
+  } finally { await alice.context.close(); await bob.context.close() }
+})
+
 test('three peers converge, remove a caret, and save a snapshot while editing continues', async ({ browser }) => {
   const alice = await openContext(browser)
   const bob = await openContext(browser)
