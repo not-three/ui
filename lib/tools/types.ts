@@ -23,13 +23,13 @@ export type ToolInput =
 
 export interface ToolPosition { line: number; column: number; endLine?: number; endColumn?: number }
 export interface ToolReportItem { level: 'error' | 'warning' | 'info' | 'success'; message: string; position?: ToolPosition }
-export type ToolOutput =
+export type ToolSingleOutput =
   | { kind: 'text'; text: string; language?: string; filename?: string }
-  | { kind: 'bytes'; bytes: Uint8Array; filename?: string; mimeType?: string }
+  | { kind: 'bytes'; bytes: Uint8Array; text?: string; filename?: string; mimeType?: string }
   | { kind: 'diff'; left: string; right: string; displayLeft?: string; displayRight?: string; language?: string }
   | { kind: 'report'; items: ToolReportItem[]; text?: string; language?: string }
-  | { kind: 'table'; columns: string[]; rows: (string | number | boolean | null)[][] }
-  | { kind: 'multi'; parts: { label: string; output: ToolOutput }[] };
+  | { kind: 'table'; columns: string[]; rows: (string | number | boolean | null)[][] };
+export type ToolOutput = ToolSingleOutput | { kind: 'multi'; parts: { label: string; output: ToolSingleOutput }[] };
 
 export interface ToolContext {
   signal: AbortSignal;

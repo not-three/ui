@@ -52,7 +52,10 @@ const state = ref<ToolRunState>({ output: null, error: null, progress: 0, runnin
 let runner = createToolRunner(props.tool, value => { state.value = value; });
 let autoRunTimer: ReturnType<typeof setTimeout> | null = null;
 
+function cancelAutoRun() { if (autoRunTimer) clearTimeout(autoRunTimer); autoRunTimer = null; }
+function canAutoRun() { return props.tool.inputs.every(spec => spec.kind === 'text' && sources[spec.id] === 'note'); }
 function resetTool() {
+  cancelAutoRun();
   runner.dispose();
   runner = createToolRunner(props.tool, value => { state.value = value; });
   for (const key of Object.keys(sources)) Reflect.deleteProperty(sources, key);
@@ -60,8 +63,7 @@ function resetTool() {
   for (const key of Object.keys(files)) Reflect.deleteProperty(files, key);
   for (const key of Object.keys(options)) Reflect.deleteProperty(options, key);
   for (const spec of props.tool.inputs) {
-    const preferred = spec.defaultSource === 'selection' ? 'selection' : spec.defaultSource === 'note' ? 'note' : 'text';
-    sources[spec.id] = preferred === 'selection' && props.host.getSelection() ? 'selection' : preferred !== 'text' && props.host.getNote() ? 'note' : 'text';
+    sources[spec.id] = spec.defaultSource !== 'empty' && props.host.getSelection() ? 'selection' : spec.defaultSource !== 'empty' && props.host.getNote() ? 'note' : 'text';
     texts[spec.id] = '';
   }
   const memory = settings.tools.rememberOptions ? settings.tools.lastOptions[props.tool.id] ?? {} : {};
@@ -71,18 +73,19 @@ function resetTool() {
 resetTool();
 watch(() => props.tool, resetTool);
 
-watch([sources, texts, files], () => runner.invalidate(), { deep: true });
+watch([sources, texts, files], () => { cancelAutoRun(); runner.invalidate(); }, { deep: true });
 watch(options, () => {
+  cancelAutoRun();
   runner.invalidate();
   if (settings.tools.rememberOptions) settings.tools.lastOptions[props.tool.id] = rememberedOptions(props.tool, options);
 }, { deep: true });
 
 watch(() => props.noteContent, () => {
   runner.invalidate();
-  if (autoRunTimer) clearTimeout(autoRunTimer);
-  if (props.tool.inputs.every(spec => spec.kind === 'text' && sources[spec.id] === 'note')) autoRunTimer = setTimeout(() => { void run(); }, 300);
+  cancelAutoRun();
+  if (canAutoRun()) autoRunTimer = setTimeout(() => { autoRunTimer = null; if (canAutoRun()) void run(); }, 300);
 });
-onBeforeUnmount(() => { if (autoRunTimer) clearTimeout(autoRunTimer); runner.dispose(); });
+onBeforeUnmount(() => { cancelAutoRun(); runner.dispose(); });
 
 function chooseFile(id: string, event: Event) { files[id] = (event.target as HTMLInputElement).files?.[0]; }
 function sourceValues(): Record<string, SourceValue> {

@@ -38,13 +38,19 @@ test('Base64 selection encodes and decodes locally', async ({ page }) => {
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('aGVsbG8=');
   await panel.getByRole('button', { name: 'Replace selection' }).click();
-  await panel.getByLabel('Input source').selectOption('note');
+  await expect(page.locator('.monaco-editor').first()).toContainText('aGVsbG8=');
+  await page.locator('.monaco-editor').first().click();
+  await page.keyboard.press('Control+a');
+  await expect(panel.getByLabel('Input source')).toHaveValue('selection');
   await panel.getByLabel('Mode').selectOption('decode');
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('5 bytes');
   const download = page.waitForEvent('download');
   await panel.getByRole('button', { name: 'Download' }).click();
   expect((await download).suggestedFilename()).toBe('decoded.bin');
+  await panel.getByRole('button', { name: 'Replace selection' }).click();
+  await expect(page.locator('.monaco-editor').first()).toContainText('hello');
+  await expect(page.locator('.monaco-editor').first()).not.toContainText('aGVsbG8=');
   network.assertNoNetwork();
 });
 
@@ -82,6 +88,25 @@ test('tool command is available in the Monaco command palette', async ({ page })
   await page.keyboard.insertText('Hash');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('region', { name: 'Hash tool' })).toBeVisible();
+});
+
+test('JSON lint command uses selected JSON within a larger note', async ({ page }) => {
+  await openEditor(page);
+  await page.locator('.monaco-editor').first().click();
+  await page.keyboard.insertText('not json\n{"ok":true}\nmore');
+  await page.keyboard.press('Control+Home');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.press('F1');
+  await page.keyboard.insertText('JSON lint');
+  await page.keyboard.press('Enter');
+  const panel = page.getByRole('region', { name: 'JSON lint tool' });
+  await expect(panel.getByLabel('JSON source')).toHaveValue('selection');
+  const network = await withNoNetwork(page);
+  await panel.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('Valid JSON');
+  network.assertNoNetwork();
 });
 
 test('catalogue and palette find a tool by keyword', async ({ page }) => {
