@@ -1,3 +1,0 @@
-var e=`lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua`.split(` `),t=async(t,n)=>{let r=Number(n.count??50);if(!Number.isInteger(r)||r<1||r>1e3)throw Error(`Count must be between 1 and 1000`);return n.mode===`paragraphs`?{kind:`text`,text:Array.from({length:r},(t,n)=>{let r=Array.from({length:40},(t,r)=>e[(r+n*7)%e.length]).join(` `);return r[0].toUpperCase()+r.slice(1)+`.`}).join(`
-
-`)}:{kind:`text`,text:Array.from({length:r},(t,n)=>e[n%e.length]).join(` `)}};export{t as run};

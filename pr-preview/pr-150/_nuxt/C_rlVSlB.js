@@ -1,2 +1,0 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./D9EfE-Gu.js","./C0FnF6B9.js"])))=>i.map(i=>d[i]);
-import{u as e}from"#entry";import{r as t}from"./BQuo0PKa.js";var n=async n=>{let r=t(n.input),{default:i}=await e(async()=>{let{default:e}=await import(`./D9EfE-Gu.js`);return{default:e}},__vite__mapDeps([0,1]),import.meta.url);return{kind:`text`,text:new i({html:!1,linkify:!0}).render(r),language:`html`,filename:`converted.html`}};export{n as run};
