@@ -21,3 +21,13 @@ it('escapes markup ampersands and angle brackets', async () => {
 it('shell-quotes a single quote safely', async () => {
   expect(await escape("a'b", 'shell')).toMatchObject({ kind: 'text', text: "'a'\\''b'" });
 });
+
+it.each([
+  ['json', '"🙂\\n"'],
+  ['js', "'🙂\\n'"],
+  ['html', '🙂\n'],
+  ['xml', '🙂\n'],
+  ['shell', "'🙂\n'"],
+])('preserves a surrogate pair and newline in %s escaping', async (format, expected) => {
+  expect(await escape('🙂\n', format)).toMatchObject({ kind: 'text', text: expected });
+});

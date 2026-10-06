@@ -24,3 +24,13 @@ it('reports JSON and YAML syntax positions', async () => {
   expect(json).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 2 } }] });
   expect(yaml).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 2 } }] });
 });
+
+it.each([
+  ['JSON array', '["🙂",2]', 'json-yaml', 'yaml', '- 🙂'],
+  ['YAML scalar', 'é', 'yaml-json', 'json', '"é"'],
+  ['YAML nested map', 'name: 東京\nitems:\n  - 1\n', 'yaml-json', 'json', '"東京"'],
+])('preserves %s during conversion', async (_name, source, direction, language, expected) => {
+  const result = await run({ input: textInput(source) }, { direction }, context);
+  expect(result).toMatchObject({ kind: 'text', language });
+  if (result.kind === 'text') expect(result.text).toContain(expected);
+});

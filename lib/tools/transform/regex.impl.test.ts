@@ -37,3 +37,13 @@ it('bounds zero-width match reports for large text', async () => {
     expect(result.items.at(-1)).toMatchObject({ level: 'warning', message: expect.stringContaining('omitted') });
   }
 });
+
+it.each([
+  ['zero-width global', 'ab', '(?=.)', 'g', [1, 2]],
+  ['lookbehind', 'ab cb', '(?<=a)b', 'g', [2]],
+  ['Unicode surrogate pair', '🙂a', '(?=.)', 'gu', [1, 3]],
+])('reports %s positions without hanging', async (_name, source, pattern, flags, columns) => {
+  const result = await run({ input: textInput(source) }, { pattern, flags, replacement: '' }, context);
+  expect(result.kind).toBe('report');
+  if (result.kind === 'report') expect(result.items.map(item => item.position?.column)).toEqual(columns);
+});

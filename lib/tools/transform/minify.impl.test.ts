@@ -60,3 +60,30 @@ it('preserves whitespace between elements that may be inline', async () => {
     kind: 'text', text: '<div style="display:inline">a</div> <span>b</span>', language: 'html',
   });
 });
+
+it.each([
+  ['pre', '<pre>  a\n b </pre>', '<pre>  a\n b </pre>'],
+  ['textarea', '<textarea>  a\n b </textarea>', '<textarea>  a\n b </textarea>'],
+  ['code', '<code>  a\n b </code>', '<code>  a\n b </code>'],
+  ['inline script', '<script>const x = "<!-- keep -->";</script>', '<script>const x = "<!-- keep -->";</script>'],
+  ['inline style', '<style>a::before { content: "  "; }</style>', '<style>a::before { content: "  "; }</style>'],
+  ['spaced attributes', '<div  data-a = "a b"   data-b = "c">x</div>', 'data-a="a b" data-b="c"'],
+  ['conditional comments', '<!--[if IE]><p>legacy</p><![endif]-->', '<!--[if IE]><p>legacy</p><![endif]-->'],
+  ['void and self-closing tags', '<br><img src="x" /><hr/>', '<br><img src="x" /><hr/>'],
+])('keeps HTML %s semantics', async (_name, source, expected) => {
+  const result = await minify(source, 'html');
+  expect(result).toMatchObject({ kind: 'text', language: 'html' });
+  if (result.kind === 'text') expect(result.text).toContain(expected);
+});
+
+it.each([
+  ['calc and var', 'a { width: calc(100% + var(--gap, 1px)); }', 'calc(100% + var(--gap, 1px))'],
+  ['quoted URL', 'a { background: url("a)b c.png"); }', 'url("a)b c.png")'],
+  ['important declaration', 'a { color: red !important; }', 'red !important'],
+  ['media query', '@media screen and (min-width: 600px) { a { color: red; } }', '@media screen and (min-width:600px)'],
+  ['comment inside string', 'a { content: "/* keep */"; /* remove */ color: red; }', '"/* keep */"'],
+])('keeps CSS %s semantics', async (_name, source, expected) => {
+  const result = await minify(source, 'css');
+  expect(result).toMatchObject({ kind: 'text', language: 'css' });
+  if (result.kind === 'text') expect(result.text).toContain(expected);
+});

@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { withNoNetwork } from './helpers';
+import { APP_ORIGIN, withNoNetwork } from './helpers';
 
 const info = { version: '2.1.1', availableTokens: 100, maxStorageTimeDays: 30, fileTransferEnabled: false, privateMode: false, p2pEnabled: false };
 
 async function openEditor(page: Page) {
   await page.route('**/api/info', route => route.fulfill({ json: info }));
-  await page.goto('http://127.0.0.1:8789/');
+  await page.goto(`${APP_ORIGIN}/`);
   await expect(page.locator('.monaco-editor').first()).toBeVisible({ timeout: 30_000 });
 }
 
@@ -16,7 +16,7 @@ async function openTransform(page: Page, title: string) {
 }
 
 test('converts a pasted JSON value on the standalone page locally', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/json-yaml');
+  await page.goto(`${APP_ORIGIN}/t/json-yaml`);
   const panel = page.getByRole('region', { name: 'JSON ↔ YAML tool' });
   await panel.getByLabel('Input text').fill('{"name":"Zoë","items":[1,2]}');
   const network = await withNoNetwork(page);
@@ -57,7 +57,7 @@ test('counts the current note without a request', async ({ page }) => {
 });
 
 test('converts a local CSV file on the standalone page', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/csv-json');
+  await page.goto(`${APP_ORIGIN}/t/csv-json`);
   const panel = page.getByRole('region', { name: 'CSV ↔ JSON tool' });
   await panel.getByLabel('Input source').selectOption('file');
   await panel.getByLabel('Input file').setInputFiles({ name: 'people.csv', mimeType: 'text/csv', buffer: Buffer.from('name,note\n"Zoë","hello, world"') });

@@ -35,3 +35,20 @@ it('rejects impossible RFC dates and accepts a valid leap day', async () => {
   expect(await convert('Fri, 30 Feb 2024 00:00:00 GMT', 'iso')).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
   expect(await convert('Thu, 29 Feb 2024 00:00:00 GMT', 'unix')).toMatchObject({ kind: 'text', text: '1709164800' });
 });
+
+it.each([
+  ['valid RFC3339 leap day', '2024-02-29T23:30:00+01:00', '1709245800'],
+  ['valid RFC2822 leap day', 'Thu, 29 Feb 2024 00:00:00 +0000', '1709164800'],
+  ['offset crosses day boundary', '1970-01-01T01:00:00+01:00', '0'],
+])('accepts %s', async (_name, source, expected) => {
+  expect(await convert(source, 'unix')).toMatchObject({ kind: 'text', text: expected });
+});
+
+it.each([
+  ['non-leap RFC3339 day', '2023-02-29T00:00:00Z'],
+  ['24:00 RFC3339 time', '2024-01-01T24:00:00Z'],
+  ['impossible RFC2822 day', 'Fri, 30 Feb 2024 00:00:00 GMT'],
+  ['wrong RFC2822 weekday', 'Fri, 29 Feb 2024 00:00:00 GMT'],
+])('rejects %s', async (_name, source) => {
+  expect(await convert(source, 'iso')).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+});

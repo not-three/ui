@@ -33,12 +33,19 @@ export const run: ToolRun = async (inputs, options) => {
     const month = Number(isoDate[2]);
     const day = Number(isoDate[3]);
     if (!validCalendarDate(year, month, day)) return errorReport('Invalid ISO calendar date');
+    const time = /T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(source);
+    if (!time || Number(time[1]) > 23 || Number(time[2]) > 59 || Number(time[3] ?? 0) > 59) return errorReport('Invalid ISO time');
   }
   const rfcDate = /^[A-Za-z]{3},\s*(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\b/.exec(source);
   if (rfcDate) {
     const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
     const month = months.indexOf(rfcDate[2]!.toLowerCase()) + 1;
-    if (!validCalendarDate(Number(rfcDate[3]), month, Number(rfcDate[1]))) return errorReport('Invalid RFC calendar date');
+    const year = Number(rfcDate[3]);
+    const day = Number(rfcDate[1]);
+    if (!validCalendarDate(year, month, day)) return errorReport('Invalid RFC calendar date');
+    const weekdays = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const weekday = source.slice(0, 3).toLowerCase();
+    if (weekdays[new Date(Date.UTC(year, month - 1, day)).getUTCDay()] !== weekday) return errorReport('Invalid RFC weekday');
   }
   const epoch = /^-?\d+(?:\.\d+)?$/.test(source) ? Number(source) * 1000
     : /^(?:\d{4}-\d{2}-\d{2}T|[A-Za-z]{3},\s)/.test(source) ? Date.parse(source) : NaN;

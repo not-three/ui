@@ -68,6 +68,7 @@ function minifyHtml(source: string): string {
     if (source[i] !== '<') { out += source[i++]; continue; }
     if (source.startsWith('<!--', i)) {
       const end = source.indexOf('-->', i + 4);
+      if (source.startsWith('<!--[', i)) out += source.slice(i, end < 0 ? source.length : end + 3);
       i = end < 0 ? source.length : end + 3;
       continue;
     }

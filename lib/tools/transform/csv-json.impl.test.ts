@@ -22,3 +22,17 @@ it('reports malformed CSV rows and invalid JSON', async () => {
   expect(csv).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 2 } }] });
   expect(json).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
 });
+
+it.each([
+  ['quoted Unicode', 'name,note\n"Zoë","a,b"', '"Zoë"'],
+  ['embedded newline', 'name,note\nA,"one\ntwo"', 'one\\ntwo'],
+  ['empty cell', 'name,note\nA,', '"note": ""'],
+])('preserves CSV %s values', async (_name, source, expected) => {
+  const result = await run({ input: textInput(source) }, { direction: 'csv-json' }, context);
+  expect(result).toMatchObject({ kind: 'text', language: 'json' });
+  if (result.kind === 'text') expect(result.text).toContain(expected);
+});
+
+it.each(['{"name":"A"}', '[1,2]', '{oops}'])('rejects JSON-to-CSV input that is not an object array: %s', async source => {
+  expect(await run({ input: textInput(source) }, { direction: 'json-csv' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+});

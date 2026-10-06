@@ -20,3 +20,11 @@ it.each([
 it('preserves Unicode letters in word forms', async () => {
   expect(await convert('École 東京 café', 'kebab')).toMatchObject({ kind: 'text', text: 'école-東京-café' });
 });
+
+it.each([
+  ['upper', 'straße 🙂 서울', 'STRASSE 🙂 서울'],
+  ['snake', 'École🙂HTTPServer', 'école_http_server'],
+  ['camel', '東京 café🙂Store', '東京CaféStore'],
+])('handles Unicode and surrogate pairs in %s', async (style, source, expected) => {
+  expect(await convert(source, style)).toMatchObject({ kind: 'text', text: expected });
+});
