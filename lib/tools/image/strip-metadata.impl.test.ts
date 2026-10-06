@@ -12,6 +12,19 @@ it('keeps the scan bytes in its output Blob when orientation baking is off', asy
   expect(result.kind).toBe('image');
   if (result.kind === 'image') expect([...new Uint8Array(await result.blob.arrayBuffer())]).toEqual([255,216,255,218,0,2,7,8,9,255,217]);
 });
+it('removes JFIF and JFXX APP0 thumbnails without changing JPEG scan bytes', async () => {
+  const jfif = Uint8Array.from([255,224,0,19,74,70,73,70,0,1,2,0,0,1,0,1,1,1,31,32,33]);
+  const jfxx = Uint8Array.from([255,224,0,12,74,70,88,88,0,16,255,216,255,217]);
+  const scan = Uint8Array.from([255,218,0,2,7,8,9,255,217]);
+  const source: ToolInput = { ...input, bytes:Uint8Array.from([255,216,...jfif,...jfxx,...scan]) };
+  const result = await run({ input:source }, { keepOrientation:false }, context);
+  expect(result.kind).toBe('image');
+  if (result.kind !== 'image') return;
+  expect(new Uint8Array(await result.blob.arrayBuffer())).toEqual(Uint8Array.from([
+    255,216,255,224,0,16,74,70,73,70,0,1,2,0,0,1,0,1,0,0,
+    ...scan,
+  ]));
+});
 it('bakes orientation from the decoded bitmap when requested', async () => {
   const result = await run({ input }, { keepOrientation:true }, context);
   expect(result).toMatchObject({ kind:'image', width:1, height:2, filename:'portrait-strip-metadata.png' });

@@ -109,7 +109,11 @@ export function stripMetadata(bytes: Uint8Array, format: ImageFormat): Uint8Arra
       if (p + 4 > bytes.length) { parts.push(bytes.subarray(p)); break; }
       const size = be16(bytes, p + 2);
       if (size < 2 || p + 2 + size > bytes.length) { parts.push(bytes.subarray(p)); break; }
-      if (!((marker >= 0xe1 && marker <= 0xed) || marker === 0xef || marker === 0xfe)) parts.push(bytes.subarray(p, p + 2 + size));
+      if (marker === 0xe0) {
+        if (size >= 16 && ascii(bytes, p + 4, 5) === 'JFIF\0') {
+          parts.push(Uint8Array.from([255, 224, 0, 16, ...bytes.subarray(p + 4, p + 16), 0, 0]));
+        }
+      } else if (!((marker >= 0xe1 && marker <= 0xed) || marker === 0xef || marker === 0xfe)) parts.push(bytes.subarray(p, p + 2 + size));
       p += 2 + size;
     }
     return join(parts);
