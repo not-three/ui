@@ -20,6 +20,7 @@ describe("SvelteRunner", () => {
     expect(doc).toContain(`${ORIGIN}/vendor/svelte/src/index-client.js`);
     expect(doc).toContain(`${ORIGIN}/vendor/svelte/src/internal/client/index.js`);
     expect(doc).toContain(`${ORIGIN}/vendor/svelte/compiler/index.js`);
+    expect(doc).toContain(`"#client/constants":"${ORIGIN}/vendor/svelte/src/internal/client/constants.js"`);
     expect(doc.match(/script-src [^;]*/)![0]).toContain("blob:");
   });
 });
