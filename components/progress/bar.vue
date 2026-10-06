@@ -4,9 +4,10 @@
 
 <script lang="ts" setup>
 import type { FileUploadProgress, FileUploadState } from "@not3/sdk";
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { activeTheme } from '~/lib/theme/registry';
 import { progressColors } from '~/lib/theme/progress-colors';
+import { CUSTOM_CSS_LOADED_EVENT } from '~/lib/theme/custom-css';
 
 const props = defineProps<{
   status: FileUploadProgress | number;
@@ -50,5 +51,9 @@ const draw = () => {
 watch(() => props.status, draw, { deep: true });
 watch(() => props.total, draw);
 watch(activeTheme, draw);
-onMounted(draw);
+onMounted(() => {
+  draw();
+  window.addEventListener(CUSTOM_CSS_LOADED_EVENT, draw);
+});
+onBeforeUnmount(() => window.removeEventListener(CUSTOM_CSS_LOADED_EVENT, draw));
 </script>
