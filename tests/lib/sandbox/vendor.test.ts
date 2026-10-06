@@ -69,8 +69,33 @@ describe("vendor pipeline", () => {
   it("every VENDOR_PATHS entry exists under public/vendor (run pnpm install if this fails)", () => {
     for (const [key, rel] of Object.entries(VENDOR_PATHS)) {
       const target = join(vendorDir, rel);
-      expect(existsSync(target), `${key} -> public/vendor/${rel}`).toBe(true);
+      expect(existsSync(target) || existsSync(target + ".parts.json"), `${key} -> public/vendor/${rel}`).toBe(true);
     }
+  });
+
+  it("ships no single file above the 25 MiB hosting limit and consistent split manifests", () => {
+    const oversized: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) { walk(full); continue; }
+        if (statSync(full).size > 25 * 1024 * 1024) oversized.push(full);
+        if (entry.name.endsWith(".parts.json")) {
+          const manifest = JSON.parse(readFileSync(full, "utf8")) as { size: number; parts: { name: string; size: number }[] };
+          expect(existsSync(full.replace(/\.parts\.json$/, "")), `${full}: original must be removed after splitting`).toBe(false);
+          let total = 0;
+          for (const part of manifest.parts) {
+            const partPath = join(dir, part.name);
+            expect(existsSync(partPath), `${full}: missing ${part.name}`).toBe(true);
+            expect(statSync(partPath).size).toBe(part.size);
+            total += part.size;
+          }
+          expect(total).toBe(manifest.size);
+        }
+      }
+    };
+    if (existsSync(vendorDir)) walk(vendorDir);
+    expect(oversized, `split these with scripts/vendor-split.mjs:\n${oversized.join("\n")}`).toEqual([]);
   });
 
   it("bundles React into one script exposing the React and ReactDOM globals", () => {

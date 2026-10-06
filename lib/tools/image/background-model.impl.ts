@@ -1,37 +1,31 @@
 import type { ToolProgressDetail } from '../types';
+import { fetchVendorBytes } from '../../vendor/parts';
 import { MODEL_BYTES, MODEL_FETCH_PROGRESS_END, MODEL_URL } from '../../image/background-model';
 export { MODEL_BYTES, MODEL_FETCH_PROGRESS_END, MODEL_URL } from '../../image/background-model';
+
+const MODEL_LIMIT = 90_000_000;
+
 export function createModelLoader(url: string, expectedBytes: number) {
   let cachedModel: Uint8Array | null = null;
   return async (signal: AbortSignal, reportProgress: (fraction: number, detail?: ToolProgressDetail) => void): Promise<Uint8Array> => {
-  if (cachedModel) { reportProgress(MODEL_FETCH_PROGRESS_END, { phase: 'processing' }); return cachedModel; }
-  const response = await fetch(url, { signal, cache: 'no-store' });
-  if (!response.ok) throw new Error(`Model download failed (${response.status})`);
-  const total = Number(response.headers.get('content-length')) || expectedBytes;
-  if (total > 90_000_000) throw new Error('Background model exceeds 90 MB limit');
-  if (!response.body) throw new Error('Model download has no response body');
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  const reader = response.body.getReader();
-  try {
-    while (true) {
-      signal.throwIfAborted();
-      const { done, value } = await reader.read();
-      if (done) break;
-      received += value.byteLength;
-      if (received > 90_000_000) throw new Error('Background model exceeds 90 MB limit');
-      chunks.push(value);
-      reportProgress(Math.min(MODEL_FETCH_PROGRESS_END, MODEL_FETCH_PROGRESS_END * received / total), { phase: 'download', loadedBytes: received, totalBytes: total });
+    if (cachedModel) { reportProgress(MODEL_FETCH_PROGRESS_END, { phase: 'processing' }); return cachedModel; }
+    let bytes: Uint8Array;
+    try {
+      bytes = await fetchVendorBytes(url, {
+        signal,
+        maxBytes: MODEL_LIMIT,
+        onProgress: (loaded, total) => reportProgress(Math.min(MODEL_FETCH_PROGRESS_END, MODEL_FETCH_PROGRESS_END * loaded / (total || expectedBytes)), { phase: 'download', loadedBytes: loaded, totalBytes: total || expectedBytes }),
+      });
+    } catch (error) {
+      if (error instanceof Error && /exceeds/.test(error.message)) throw new Error('Background model exceeds 90 MB limit', { cause: error });
+      if (error instanceof Error && /download failed/.test(error.message)) throw new Error(`Model ${error.message}`, { cause: error });
+      throw error;
     }
-  } finally { reader.releaseLock(); }
-  signal.throwIfAborted();
-  if (received !== expectedBytes) throw new Error(`Background model size mismatch: ${received} bytes`);
-  const bytes = new Uint8Array(received);
-  let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-  cachedModel = bytes;
-  reportProgress(MODEL_FETCH_PROGRESS_END, { phase: 'processing' });
-  return bytes;
+    signal.throwIfAborted();
+    if (bytes.byteLength !== expectedBytes) throw new Error(`Background model size mismatch: ${bytes.byteLength} bytes`);
+    cachedModel = bytes;
+    reportProgress(MODEL_FETCH_PROGRESS_END, { phase: 'processing' });
+    return bytes;
   };
 }
 

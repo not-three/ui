@@ -1,4 +1,5 @@
 import { VENDOR_PATHS } from "../vendor";
+import { VENDOR_FETCH_SNIPPET } from "../../vendor/parts";
 import type { SandboxRunner } from "./types";
 import { embedJson } from "./util";
 
@@ -19,15 +20,14 @@ export const RubyRunner: SandboxRunner = {
   build: ({ content, vendorBase }) => ({
     head: `<script src="${vendorBase}/${VENDOR_PATHS.rubyScript}"></script>`,
     body: `<script>
+${VENDOR_FETCH_SNIPPET}
 (async function () {
   var CODE = ${embedJson(content)};
   console.info("Loading Ruby (ruby.wasm)…");
   try {
-    // arrayBuffer + compile (not compileStreaming): independent of the
-    // Content-Type the host serves .wasm with.
-    var response = await fetch("${vendorBase}/${VENDOR_PATHS.rubyWasm}");
-    if (!response.ok) throw new Error("failed to load ruby.wasm: " + response.status);
-    var module = await WebAssembly.compile(await response.arrayBuffer());
+    // bytes + compile (not compileStreaming): independent of the Content-Type
+    // the host serves .wasm with, and the binary ships as split parts.
+    var module = await WebAssembly.compile(await fetchVendorBytes("${vendorBase}/${VENDOR_PATHS.rubyWasm}"));
     // consolePrint defaults to true: puts/warn land in console.*, which the
     // sandbox bootstrap relays to the panel.
     var booted = await window["ruby-wasm-wasi"].DefaultRubyVM(module);

@@ -20,11 +20,15 @@ test('removes background on demand using one same-origin model fetch', async ({ 
   await panel.getByRole('button', { name: 'Run' }).click();
   await expect(panel.getByRole('region', { name: 'Tool output' }).or(panel.getByRole('alert'))).toBeVisible({ timeout: 150_000 });
   expect(await panel.getByRole('alert').allTextContents(), diagnostics.join('\n')).toEqual([]);
-  expect(modelRequests).toEqual([`${APP_ORIGIN}/vendor/image/isnet-general-use/model_quantized.onnx`]);
+  // The model ships as split parts: one manifest request plus one request per part, all same-origin.
+  expect(modelRequests[0]).toBe(`${APP_ORIGIN}/vendor/image/isnet-general-use/model_quantized.onnx.parts.json`);
+  expect(modelRequests.slice(1).every((url, index) => url === `${APP_ORIGIN}/vendor/image/isnet-general-use/model_quantized.onnx.part${index}`)).toBe(true);
+  const firstRunRequests = modelRequests.length;
+  expect(firstRunRequests).toBeGreaterThan(1);
   await panel.getByLabel('Feather edge (px)').fill('0');
   await panel.getByRole('button', { name: 'Run' }).click();
   await expect(panel.getByRole('region', { name: 'Tool output' })).toBeVisible({ timeout: 150_000 });
-  expect(modelRequests).toHaveLength(1);
+  expect(modelRequests).toHaveLength(firstRunRequests);
   await panel.getByRole('radio', { name: 'PNG' }).click();
   const download = page.waitForEvent('download');
   await panel.getByRole('button', { name: 'Download' }).click();
