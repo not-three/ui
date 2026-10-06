@@ -8,9 +8,9 @@
         'brightness-50 cursor-not-allowed': config.disabled,
         'hover:underline cursor-pointer': !config.disabled,
       }"
-      @click="active = config.disabled ? false : !active"
-      @keydown.enter.prevent="active = config.disabled ? false : !active"
-      @keydown.space.prevent="active = config.disabled ? false : !active"
+      @click="toggle"
+      @keydown.enter.prevent="toggle"
+      @keydown.space.prevent="toggle"
     >
       {{ config.name }}
     </h2>
@@ -27,19 +27,23 @@
           />
           <div class="bg-black p-2">
             <div v-for="entry in config.entries" :key="entry.name">
-            <button
-              :disabled="entry.disabled"
-              class="w-full text-left whitespace-nowrap bg-white/5 my-1 px-2 py-1 transition-colors"
-              :class="entry.disabled ? 'cursor-not-allowed line-through' : 'hover:bg-white/10'"
-              :title="entry.title ? entry.title : entry.disabled ? 'This action is disabled by config or the server.' : ''"
-              :aria-expanded="entry.entries ? !!openSubmenus[entry.name] : undefined"
-              @click="entry.entries ? openSubmenus[entry.name] = !openSubmenus[entry.name] : execFunction(entry.onClick)"
-            >
-              <span>{{ entry.name }}{{ entry.entries ? ' ▸' : '' }}</span>
-            </button>
-            <div v-if="entry.entries && openSubmenus[entry.name]" class="pl-3 border-l border-white/30">
-              <button v-for="child in entry.entries" :key="child.name" class="w-full text-left whitespace-nowrap bg-white/5 my-1 px-2 py-1 hover:bg-white/10" @click="execFunction(child.onClick)">{{ child.name }}</button>
-            </div>
+              <button
+                :disabled="entry.disabled"
+                class="w-full text-left whitespace-nowrap bg-white/5 my-1 px-2 py-1 transition-colors"
+                :class="entry.disabled ? 'cursor-not-allowed line-through' : 'hover:bg-white/10'"
+                :title="entry.title ? entry.title : entry.disabled ? 'This action is disabled by config or the server.' : ''"
+                :aria-expanded="entry.entries ? openSubmenu === entry.name : undefined"
+                @click="entry.entries ? toggleSubmenu(entry.name) : execFunction(entry.onClick)"
+              >
+                <span>{{ entry.name + (entry.entries ? ' ' : '') }}</span><span
+                  v-if="entry.entries"
+                  class="inline-block ml-1 transition-transform duration-150"
+                  :class="{ 'rotate-90': openSubmenu === entry.name }"
+                >▸</span>
+              </button>
+              <div v-if="entry.entries && openSubmenu === entry.name" class="pl-3 border-l border-white/30">
+                <button v-for="child in entry.entries" :key="child.name" class="w-full text-left whitespace-nowrap bg-white/5 my-1 px-2 py-1 hover:bg-white/10" @click="execFunction(child.onClick)">{{ child.name }}</button>
+              </div>
             </div>
           </div>
         </div>
@@ -53,15 +57,29 @@ import type { NavigationEntry } from '~/lib/navigation';
 
 const container = ref() as Ref<HTMLDivElement>;
 const active = ref(false);
-const openSubmenus = ref<Record<string, boolean>>({});
-defineProps<{config: NavigationEntry}>();
+/** Only one category submenu is open at a time; opening another closes the previous one. */
+const openSubmenu = ref<string | null>(null);
+const props = defineProps<{config: NavigationEntry}>();
+
+function toggle() {
+  active.value = props.config.disabled ? false : !active.value;
+  if (!active.value) openSubmenu.value = null;
+}
+
+function toggleSubmenu(name: string) {
+  openSubmenu.value = openSubmenu.value === name ? null : name;
+}
 
 function outsideClickListener(event: MouseEvent | TouchEvent) {
-  if (!container.value.contains(event.target as Node)) active.value = false;
+  if (!container.value.contains(event.target as Node)) {
+    active.value = false;
+    openSubmenu.value = null;
+  }
 }
 
 function execFunction(fn?: () => void) {
   active.value = false;
+  openSubmenu.value = null;
   fn?.();
 }
 
