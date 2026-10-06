@@ -5,13 +5,13 @@
       <select
         v-if="availableRunners.length > 1"
         v-model="engineId"
-        class="bg-black border border-white/40 rounded-sm text-xs py-0.5"
+        class="panel-select"
         title="Execution engine for this language"
       >
         <option v-for="r in availableRunners" :key="r.id" :value="r.id">{{ r.label }}</option>
       </select>
-      <button class="sandbox-btn" @click="run">Run</button>
-      <button class="sandbox-btn" @click="entries = []">Clear</button>
+      <button class="panel-btn" @click="run">Run</button>
+      <button class="panel-btn" @click="entries = []">Clear</button>
       <label class="flex items-center gap-1 select-none cursor-pointer" title="Re-run automatically when the note changes">
         <input v-model="autoRun" type="checkbox"> auto
       </label>
@@ -24,7 +24,7 @@
       <div class="flex-grow" />
       <button
         v-if="!popout"
-        class="sandbox-btn"
+        class="panel-btn"
         title="Move this panel into a separate window"
         @click="$emit('popout')"
       >Popout</button>
@@ -32,7 +32,7 @@
            closes the panel on desktop, so this is mobile-only there. The
            popout window has no nav bar, so it always needs it. -->
       <button
-        :class="popout ? 'sandbox-btn' : 'sandbox-btn sm:hidden'"
+        :class="popout ? 'panel-btn' : 'panel-btn sm:hidden'"
         @click="$emit('close')"
       >Close</button>
     </div>
@@ -436,8 +436,3 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
-.sandbox-btn {
-  @apply border border-white/40 px-2 rounded-sm hover:bg-white/10;
-}
-</style>
