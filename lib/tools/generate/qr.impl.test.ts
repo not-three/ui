@@ -22,3 +22,6 @@ test('QR content and error correction change the PNG', async () => {
   if (first.kind !== 'bytes' || second.kind !== 'bytes') throw new Error('Expected PNG bytes');
   expect(first.bytes).not.toEqual(second.bytes);
 });
+test('rejects a width too small to retain every QR module', async () => {
+  await expect(run({ input: textInput('a'.repeat(500)) }, { width: 64 }, context)).rejects.toThrow(/at least .* pixels/);
+});

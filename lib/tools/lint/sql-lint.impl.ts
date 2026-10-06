@@ -3,9 +3,69 @@ import { invalid, sourceText, valid } from './shared';
 import postgresWasmUrl from '../../../node_modules/@electric-sql/pglite/dist/postgres.wasm?url';
 import postgresDataUrl from '../../../node_modules/@electric-sql/pglite/dist/postgres.data?url';
 
+type Statement = { text: string; start: number };
+
+function splitStatements(source: string): Statement[] {
+  const statements: Statement[] = [];
+  let start = 0;
+  let hasCode = false;
+  for (let i = 0; i < source.length; i++) {
+    const character = source[i];
+    if (character === '-' && source[i + 1] === '-') {
+      i = source.indexOf('\n', i + 2);
+      if (i < 0) break;
+      continue;
+    }
+    if (character === '/' && source[i + 1] === '*') {
+      let depth = 1;
+      i += 2;
+      while (i < source.length && depth) {
+        if (source.slice(i, i + 2) === '/*') { depth++; i += 2; }
+        else if (source.slice(i, i + 2) === '*/') { depth--; i += 2; }
+        else i++;
+      }
+      i--;
+      continue;
+    }
+    const dollar = character === '$' ? /^\$([A-Za-z_][A-Za-z_0-9]*)?\$/.exec(source.slice(i))?.[0] : undefined;
+    if (dollar) {
+      hasCode = true;
+      const end = source.indexOf(dollar, i + dollar.length);
+      i = end < 0 ? source.length : end + dollar.length - 1;
+      continue;
+    }
+    if (character === '\'' || character === '"' || character === '`' || character === '[') {
+      hasCode = true;
+      const closing = character === '[' ? ']' : character;
+      while (++i < source.length) {
+        if (source[i] === closing) {
+          if (source[i + 1] === closing) { i++; continue; }
+          break;
+        }
+      }
+      continue;
+    }
+    if (character === ';') {
+      if (hasCode) statements.push({ text: source.slice(start, i + 1), start });
+      start = i + 1;
+      hasCode = false;
+      continue;
+    }
+    if (!/\s/.test(character)) hasCode = true;
+  }
+  if (hasCode) statements.push({ text: source.slice(start), start });
+  return statements;
+}
+
+function positionAt(source: string, offset: number): { line: number; column: number } {
+  const prefix = source.slice(0, offset).split('\n');
+  return { line: prefix.length, column: prefix.at(-1)!.length + 1 };
+}
+
 export const run: ToolRun = async (inputs, options) => {
-  const source = sourceText(inputs).trim();
-  if (!source) return invalid('SQL is empty');
+  const source = sourceText(inputs);
+  const statements = splitStatements(source);
+  if (!statements.length) return invalid('SQL is empty');
   const dialect = options.dialect || 'sqlite';
   if (dialect !== 'sqlite' && dialect !== 'postgresql') return invalid('Unknown SQL dialect');
   if (dialect === 'postgresql') {
@@ -17,14 +77,20 @@ export const run: ToolRun = async (inputs, options) => {
     const db = new PGlite(assets);
     try {
       await db.waitReady;
-      const result = await db.execProtocol(protocol.serialize.parse({ text: source }));
-      if (!result.messages.some(message => message.name === 'parseComplete')) return invalid('Expected one valid PostgreSQL statement');
+      for (const statement of statements) {
+        try {
+          const result = await db.execProtocol(protocol.serialize.parse({ text: statement.text }));
+          if (!result.messages.some(message => message.name === 'parseComplete')) return invalid('Invalid PostgreSQL syntax');
+        } catch (error) {
+          const e = error as Error & { code?: string; position?: string };
+          await db.execProtocol(protocol.serialize.sync());
+          if (['42P01', '42703', '42883', '42P07', '42701', '42702'].includes(e.code ?? '')) continue;
+          const offset = Number(e.position);
+          const position = Number.isFinite(offset) && offset > 0 ? positionAt(source, statement.start + offset - 1) : undefined;
+          return invalid(e.message, position?.line, position?.column);
+        }
+      }
       return valid('Valid PostgreSQL syntax');
-    } catch (error) {
-      const e = error as Error & { position?: string };
-      const offset = Number(e.position);
-      const prefix = Number.isFinite(offset) && offset > 0 ? source.slice(0, offset - 1).split('\n') : null;
-      return invalid(e.message, prefix?.length, prefix ? prefix.at(-1)!.length + 1 : undefined);
     } finally {
       await db.close();
     }
@@ -32,19 +98,21 @@ export const run: ToolRun = async (inputs, options) => {
   const initSqlJs = (await import('sql.js/dist/sql-asm.js')).default;
   const SQL = await initSqlJs();
   const db = new SQL.Database();
-  const statements = db.iterateStatements(source);
   try {
-    let count = 0;
-    for (const _statement of statements) count++;
-    if (count === 0) return invalid('SQL is empty');
+    for (const statement of statements) {
+      const iterator = db.iterateStatements(statement.text);
+      try {
+        for (const _prepared of iterator) { /* Parse without executing. */ }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (/^(?:no such (?:table|column|index|function|collation sequence)|table .* already exists|index .* already exists|unknown database|ambiguous column name|misuse of aggregate)/i.test(message)) continue;
+        const token = /near "([^"]+)"/.exec(message)?.[1];
+        const at = token ? source.indexOf(token, statement.start) : -1;
+        const position = at < 0 ? undefined : positionAt(source, at);
+        return invalid(message, position?.line, position?.column);
+      }
+    }
     return valid('Valid SQLite syntax');
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const token = /near "([^"]+)"/.exec(message)?.[1];
-    const statementStart = source.length - statements.getRemainingSQL().length;
-    const at = token ? source.indexOf(token, statementStart) : -1;
-    const prefix = at < 0 ? null : source.slice(0, at).split('\n');
-    return invalid(message, prefix?.length, prefix ? prefix.at(-1)!.length + 1 : undefined);
   } finally {
     db.close();
   }

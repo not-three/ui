@@ -16,7 +16,10 @@ export const run: ToolRun = async (inputs) => {
   }
   const lines = source.split('\n');
   for (const token of tokens) {
-    if (token.type === 'fence' && token.map && !lines.slice(token.map[0] + 1, token.map[1]).some(line => /^\s*(`{3,}|~{3,})\s*$/.test(line))) {
+    if (token.type === 'fence' && token.map && !lines.slice(token.map[0] + 1, token.map[1]).some(line => {
+      const marker = /^\s*(`{3,}|~{3,})\s*$/.exec(line)?.[1];
+      return marker?.[0] === token.markup[0] && marker.length >= token.markup.length;
+    })) {
       items.push({ level: 'warning', message: 'Unclosed code fence', position: { line: token.map[0] + 1, column: 1 } });
     }
   }

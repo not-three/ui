@@ -26,6 +26,7 @@ export const run: ToolRun = async (inputs, options) => {
   const QRCode = await import('qrcode');
   const qr = QRCode.create(input.text, { errorCorrectionLevel: errorCorrectionLevel as 'L' | 'M' | 'Q' | 'H' });
   const cells = qr.modules.size + margin * 2;
+  if (width < cells) throw new Error(`QR size must be at least ${cells} pixels for this text and margin`);
   const raw = new Uint8Array(width * (width + 1));
   for (let y = 0; y < width; y++) {
     const row = y * (width + 1);
