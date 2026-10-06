@@ -37,6 +37,10 @@ import { timestamp } from './transform/timestamp';
 import { convert } from './image/convert';
 import { resize } from './image/resize';
 import { rotate } from './image/rotate';
+import { crop } from './image/crop';
+import { regionBlur } from './image/region-blur';
+import { palette } from './image/palette';
+import { outline } from './image/outline';
 
 export const TOOLS: ToolDefinition[] = [
   cssLint, htmlLint, jsTsLint, jsonLint, markdownLint, sqlLint, xmlLint, yamlLint,
@@ -44,7 +48,7 @@ export const TOOLS: ToolDefinition[] = [
   not3Payload, aes, caesar, hmac, jwt, rot13,
   letterCase, csvJson, diff, escapeText, jsonYaml, markdownHtml, minify, regex, sortLines, textStats, timestamp,
   cron, keypair, lorem, password, qr, uuid,
-  convert, resize, rotate,
+  regionBlur, palette, convert, crop, resize, rotate, outline,
 ];
 
 export function getTool(id: string): ToolDefinition | undefined {
