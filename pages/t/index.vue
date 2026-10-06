@@ -1,8 +1,8 @@
 <template>
-  <main class="min-h-screen bg-[#1e1e1e] text-white flex flex-col">
+  <main class="min-h-screen bg-[rgb(var(--not3-surface))] text-white flex flex-col">
     <tools-chrome><h1 class="font-bold select-none">Tools</h1></tools-chrome>
     <div class="px-4 py-3">
-      <input ref="search" v-model="query" type="search" aria-label="Search tools" class="w-full max-w-lg bg-black border-2 border-white px-2 py-1 focus:outline-none" placeholder="Search by name or description">
+      <input ref="search" v-model="query" type="search" aria-label="Search tools" class="w-full max-w-lg bg-black border border-white px-2 py-1 focus:outline-none" placeholder="Search by name or description">
     </div>
     <section v-for="(group, index) in groups" :key="group.category" class="overflow-hidden">
       <h2 class="px-4 py-1 text-xs font-bold uppercase tracking-wide border-b border-white/20 bg-black/40 select-none" :class="{ 'border-t': index === 0 }">{{ group.category }}</h2>

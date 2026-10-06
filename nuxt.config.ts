@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { themeBootstrapScript, themeBootstrapStyle } from './lib/theme/bootstrap';
+import { THEMES, themeColor } from './lib/theme/registry';
 
 // @vscode/vscode-languagedetection loads its only extra chunk (the TensorFlow
 // CPU backend) through webpack's dynamic `require("./" + chunk)`, which
@@ -13,7 +15,7 @@ const languageDetectionChunk = {
 };
 
 export default defineNuxtConfig({
-  css: ["~/assets/css/scrollbar.css", "~/assets/css/panel.css"],
+  css: ["~/assets/css/theme.css", "~/assets/css/scrollbar.css", "~/assets/css/panel.css"],
   app: {
     head: {
       charset: "utf-8",
@@ -30,9 +32,10 @@ export default defineNuxtConfig({
         },
         { name: "format-detection", content: "telephone=no" },
         { name: "msapplication-TileColor", content: "#000000" },
-        { name: "theme-color", content: "#000000" },
+        { name: "theme-color", content: themeColor(THEMES[0]!) },
       ],
-      style: [{ innerHTML: "body { background-color: #000; color: #fff; }" }],
+      style: [{ innerHTML: themeBootstrapStyle }],
+      script: [{ innerHTML: themeBootstrapScript }],
     },
   },
   runtimeConfig: {
@@ -67,6 +70,7 @@ export default defineNuxtConfig({
     "pinia-plugin-persistedstate/nuxt",
     "@nuxt/icon",
   ],
+  piniaPluginPersistedstate: { storage: 'localStorage' },
   devtools: { enabled: true },
   ssr: false,
   compatibilityDate: "2024-10-19",

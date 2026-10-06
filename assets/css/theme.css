@@ -1,0 +1,4 @@
+body {
+  background-color: rgb(var(--not3-bg));
+  color: rgb(var(--not3-fg));
+}

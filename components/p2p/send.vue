@@ -1,7 +1,7 @@
 <template>
   <transition-fade>
     <misc-overlay-container v-if="store.p2pSend" class="z-30" :file-drop="phase === 'pick'" @file-drop="selectFiles">
-      <div class="bg-black border-2 border-white/20 p-5 w-[90vw] max-w-lg text-white space-y-4">
+      <div class="bg-black border border-white/20 p-5 w-[90vw] max-w-lg text-white space-y-4">
         <h2 class="text-xl font-bold">P2P file transfer</h2>
         <template v-if="phase === 'pick'">
           <p>Choose or drop one file. Keep this tab open while sharing it.</p>
@@ -17,7 +17,7 @@
           <template v-else>
             <p class="break-all select-all">{{ link }}</p>
             <button class="border border-white px-3 py-1" @click="copyLink">Copy link</button>
-            <canvas ref="qrCanvas" class="bg-white p-2 max-w-full" aria-label="Transfer QR code" />
+            <canvas ref="qrCanvas" class="bg-[rgb(255_255_255)] p-2 max-w-full" aria-label="Transfer QR code" />
             <p v-if="phase === 'waiting'">Waiting for the receiver — keep this tab open.</p>
             <template v-else>
               <progress-bar :status="bytesSent" :total="file?.size || 0" class="w-full h-4" />

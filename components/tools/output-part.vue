@@ -3,7 +3,7 @@
     <tools-image-output v-if="output.kind === 'image'" :output="output" :host="host" :tool-id="toolId" :input-image="inputImage" :image-export-format="imageExportFormat" @update:image-export-format="$emit('update:imageExportFormat', $event)" />
     <template v-else>
     <tools-monaco-output v-if="output.kind === 'text' || output.kind === 'diff'" :output="output" />
-    <img v-if="imageUrl" :src="imageUrl" alt="Image preview" class="max-w-full max-h-96 self-start bg-white border border-white/20" :style="{ imageRendering: 'pixelated' }">
+    <img v-if="imageUrl" :src="imageUrl" alt="Image preview" class="max-w-full max-h-96 self-start bg-[rgb(255_255_255)] border border-white/20" :style="{ imageRendering: 'pixelated' }">
     <p v-if="output.kind === 'bytes'" class="text-xs text-white/60">{{ output.bytes.byteLength }} bytes</p>
     <tools-monaco-output v-if="output.kind === 'bytes' && output.text !== undefined" :output="{ kind: 'text', text: output.text, language: 'plaintext' }" />
     <ul v-if="output.kind === 'report'" class="font-mono text-xs">

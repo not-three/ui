@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as monaco from "monaco-editor";
+import { watch } from 'vue';
+import { activeTheme } from '~/lib/theme/registry';
 import editorWorker from "monaco-editor/editor/editor.worker?worker";
 import jsonWorker from "monaco-editor/languages/features/json/json.worker?worker";
 import cssWorker from "monaco-editor/languages/features/css/css.worker?worker";
@@ -20,6 +22,8 @@ import {
 
 import { languageDefinitions } from "./languages";
 import type { LanguageDefinition } from "./types";
+
+let themeWatchInstalled = false;
 
 function registerLanguage(lang: LanguageDefinition) {
   monaco.languages.register({
@@ -82,18 +86,37 @@ export async function setupMonaco() {
   monaco.editor.defineTheme("custom-dark", {
     base: "vs-dark",
     inherit: true,
+    rules: [],
+    colors: {},
+  });
+  monaco.editor.defineTheme('not3-monokai', {
+    base: 'vs-dark',
+    inherit: true,
     rules: [
-      { token: "key", foreground: "9CDCFE" },
-      { token: "string", foreground: "CE9178" },
-      { token: "number", foreground: "B5CEA8" },
-      { token: "keyword", foreground: "569CD6" },
-      { token: "operators", foreground: "D4D4D4" },
-      { token: "comment", foreground: "6A9955" },
+      { token: 'comment', foreground: '75715e' },
+      { token: 'string', foreground: 'e6db74' },
+      { token: 'number', foreground: 'ae81ff' },
+      { token: 'keyword', foreground: 'f92672' },
+      { token: 'type', foreground: '66d9ef' },
+      { token: 'function', foreground: 'a6e22e' },
     ],
     colors: {
-      "editor.background": "#1E1E1E",
+      'editor.background': '#272822',
+      'editor.foreground': '#f8f8f2',
+      'editor.selectionBackground': '#49483e',
     },
   });
+  monaco.editor.defineTheme('not3-light', {
+    base: 'vs',
+    inherit: true,
+    rules: [],
+    colors: { 'editor.background': '#ffffff' },
+  });
+  monaco.editor.setTheme(activeTheme.value.monacoTheme);
+  if (!themeWatchInstalled) {
+    watch(activeTheme, theme => monaco.editor.setTheme(theme.monacoTheme));
+    themeWatchInstalled = true;
+  }
 
   // Set compiler options for TypeScript
   monaco.typescript.typescriptDefaults.setCompilerOptions({
