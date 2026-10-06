@@ -28,6 +28,9 @@ export const VENDOR_PATHS = {
   svelteInternalClient: "svelte/src/internal/client/index.js",
   svelteDiscloseVersion: "svelte/src/internal/disclose-version.js",
   svelteFlagsLegacy: "svelte/src/internal/flags/legacy.js",
+  // svelte's runtime reaches its own constants through the package-internal
+  // "#client/constants" subpath import, which the import map has to resolve.
+  svelteClientConstants: "svelte/src/internal/client/constants.js",
   // Compiled Svelte components' "svelte/internal/client" module graph has
   // real (non-relative) `import ... from 'esm-env'` / `'clsx'` statements
   // (verified by walking the reachable import graph from src/index-client.js

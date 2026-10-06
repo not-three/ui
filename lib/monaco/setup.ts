@@ -1,22 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as monaco from "monaco-editor";
-import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
-import jsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
-import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
-import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
-import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
+import editorWorker from "monaco-editor/editor/editor.worker?worker";
+import jsonWorker from "monaco-editor/languages/features/json/json.worker?worker";
+import cssWorker from "monaco-editor/languages/features/css/css.worker?worker";
+import htmlWorker from "monaco-editor/languages/features/html/html.worker?worker";
+import tsWorker from "monaco-editor/languages/features/typescript/ts.worker?worker";
 import {
   conf as yamlConf,
   language as yamlLanguage,
-} from "monaco-editor/esm/vs/basic-languages/yaml/yaml.js";
+} from "monaco-editor/languages/definitions/yaml/yaml.js";
 import {
   conf as jsConf,
   language as jsLanguage,
-} from "monaco-editor/esm/vs/basic-languages/javascript/javascript.js";
+} from "monaco-editor/languages/definitions/javascript/javascript.js";
 import {
   conf as htmlConf,
   language as htmlLanguage,
-} from "monaco-editor/esm/vs/basic-languages/html/html.js";
+} from "monaco-editor/languages/definitions/html/html.js";
 
 import { languageDefinitions } from "./languages";
 import type { LanguageDefinition } from "./types";
@@ -96,18 +96,18 @@ export async function setupMonaco() {
   });
 
   // Set compiler options for TypeScript
-  monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+  monaco.typescript.typescriptDefaults.setCompilerOptions({
     allowJs: true,
     checkJs: false,
     noEmit: true,
     noResolve: true, // Ignores import errors
-    module: monaco.languages.typescript.ModuleKind.ESNext,
-    target: monaco.languages.typescript.ScriptTarget.ESNext,
-    moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+    module: monaco.typescript.ModuleKind.ESNext,
+    target: monaco.typescript.ScriptTarget.ESNext,
+    moduleResolution: monaco.typescript.ModuleResolutionKind.NodeJs,
   });
 
   // Set diagnostic options to suppress specific error codes (e.g., import errors)
-  monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+  monaco.typescript.typescriptDefaults.setDiagnosticsOptions({
     noSemanticValidation: false,
     noSyntaxValidation: false,
     diagnosticCodesToIgnore: [2792], // Error code for "Cannot find module"

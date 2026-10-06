@@ -49,6 +49,7 @@ export const SvelteRunner: SandboxRunner = {
         "svelte/internal/client": `${vendorBase}/${VENDOR_PATHS.svelteInternalClient}`,
         "svelte/internal/disclose-version": `${vendorBase}/${VENDOR_PATHS.svelteDiscloseVersion}`,
         "svelte/internal/flags/legacy": `${vendorBase}/${VENDOR_PATHS.svelteFlagsLegacy}`,
+        "#client/constants": `${vendorBase}/${VENDOR_PATHS.svelteClientConstants}`,
         "esm-env": `${vendorBase}/${VENDOR_PATHS.svelteEsmEnv}`,
         "esm-env/browser": `${vendorBase}/${VENDOR_PATHS.svelteEsmEnvBrowser}`,
         "esm-env/development": `${vendorBase}/${VENDOR_PATHS.svelteEsmEnvDevelopment}`,

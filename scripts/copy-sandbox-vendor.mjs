@@ -72,7 +72,7 @@ const ENGINES = [
     files: [
       "pyodide.js",
       "pyodide.mjs",
-      "pyodide.asm.js",
+      "pyodide.asm.mjs",
       "pyodide.asm.wasm",
       "python_stdlib.zip",
       "pyodide-lock.json",
@@ -83,22 +83,25 @@ const ENGINES = [
   { from: "papaparse", to: "papaparse", files: ["papaparse.min.js"] },
   // pglite/dist also ships ~150 optional Postgres extension .tar.gz files and
   // contrib/fs/live/vector/worker/ subtrees (extra build variants). Only the
-  // core engine that `new PGlite()` loads is copied: the ESM entry, its five
+  // core engine that `new PGlite()` loads is copied: the ESM entry, its seven
   // chunk-*.js dependencies (verified via static import graph), and the
-  // Postgres wasm binary + preload data it fetches by relative URL.
+  // Postgres + initdb wasm binaries and preload data it fetches by relative
+  // URL.
   {
     from: "@electric-sql/pglite/dist",
     to: "pglite",
     files: [
       "index.js",
-      "chunk-A7RFOIQ7.js",
-      "chunk-BTBUZ646.js",
-      "chunk-EADU5A67.js",
-      "chunk-STOZMFXW.js",
-      "chunk-WGR4JCLS.js",
-      "postgres.js",
-      "postgres.wasm",
-      "postgres.data",
+      "chunk-2BOC2OMW.js",
+      "chunk-DDJLRBDX.js",
+      "chunk-F4GETNPB.js",
+      "chunk-JDT7TZ73.js",
+      "chunk-NNS5RQRF.js",
+      "chunk-QY3QWFKW.js",
+      "chunk-RYDTTX3G.js",
+      "pglite.wasm",
+      "pglite.data",
+      "initdb.wasm",
     ],
   },
   { from: "typescript/lib", to: "typescript", files: ["typescript.js"] },
@@ -167,6 +170,7 @@ const ENGINES = [
     to: "php-wasm",
     files: [
       "PhpWeb.mjs",
+      "PhpWebBase.mjs",
       "PhpBase.mjs",
       "webTransactions.mjs",
       "OutputBuffer.mjs",
@@ -174,7 +178,7 @@ const ENGINES = [
       "fsOps.mjs",
       "resolveDependencies.mjs",
       "php8.4-web.mjs",
-      "e31ec3faf3e2323a2b4a448342b50307765b8217.wasm",
+      "6733ae879e026f8b36961884052b87de4def4e15.wasm",
     ],
   },
   { from: "mermaid/dist", to: "mermaid", files: ["mermaid.min.js"] },

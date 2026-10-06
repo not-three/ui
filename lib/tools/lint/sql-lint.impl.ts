@@ -1,7 +1,8 @@
 import type { ToolRun } from '../types';
 import { invalid, sourceText, valid } from './shared';
-import postgresWasmUrl from '../../../node_modules/@electric-sql/pglite/dist/postgres.wasm?url';
-import postgresDataUrl from '../../../node_modules/@electric-sql/pglite/dist/postgres.data?url';
+import pgliteWasmUrl from '../../../node_modules/@electric-sql/pglite/dist/pglite.wasm?url';
+import initdbWasmUrl from '../../../node_modules/@electric-sql/pglite/dist/initdb.wasm?url';
+import pgliteDataUrl from '../../../node_modules/@electric-sql/pglite/dist/pglite.data?url';
 
 type Statement = { text: string; start: number };
 
@@ -106,8 +107,9 @@ export const run: ToolRun = async (inputs, options) => {
   if (dialect === 'postgresql') {
     const { PGlite, protocol } = await import('@electric-sql/pglite');
     const assets = import.meta.env.MODE === 'test' ? undefined : {
-      wasmModule: await WebAssembly.compile(await (await fetch(postgresWasmUrl)).arrayBuffer()),
-      fsBundle: await (await fetch(postgresDataUrl)).blob(),
+      pgliteWasmModule: await WebAssembly.compile(await (await fetch(pgliteWasmUrl)).arrayBuffer()),
+      initdbWasmModule: await WebAssembly.compile(await (await fetch(initdbWasmUrl)).arrayBuffer()),
+      fsBundle: await (await fetch(pgliteDataUrl)).blob(),
     };
     const db = new PGlite(assets);
     try {
