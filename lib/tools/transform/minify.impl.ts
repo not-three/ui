@@ -73,8 +73,9 @@ function minifyHtml(source: string): string {
       i = end < 0 ? source.length : end + 3;
       continue;
     }
+    const specialMarkup = source[i + 1] === '!' || source[i + 1] === '?';
     tagOpener.lastIndex = i;
-    if (!tagOpener.test(source)) { out += source[i++]; continue; }
+    if (!specialMarkup && !tagOpener.test(source)) { out += source[i++]; continue; }
     let end = i + 1;
     let quote = '';
     while (end < source.length) {
@@ -85,6 +86,7 @@ function minifyHtml(source: string): string {
     }
     const tag = source.slice(i, end);
     if (!tag.endsWith('>')) { out += tag; break; }
+    if (specialMarkup) { out += tag; i = end; continue; }
     const name = /^<([a-z][\w:-]*)\b/i.exec(tag)?.[1]?.toLowerCase();
     if (name && rawTags.has(name) && tag.endsWith('>') && !tag.endsWith('/>')) {
       let close = lower.indexOf(`</${name}`, end);

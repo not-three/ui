@@ -61,16 +61,21 @@ it('preserves whitespace between elements that may be inline', async () => {
   });
 });
 
-it('keeps less-than comparisons in HTML text as text', async () => {
-  expect(await minify('<div>a < b > c</div>', 'html')).toMatchObject({
-    kind: 'text', text: '<div>a < b > c</div>', language: 'html',
-  });
-  expect(await minify('<div>a < b > c<span>ok</span> < 2 > d</div>', 'html')).toMatchObject({
-    kind: 'text', text: '<div>a < b > c<span>ok</span> < 2 > d</div>', language: 'html',
-  });
-  expect(await minify('<div data-note="a < b > c">x</div>', 'html')).toMatchObject({
-    kind: 'text', text: '<div data-note="a < b > c">x</div>', language: 'html',
-  });
+it.each([
+  ['literal comparison', '<div>a < b > c</div>', '<div>a < b > c</div>'],
+  ['adjacent literal and tag', '<div>a < b > c<span>ok</span> < 2 > d</div>', '<div>a < b > c<span>ok</span> < 2 > d</div>'],
+  ['quoted attribute', '<div data-note="a < b > c" data-more=\'x > y\'>x</div>', '<div data-note="a < b > c" data-more=\'x > y\'>x</div>'],
+  ['doctype declaration', '<!DOCTYPE html><div>x</div>', '<!DOCTYPE html><div>x</div>'],
+  ['declaration with quoted greater-than', '<!ENTITY example "a > b"><div>x</div>', '<!ENTITY example "a > b"><div>x</div>'],
+  ['processing instruction', '<?xml value="a > b"?><div>x</div>', '<?xml value="a > b"?><div>x</div>'],
+  ['ordinary comment', '<!-- remove --><div>x</div>', '<div>x</div>'],
+  ['conditional comment', '<!--[if IE]><p>x</p><![endif]-->', '<!--[if IE]><p>x</p><![endif]-->'],
+  ['script body', '<script>const x = "< b >";</script>', '<script>const x = "< b >";</script>'],
+  ['style body', '<style>a::before { content: "< b >"; }</style>', '<style>a::before { content: "< b >"; }</style>'],
+  ['pre body', '<pre>  < b >\n x </pre>', '<pre>  < b >\n x </pre>'],
+  ['textarea body', '<textarea>  < b >\n x </textarea>', '<textarea>  < b >\n x </textarea>'],
+])('preserves HTML tokenizer hazard: %s', async (_name, source, expected) => {
+  expect(await minify(source, 'html')).toMatchObject({ kind: 'text', text: expected, language: 'html' });
 });
 
 it.each([
