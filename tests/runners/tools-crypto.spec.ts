@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-import { withNoNetwork } from './helpers';
+import { APP_ORIGIN, withNoNetwork } from './helpers';
 
 const info = { version: '2.1.1', availableTokens: 100, maxStorageTimeDays: 30, fileTransferEnabled: false, privateMode: false, p2pEnabled: false };
 async function openEditor(page: Page) {
   await page.route('**/api/info', route => route.fulfill({ json: info }));
-  await page.goto('http://127.0.0.1:8789/');
+  await page.goto(`${APP_ORIGIN}/`);
   await expect(page.locator('.monaco-editor').first()).toBeVisible({ timeout: 30_000 });
 }
 
@@ -26,7 +26,7 @@ test('ROT13 works on a selected editor range without network', async ({ page }) 
 });
 
 test('HMAC streams a file on its standalone page without network', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/hmac');
+  await page.goto(`${APP_ORIGIN}/t/hmac`);
   const panel = page.getByRole('region', { name: 'HMAC tool' });
   await panel.getByLabel('Input source').selectOption('file');
   await panel.getByLabel('Input file').setInputFiles({ name: 'abc.txt', mimeType: 'text/plain', buffer: Buffer.from('abc') });
@@ -40,7 +40,7 @@ test('HMAC streams a file on its standalone page without network', async ({ page
 });
 
 test('AES encrypts a file and downloads binary ciphertext locally', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/aes');
+  await page.goto(`${APP_ORIGIN}/t/aes`);
   const panel = page.getByRole('region', { name: 'AES encrypt/decrypt tool' });
   await panel.getByLabel('Input source').selectOption('file');
   await panel.getByLabel('Input file').setInputFiles({ name: 'secret.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([0, 255, 1]) });
@@ -55,7 +55,7 @@ test('AES encrypts a file and downloads binary ciphertext locally', async ({ pag
 });
 
 test('password output can be downloaded without persisting its value', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/password');
+  await page.goto(`${APP_ORIGIN}/t/password`);
   const panel = page.getByRole('region', { name: 'Password generator tool' });
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
