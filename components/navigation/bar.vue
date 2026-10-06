@@ -119,10 +119,10 @@ const entries = computed<NavigationEntry[]>(() => [
         onClick: Actions.SHARE_LINK
       },
       {
-        name: "Copy cURL Command",
+        name: "Share alternatives",
         onClick: Actions.SHARE_CURL,
         disabled: !!activeCowork.value,
-        title: activeCowork.value ? 'Live sessions do not have a cURL command' : undefined,
+        title: activeCowork.value ? 'Use the session share link for live collaboration' : undefined,
       }
     ],
     disabled: store.settings,

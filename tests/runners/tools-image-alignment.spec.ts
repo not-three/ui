@@ -97,7 +97,7 @@ test('background model progress shows advancing bytes only after Run, then proce
     state.__modelFetches = 0;
     const original = window.fetch.bind(window);
     window.fetch = (resource, init) => {
-      if (!String(resource).includes('model_quantized.onnx')) return original(resource, init);
+      if (!String(resource).endsWith('/model_quantized.onnx')) return original(resource, init);
       state.__modelFetches = (state.__modelFetches ?? 0) + 1;
       return Promise.resolve(new Response(new ReadableStream<Uint8Array>({
         start(controller) {
@@ -108,6 +108,7 @@ test('background model progress shows advancing bytes only after Run, then proce
       }), { headers: { 'content-length': String(modelBytes) } }));
     };
   }, MODEL_BYTES);
+  await page.route('**/model_quantized.onnx.parts.json', route => route.fulfill({ status: 404 }));
   await page.goto(`${APP_ORIGIN}/t/remove-background`);
   const panel = page.getByRole('region', { name: 'Remove background tool' });
   await panel.getByLabel('Image file').setInputFiles({ name: 'subject.png', mimeType: 'image/png', buffer: await input(4, 2) });

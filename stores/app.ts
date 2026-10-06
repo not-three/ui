@@ -53,7 +53,7 @@ const useAppStoreBase = defineStore('app', {
     sandboxEngineId: '',
   }),
   actions: {
-    async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean, openShareDialog?: 'url' | 'curl') {
+    async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean, openShareDialog?: 'url' | 'alternatives') {
       if (this.settings) try {
         const parsed = JSON.parse(this.content);
         const settingsStore = useSettingsStore();
