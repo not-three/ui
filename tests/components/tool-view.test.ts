@@ -3,8 +3,9 @@ import { mount } from '@vue/test-utils';
 import type { ToolDefinition, ToolHost, ToolOutput } from '~/lib/tools/types';
 import { diff } from '~/lib/tools/transform/diff';
 
-const settings = { tools: { rememberOptions: true, lastOptions: {} as Record<string, Record<string, string | number | boolean>> } };
+const settings = { tools: { rememberOptions: true, lastOptions: {} as Record<string, Record<string, string | number | boolean>>, image: { exportFormat: 'webp', exportQuality: 82, checkerboard: true } } };
 vi.stubGlobal('useSettingsStore', () => settings);
+vi.mock('~/components/tools/monaco-output.vue', () => ({ default: { name: 'ToolsMonacoOutput', template: '<div />' } }));
 const { default: ToolView } = await import('~/components/tools/tool-view.vue');
 
 type Wrapper = ReturnType<typeof mount>;

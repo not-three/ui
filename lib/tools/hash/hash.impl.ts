@@ -3,6 +3,7 @@ import type { ToolRun } from '../types';
 export const run: ToolRun = async (inputs, options, context) => {
   const input = inputs.input;
   if (!input) throw new Error('Input is required');
+  if (input.kind === 'image') throw new Error('Text or bytes required');
   const wasm = await import('hash-wasm');
   const algorithms = {
     md5: wasm.createMD5, sha1: wasm.createSHA1, sha256: wasm.createSHA256,
