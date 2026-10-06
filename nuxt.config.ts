@@ -1,4 +1,17 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+
+// @vscode/vscode-languagedetection loads its only extra chunk (the TensorFlow
+// CPU backend) through webpack's dynamic `require("./" + chunk)`, which
+// Rolldown cannot bundle, so the model failed at runtime and detection fell
+// back to the regex patterns. Naming the chunk literally lets it be bundled.
+const languageDetectionChunk = {
+  name: "not3:language-detection-chunk",
+  transform(code: string, id: string) {
+    if (!id.includes("vscode-languagedetection/dist/lib/index.js")) return null;
+    return code.replace('require("./"+r.u(e))', 'require("./979.js")');
+  },
+};
+
 export default defineNuxtConfig({
   css: ["~/assets/css/scrollbar.css", "~/assets/css/panel.css"],
   app: {
@@ -58,11 +71,24 @@ export default defineNuxtConfig({
   ssr: false,
   compatibilityDate: "2024-10-19",
   vite: {
+    plugins: [languageDetectionChunk],
+    optimizeDeps: {
+      rolldownOptions: {
+        plugins: [languageDetectionChunk],
+      },
+    },
     worker: {
       format: "es",
     },
     server: {
       allowedHosts: true,
+    },
+    resolve: {
+      alias: {
+        // y-monaco still imports monaco's pre-0.56 deep path, which the
+        // package's exports map no longer exposes; point it at the same module.
+        "monaco-editor/esm/vs/editor/editor.api.js": "monaco-editor/editor/editor.api.js",
+      },
     },
   },
 });

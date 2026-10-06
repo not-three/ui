@@ -32,8 +32,11 @@ export const ReactRunner: SandboxRunner = {
     // starting with "export default function App()" is a SyntaxError for
     // eval/new Function. The commonjs transform rewrites import/export into
     // require/exports, which the shims below satisfy.
+    // Babel 8 defaults the react preset to the automatic runtime, which
+    // imports react/jsx-runtime; the UMD React globals only offer the
+    // classic React.createElement API.
     var compiled = Babel.transform(CODE, {
-      presets: ["react"],
+      presets: [["react", { runtime: "classic" }]],
       plugins: ["transform-modules-commonjs"],
     }).code;
     var moduleShim = { exports: {} };
