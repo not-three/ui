@@ -53,7 +53,7 @@ let runner = createToolRunner(props.tool, value => { state.value = value; });
 let autoRunTimer: ReturnType<typeof setTimeout> | null = null;
 
 function cancelAutoRun() { if (autoRunTimer) clearTimeout(autoRunTimer); autoRunTimer = null; }
-function canAutoRun() { return props.tool.inputs.every(spec => spec.kind === 'text' && sources[spec.id] === 'note'); }
+function canAutoRun() { return props.tool.inputs.length > 0 && props.tool.inputs.every(spec => spec.kind === 'text' && sources[spec.id] === 'note'); }
 function resetTool() {
   cancelAutoRun();
   runner.dispose();
