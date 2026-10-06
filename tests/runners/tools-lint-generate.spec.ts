@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { withNoNetwork } from './helpers';
+import { APP_ORIGIN, withNoNetwork } from './helpers';
 
 const info = { version: '2.1.1', availableTokens: 100, maxStorageTimeDays: 30, fileTransferEnabled: false, privateMode: false, p2pEnabled: false };
 
 test('YAML lint checks pasted text on the standalone route without network', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/yaml-lint');
+  await page.goto(`${APP_ORIGIN}/t/yaml-lint`);
   const panel = page.getByRole('region', { name: 'YAML lint tool' });
   await panel.getByLabel('Input text').fill('items: [a, b');
   const network = await withNoNetwork(page);
@@ -15,7 +15,7 @@ test('YAML lint checks pasted text on the standalone route without network', asy
 
 test('Markdown lint reports a note heading through the editor panel without network', async ({ page }) => {
   await page.route('**/api/info', route => route.fulfill({ json: info }));
-  await page.goto('http://127.0.0.1:8789/');
+  await page.goto(`${APP_ORIGIN}/`);
   await expect(page.locator('.monaco-editor').first()).toBeVisible({ timeout: 30_000 });
   await page.locator('.monaco-editor').first().click();
   await page.keyboard.insertText('# Title\n\n### Deep');
@@ -34,7 +34,7 @@ test('Markdown lint reports a note heading through the editor panel without netw
 });
 
 test('QR tool downloads PNG from pasted text without network', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/qr');
+  await page.goto(`${APP_ORIGIN}/t/qr`);
   const panel = page.getByRole('region', { name: 'QR code tool' });
   await panel.getByLabel('Input text').fill('hello');
   const network = await withNoNetwork(page);
@@ -47,7 +47,7 @@ test('QR tool downloads PNG from pasted text without network', async ({ page }) 
 });
 
 test('CSS lint reads a local file without network', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/css-lint');
+  await page.goto(`${APP_ORIGIN}/t/css-lint`);
   const panel = page.getByRole('region', { name: 'CSS lint tool' });
   await panel.getByLabel('Input source').selectOption('file');
   await panel.getByLabel('Input file').setInputFiles({ name: 'site.css', mimeType: 'text/css', buffer: Buffer.from('body { color: red; }') });
@@ -58,7 +58,7 @@ test('CSS lint reads a local file without network', async ({ page }) => {
 });
 
 test('SQL lint checks SQLite syntax on the standalone route without network', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/sql-lint');
+  await page.goto(`${APP_ORIGIN}/t/sql-lint`);
   const panel = page.getByRole('region', { name: 'SQL lint tool' });
   await panel.getByLabel('Input text').fill('SELECT FROM;');
   const network = await withNoNetwork(page);
@@ -68,7 +68,7 @@ test('SQL lint checks SQLite syntax on the standalone route without network', as
 });
 
 test('SQL lint parses PostgreSQL DDL without network', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/sql-lint');
+  await page.goto(`${APP_ORIGIN}/t/sql-lint`);
   const panel = page.getByRole('region', { name: 'SQL lint tool' });
   await panel.getByLabel('Dialect').selectOption('postgresql');
   await panel.getByLabel('Input text').fill('CREATE TABLE items (id integer PRIMARY KEY);');
