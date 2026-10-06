@@ -14,3 +14,9 @@ test('does not close a backtick fence with tildes', async () => {
 test('requires the closing fence to be at least as long as its opener', async () => {
   expect(await run({ input: textInput('````js\ncode\n```\nmore') }, {}, context)).toMatchObject({ kind: 'report', items: [{ level: 'warning', message: 'Unclosed code fence', position: { line: 1, column: 1 } }] });
 });
+test('does not close a fence indented by four spaces', async () => {
+  expect(await run({ input: textInput('```js\ncode\n    ```') }, {}, context)).toMatchObject({ kind: 'report', items: [{ level: 'warning', message: 'Unclosed code fence', position: { line: 1, column: 1 } }] });
+});
+test('accepts a closing fence indented by three spaces', async () => {
+  expect(await run({ input: textInput('```js\ncode\n   ```') }, {}, context)).toMatchObject({ kind: 'report', items: [{ level: 'success' }] });
+});

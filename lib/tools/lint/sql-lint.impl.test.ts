@@ -29,6 +29,12 @@ test.each([['sqlite', 8], ['postgresql', 12]] as const)('preserves leading white
 test('positions an error in a later SQLite statement', async () => {
   expect(await run({ input: textInput('SELECT "FROM" AS label;\nSELECT FROM;') }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 2, column: 8 } }] });
 });
+test('locates a SQLite syntax token after the same word in a comment', async () => {
+  expect(await run({ input: textInput('-- FROM\nSELECT FROM;') }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 2, column: 8 } }] });
+});
+test('locates a SQLite syntax token after the same word in a string', async () => {
+  expect(await run({ input: textInput("SELECT 'FROM', FROM;") }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 1, column: 16 } }] });
+});
 test('checks every SQLite statement without executing them', async () => {
   expect(await run({ input: textInput('SELECT 1; SELECT FROM;') }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
 });

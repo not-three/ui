@@ -57,6 +57,51 @@ function splitStatements(source: string): Statement[] {
   return statements;
 }
 
+function findCodeToken(source: string, statement: Statement, token: string): number {
+  const end = statement.start + statement.text.length;
+  const word = /^[A-Za-z_0-9]+$/.test(token);
+  for (let i = statement.start; i < end; i++) {
+    const character = source[i];
+    if (character === '-' && source[i + 1] === '-') {
+      const newline = source.indexOf('\n', i + 2);
+      if (newline < 0 || newline >= end) break;
+      i = newline;
+      continue;
+    }
+    if (character === '/' && source[i + 1] === '*') {
+      let depth = 1;
+      i += 2;
+      while (i < end && depth) {
+        if (source.slice(i, i + 2) === '/*') { depth++; i += 2; }
+        else if (source.slice(i, i + 2) === '*/') { depth--; i += 2; }
+        else i++;
+      }
+      i--;
+      continue;
+    }
+    const dollar = character === '$' ? /^\$([A-Za-z_][A-Za-z_0-9]*)?\$/.exec(source.slice(i))?.[0] : undefined;
+    if (dollar) {
+      const closing = source.indexOf(dollar, i + dollar.length);
+      i = closing < 0 || closing >= end ? end : closing + dollar.length - 1;
+      continue;
+    }
+    if (character === '\'' || character === '"' || character === '`' || character === '[') {
+      const closing = character === '[' ? ']' : character;
+      while (++i < end) {
+        if (source[i] === closing) {
+          if (source[i + 1] === closing) { i++; continue; }
+          break;
+        }
+      }
+      continue;
+    }
+    if (source.startsWith(token, i) && i + token.length <= end && (!word || (
+      !/[A-Za-z_0-9]/.test(source[i - 1] ?? '') && !/[A-Za-z_0-9]/.test(source[i + token.length] ?? '')
+    ))) return i;
+  }
+  return -1;
+}
+
 function positionAt(source: string, offset: number): { line: number; column: number } {
   const prefix = source.slice(0, offset).split('\n');
   return { line: prefix.length, column: prefix.at(-1)!.length + 1 };
@@ -107,7 +152,7 @@ export const run: ToolRun = async (inputs, options) => {
         const message = error instanceof Error ? error.message : String(error);
         if (/^(?:no such (?:table|column|index|function|collation sequence)|table .* already exists|index .* already exists|unknown database|ambiguous column name|misuse of aggregate)/i.test(message)) continue;
         const token = /near "([^"]+)"/.exec(message)?.[1];
-        const at = token ? source.indexOf(token, statement.start) : -1;
+        const at = token ? findCodeToken(source, statement, token) : -1;
         const position = at < 0 ? undefined : positionAt(source, at);
         return invalid(message, position?.line, position?.column);
       }
