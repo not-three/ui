@@ -34,7 +34,10 @@ const url = ref('');
 const pointColor = ref('');
 const rectKeys = ['x', 'y', 'width', 'height'] as const;
 const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
-const rectangle = computed(() => props.mode === 'crop' || props.mode === 'region' ? props.value as ImageRegion | undefined : undefined);
+const rectangle = computed(() => {
+  if (props.mode !== 'crop' && props.mode !== 'region') return undefined;
+  return props.value as ImageRegion | undefined ?? (props.width > 0 && props.height > 0 ? { x: 0, y: 0, width: props.width, height: props.height } : undefined);
+});
 const point = computed(() => props.mode === 'point' ? props.value as ImagePoint | undefined : undefined);
 const rectStyle = computed(() => rectangle.value ? { left: `${rectangle.value.x / props.width * 100}%`, top: `${rectangle.value.y / props.height * 100}%`, width: `${rectangle.value.width / props.width * 100}%`, height: `${rectangle.value.height / props.height * 100}%` } : {});
 function handleStyle(handle: string) { return { left: handle.includes('w') ? '0%' : handle.includes('e') ? '100%' : '50%', top: handle.includes('n') ? '0%' : handle.includes('s') ? '100%' : '50%', transform: 'translate(-50%, -50%)', cursor: `${handle}-resize` }; }
@@ -74,7 +77,7 @@ function pointerDown(event: PointerEvent, handle?: string) {
   const start = local(event);
   if (props.mode === 'point') { emit('update:value', start); return; }
   const base = rectangle.value;
-  const inside = base && start.x >= base.x && start.x <= base.x + base.width && start.y >= base.y && start.y <= base.y + base.height;
+  const inside = props.value && base && start.x >= base.x && start.x <= base.x + base.width && start.y >= base.y && start.y <= base.y + base.height;
   dragging = { start, base, handle: handle ?? (inside ? 'move' : 'draw') };
   frame.value?.setPointerCapture(event.pointerId);
   if (!inside && !handle) emit('update:value', { x: start.x, y: start.y, width: 1, height: 1 });

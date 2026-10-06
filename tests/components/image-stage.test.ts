@@ -27,3 +27,11 @@ it('resizes the aspect-locked rectangle from its north handle', async () => {
   expect(wrapper.emitted('update:value')?.at(-1)?.[0]).toEqual({ x: 10, y: 5, width: 30, height: 15 });
   wrapper.unmount();
 });
+
+it('shows full-image handles and numeric controls before a crop is drawn', async () => {
+  const wrapper = mount(ImageStage, { props: { mode: 'crop', width: 100, height: 50, checkerboard: true } });
+  expect(wrapper.findAll('[data-handle]')).toHaveLength(8);
+  expect((wrapper.get('input[aria-label="Crop width"]').element as HTMLInputElement).value).toBe('100');
+  expect(wrapper.emitted('update:value')).toBeUndefined();
+  wrapper.unmount();
+});
