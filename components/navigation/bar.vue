@@ -17,7 +17,7 @@
     <template v-if="activeCowork">
       <button class="border border-white px-2 py-0.5 -my-1" @click="activeCowork.session.saveAsNote()">Save as note</button>
       <button class="flex gap-1 items-center" aria-label="Cowork participants" @click="membersOpen = !membersOpen">
-        <span v-for="peer in activeCowork.session.state.participants" :key="peer.peerId" :title="peer.name" class="w-6 h-6 rounded-full text-xs flex items-center justify-center text-black" :style="{ backgroundColor: peer.color, opacity: peer.connected ? 1 : 0.5 }">{{ peer.name.slice(0, 1).toUpperCase() }}</span>
+        <span v-for="peer in activeCowork.session.state.participants" :key="peer.peerId" :title="peer.name" class="w-6 h-6 rounded-sm text-xs flex items-center justify-center text-black" :style="{ backgroundColor: peer.color, opacity: peer.connected ? 1 : 0.5 }">{{ peer.name.slice(0, 1).toUpperCase() }}</span>
       </button>
       <button class="border border-white px-2 py-0.5 -my-1" @click="coworkShareOpen = true">Share</button>
     </template>
@@ -68,12 +68,15 @@ import { canFormatNote } from '~/lib/format/availability';
 import { canStartCowork } from '~/lib/monaco/editor-actions';
 import { activeCowork, coworkShareOpen, leaveCowork } from '~/lib/cowork/active';
 import { TOOLS } from '~/lib/tools/registry';
+import { hasCustomCss } from '~/lib/theme/custom-css';
+import type { ThemeId } from '~/lib/theme/registry';
 const store = useAppStore();
 const settings = useSettingsStore();
 const membersOpen = ref(false);
 
 const runnable = computed(() => isRunnableLanguage(store.getCurrentLanguage().id));
 const formatAvailable = computed(() => canFormatNote(store, store.getCurrentLanguage().id));
+const chooseTheme = (theme: ThemeId | null) => { settings.theme = theme; };
 
 const entries = computed<NavigationEntry[]>(() => [
   {
@@ -183,6 +186,16 @@ const entries = computed<NavigationEntry[]>(() => [
   {
     name: "About",
     entries: [
+      {
+        name: "Theme",
+        entries: [
+          { name: "Instance default", onClick: () => chooseTheme(null), checked: settings.theme === null },
+          { name: "Default", onClick: () => chooseTheme('default'), checked: settings.theme === 'default' },
+          { name: "Monokai", onClick: () => chooseTheme('monokai'), checked: settings.theme === 'monokai' },
+          { name: "White", onClick: () => chooseTheme('white'), checked: settings.theme === 'white' },
+          ...(hasCustomCss(store.config) ? [{ name: "Custom", onClick: () => chooseTheme('custom'), checked: settings.theme === 'custom' }] : []),
+        ],
+      },
       {
         name: "Edit Settings",
         onClick: Actions.OPEN_SETTINGS,
