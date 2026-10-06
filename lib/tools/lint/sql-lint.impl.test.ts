@@ -55,3 +55,26 @@ test('rejects multiple PostgreSQL statements', async () => {
 test('keeps semicolons inside SQL strings and comments within their statement', async () => {
   expect(await run({ input: textInput("SELECT ';'; -- a comment;\nSELECT 2;") }, { dialect: 'postgresql' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'success' }] });
 });
+test.each([
+  ['postgresql', 'closed trailing block comment', 'SELECT 1; /* complete; */'],
+  ['postgresql', 'nested block comment with separators', 'SELECT 1 /* outer /* inner; */ outer; */; SELECT 2;'],
+  ['postgresql', 'escaped string with separator', String.raw`SELECT E'it\'s;fine'; SELECT 2;`],
+  ['postgresql', 'dollar-quoted body with separator', "DO $$BEGIN RAISE NOTICE 'x;'; END$$; SELECT 2;"],
+  ['postgresql', 'identifier containing a dollar sign', 'SELECT foo$tag$; SELECT 2;'],
+  ['sqlite', 'doubled quote with separator', "SELECT 'a;''b'; SELECT 2;"],
+  ['sqlite', 'line comment with separator', 'SELECT 1; -- ;\nSELECT 2;'],
+  ['sqlite', 'quoted identifier with separator', 'SELECT [a;b]; SELECT 2;'],
+] as const)('lexes valid %s SQL with %s', async (dialect, _case, source) => {
+  expect(await run({ input: textInput(source) }, { dialect }, context)).toMatchObject({ kind: 'report', items: [{ level: 'success' }] });
+});
+test.each([
+  ['postgresql', 'trailing block comment', 'SELECT 1; /* unterminated'],
+  ['postgresql', 'nested block comment', 'SELECT 1; /* outer /* inner */'],
+  ['postgresql', 'dollar-quoted body', 'SELECT 1; $$unterminated'],
+  ['sqlite', 'single-quoted string', "SELECT 'unterminated"],
+] as const)('rejects %s SQL with unterminated %s', async (dialect, _case, source) => {
+  expect(await run({ input: textInput(source) }, { dialect }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+});
+test('allows an EOF SQLite block comment after a valid statement', async () => {
+  expect(await run({ input: textInput('SELECT 1; /* unterminated') }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'success' }] });
+});

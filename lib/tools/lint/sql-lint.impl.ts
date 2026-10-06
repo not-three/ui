@@ -5,100 +5,85 @@ import postgresDataUrl from '../../../node_modules/@electric-sql/pglite/dist/pos
 
 type Statement = { text: string; start: number };
 
-function splitStatements(source: string): Statement[] {
+function lexSql(source: string, dialect: 'sqlite' | 'postgresql'): { statements: Statement[]; code: Uint8Array } {
   const statements: Statement[] = [];
+  const code = new Uint8Array(source.length);
   let start = 0;
   let hasCode = false;
-  for (let i = 0; i < source.length; i++) {
+  let unterminated = false;
+  for (let i = 0; i < source.length;) {
     const character = source[i];
     if (character === '-' && source[i + 1] === '-') {
-      i = source.indexOf('\n', i + 2);
-      if (i < 0) break;
+      const newline = source.indexOf('\n', i + 2);
+      i = newline < 0 ? source.length : newline + 1;
       continue;
     }
     if (character === '/' && source[i + 1] === '*') {
       let depth = 1;
       i += 2;
       while (i < source.length && depth) {
-        if (source.slice(i, i + 2) === '/*') { depth++; i += 2; }
+        if (dialect === 'postgresql' && source.slice(i, i + 2) === '/*') { depth++; i += 2; }
         else if (source.slice(i, i + 2) === '*/') { depth--; i += 2; }
         else i++;
       }
-      i--;
+      if (depth) unterminated = true;
       continue;
     }
-    const dollar = character === '$' ? /^\$([A-Za-z_][A-Za-z_0-9]*)?\$/.exec(source.slice(i))?.[0] : undefined;
+    const dollar = dialect === 'postgresql' && character === '$' && !/[A-Za-z_0-9$]/.test(source[i - 1] ?? '')
+      ? /^\$([A-Za-z_][A-Za-z_0-9]*)?\$/.exec(source.slice(i))?.[0] : undefined;
     if (dollar) {
       hasCode = true;
-      const end = source.indexOf(dollar, i + dollar.length);
-      i = end < 0 ? source.length : end + dollar.length - 1;
+      const closing = source.indexOf(dollar, i + dollar.length);
+      if (closing < 0) unterminated = true;
+      i = closing < 0 ? source.length : closing + dollar.length;
       continue;
     }
-    if (character === '\'' || character === '"' || character === '`' || character === '[') {
+    if (character === '\'' || character === '"' || (dialect === 'sqlite' && (character === '`' || character === '['))) {
       hasCode = true;
       const closing = character === '[' ? ']' : character;
-      while (++i < source.length) {
+      const escaped = dialect === 'postgresql' && character === '\'' && (
+        (/[eE]/.test(source[i - 1] ?? '') && !/[A-Za-z_0-9]/.test(source[i - 2] ?? '')) ||
+        (source.slice(i - 2, i).toUpperCase() === 'U&' && !/[A-Za-z_0-9]/.test(source[i - 3] ?? ''))
+      );
+      i++;
+      let closed = false;
+      while (i < source.length) {
+        if (escaped && source[i] === '\\') { i += 2; continue; }
         if (source[i] === closing) {
-          if (source[i + 1] === closing) { i++; continue; }
+          if (source[i + 1] === closing) { i += 2; continue; }
+          i++;
+          closed = true;
           break;
         }
+        i++;
       }
+      if (!closed) unterminated = true;
       continue;
     }
+    code[i] = 1;
     if (character === ';') {
       if (hasCode) statements.push({ text: source.slice(start, i + 1), start });
       start = i + 1;
       hasCode = false;
+      i++;
       continue;
     }
     if (!/\s/.test(character)) hasCode = true;
+    i++;
   }
-  if (hasCode) statements.push({ text: source.slice(start), start });
-  return statements;
+  if (hasCode || unterminated) statements.push({ text: source.slice(start), start });
+  return { statements, code };
 }
 
-function findCodeToken(source: string, statement: Statement, token: string): number {
+function findCodeToken(source: string, code: Uint8Array, statement: Statement, token: string): number {
   const end = statement.start + statement.text.length;
   const word = /^[A-Za-z_0-9]+$/.test(token);
   let match = -1;
-  for (let i = statement.start; i < end; i++) {
-    const character = source[i];
-    if (character === '-' && source[i + 1] === '-') {
-      const newline = source.indexOf('\n', i + 2);
-      if (newline < 0 || newline >= end) break;
-      i = newline;
-      continue;
-    }
-    if (character === '/' && source[i + 1] === '*') {
-      let depth = 1;
-      i += 2;
-      while (i < end && depth) {
-        if (source.slice(i, i + 2) === '/*') { depth++; i += 2; }
-        else if (source.slice(i, i + 2) === '*/') { depth--; i += 2; }
-        else i++;
-      }
-      i--;
-      continue;
-    }
-    const dollar = character === '$' ? /^\$([A-Za-z_][A-Za-z_0-9]*)?\$/.exec(source.slice(i))?.[0] : undefined;
-    if (dollar) {
-      const closing = source.indexOf(dollar, i + dollar.length);
-      i = closing < 0 || closing >= end ? end : closing + dollar.length - 1;
-      continue;
-    }
-    if (character === '\'' || character === '"' || character === '`' || character === '[') {
-      const closing = character === '[' ? ']' : character;
-      while (++i < end) {
-        if (source[i] === closing) {
-          if (source[i + 1] === closing) { i++; continue; }
-          break;
-        }
-      }
-      continue;
-    }
+  for (let i = statement.start; i + token.length <= end; i++) {
     if (source.startsWith(token, i) && i + token.length <= end && (!word || (
       !/[A-Za-z_0-9]/.test(source[i - 1] ?? '') && !/[A-Za-z_0-9]/.test(source[i + token.length] ?? '')
     ))) {
+      if (!code.subarray(i, i + token.length).every(value => value === 1)) continue;
       // sql.js gives token text without an offset; repeated code tokens are ambiguous.
       if (match >= 0) return -1;
       match = i;
@@ -114,10 +99,10 @@ function positionAt(source: string, offset: number): { line: number; column: num
 
 export const run: ToolRun = async (inputs, options) => {
   const source = sourceText(inputs);
-  const statements = splitStatements(source);
-  if (!statements.length) return invalid('SQL is empty');
   const dialect = options.dialect || 'sqlite';
   if (dialect !== 'sqlite' && dialect !== 'postgresql') return invalid('Unknown SQL dialect');
+  const { statements, code } = lexSql(source, dialect);
+  if (!statements.length) return invalid('SQL is empty');
   if (dialect === 'postgresql') {
     const { PGlite, protocol } = await import('@electric-sql/pglite');
     const assets = import.meta.env.MODE === 'test' ? undefined : {
@@ -157,7 +142,7 @@ export const run: ToolRun = async (inputs, options) => {
         const message = error instanceof Error ? error.message : String(error);
         if (/^(?:no such (?:table|column|index|function|collation sequence)|table .* already exists|index .* already exists|unknown database|ambiguous column name|misuse of aggregate)/i.test(message)) continue;
         const token = /near "([^"]+)"/.exec(message)?.[1];
-        const at = token ? findCodeToken(source, statement, token) : -1;
+        const at = token ? findCodeToken(source, code, statement, token) : -1;
         const position = at < 0 ? undefined : positionAt(source, at);
         return invalid(message, position?.line, position?.column);
       }
