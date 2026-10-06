@@ -40,8 +40,10 @@ export function readJxlDimensions(bytes: Uint8Array): { width: number; height: n
   if (bytes.length < signature.length || !signature.every((value, index) => bytes[index] === value)) return null;
 
   const prefix = new Uint8Array(11); // marker plus the longest SizeHeader (70 bits)
-  let used = 0;
+  const fragments: Array<{ index: number; payload: Uint8Array }> = [];
+  let version: number | null = null;
   let nextPart = 0;
+  let seen: Uint8Array | undefined;
   for (let offset = signature.length; offset < bytes.length;) {
     if (offset + 8 > bytes.length) return null;
     const view = new DataView(bytes.buffer, bytes.byteOffset + offset);
@@ -52,19 +54,48 @@ export function readJxlDimensions(bytes: Uint8Array): { width: number; height: n
       ? view.getUint32(8) * 0x100000000 + view.getUint32(12) : declared;
     if (!Number.isSafeInteger(size) || size < headerSize || size > bytes.length - offset) return null;
     const type = boxType(bytes, offset);
-    let payload = offset + headerSize;
-    if (type === 'jxlc' || type === 'jxlp') {
-      if (type === 'jxlp') {
-        if (size - headerSize < 4 || (view.getUint32(headerSize) & 0x7fffffff) !== nextPart++) return null;
-        payload += 4;
-      } else if (nextPart !== 0) return null;
-      const count = Math.min(prefix.length - used, offset + size - payload);
-      prefix.set(bytes.subarray(payload, payload + count), used);
-      used += count;
-      const dimensions = sizeHeader(prefix.subarray(0, used));
-      if (dimensions) return dimensions;
+    const payload = offset + headerSize;
+    if (type === 'ftyp') {
+      if (version !== null || size - headerSize < 12 || String.fromCharCode(...bytes.subarray(payload, payload + 4)) !== 'jxl ') return null;
+      version = view.getUint32(headerSize + 4);
+      if (version > 1) return null;
+    } else if (type === 'jxlc') {
+      if (version === null || nextPart !== 0) return null;
+      return sizeHeader(bytes.subarray(payload, Math.min(payload + prefix.length, offset + size)));
+    } else if (type === 'jxlp') {
+      if (version === null || size - headerSize < 4) return null;
+      const index = view.getUint32(headerSize) & 0x7fffffff;
+      if (version === 0 && index !== nextPart++) return null;
+      if (version === 1) {
+        const possibleParts = Math.floor(bytes.length / 12);
+        if (index >= possibleParts) return null;
+        seen ??= new Uint8Array(Math.ceil(possibleParts / 8));
+        const flag = 1 << (index & 7);
+        if (seen[index >> 3]! & flag) return null;
+        seen[index >> 3] = seen[index >> 3]! | flag;
+      }
+      const start = payload + 4;
+      if (start < offset + size) {
+        fragments.push({ index, payload: bytes.subarray(start, Math.min(start + prefix.length, offset + size)) });
+        fragments.sort((a, b) => a.index - b.index);
+        if (fragments.length > prefix.length) fragments.pop();
+      }
     }
     offset += size;
+  }
+  if (!fragments.length) return null;
+  if (seen) {
+    for (let index = 0; index <= fragments.at(-1)!.index; index++) {
+      if (!(seen[index >> 3]! & (1 << (index & 7)))) return null;
+    }
+  }
+  let used = 0;
+  for (const fragment of fragments) {
+    const count = Math.min(prefix.length - used, fragment.payload.length);
+    prefix.set(fragment.payload.subarray(0, count), used);
+    used += count;
+    const dimensions = sizeHeader(prefix.subarray(0, used));
+    if (dimensions) return dimensions;
   }
   return null;
 }

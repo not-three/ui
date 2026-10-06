@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { getCodec } from '../../../lib/image/codecs';
 import { decodeImage, inspectImage } from '../../../lib/image/decode';
 
@@ -7,6 +8,7 @@ const wide = Uint8Array.from([255, 10, 0, 0, 1, 128, 0]); // 16385 × 1
 const overflow = Uint8Array.from([255, 10, 254, 255, 255, 255, 241, 255, 255, 255, 15]); // 2^30 × 2^30
 const small = Uint8Array.from([255, 10, 8, 0, 4, 0]); // 3 × 2
 const signature = Uint8Array.from([0, 0, 0, 12, 74, 88, 76, 32, 13, 10, 135, 10]);
+const outOfOrderFixture = new Uint8Array(readFileSync('tests/fixtures/image/v1-out-of-order.jxl'));
 
 function box(type: string, payload: Uint8Array): Uint8Array {
   const bytes = new Uint8Array(payload.length + 8);
@@ -17,9 +19,17 @@ function box(type: string, payload: Uint8Array): Uint8Array {
 }
 
 function container(...boxes: Uint8Array[]): Uint8Array {
-  const bytes = new Uint8Array(signature.length + boxes.reduce((size, part) => size + part.length, 0));
+  return containerVersion(0, ...boxes);
+}
+
+function containerVersion(version: number, ...boxes: Uint8Array[]): Uint8Array {
+  const ftypPayload = Uint8Array.from([106, 120, 108, 32, 0, 0, 0, 0, 106, 120, 108, 32]);
+  new DataView(ftypPayload.buffer).setUint32(4, version);
+  const ftyp = box('ftyp', ftypPayload);
+  const bytes = new Uint8Array(signature.length + ftyp.length + boxes.reduce((size, part) => size + part.length, 0));
   bytes.set(signature);
-  let offset = signature.length;
+  bytes.set(ftyp, signature.length);
+  let offset = signature.length + ftyp.length;
   for (const part of boxes) { bytes.set(part, offset); offset += part.length; }
   return bytes;
 }
@@ -37,6 +47,7 @@ it.each([
   ['naked codestream', large],
   ['jxlc box', container(box('jxlc', large))],
   ['split jxlp boxes', container(part(0, large.subarray(0, 3)), part(0x80000001, large.subarray(3)))],
+  ['version-1 out-of-order jxlp boxes', containerVersion(1, part(0x80000001, large.subarray(3)), part(0, large.subarray(0, 3)))],
 ])('rejects a 60 MP %s before invoking the full decoder', async (_, bytes) => {
   const codec = getCodec('jxl');
   vi.spyOn(codec, 'canDecode').mockResolvedValue(true);
@@ -67,6 +78,8 @@ it.each([
   ['truncated box', container(box('jxlc', large).subarray(0, 9))],
   ['missing codestream', container(box('Exif', new Uint8Array(4)))],
   ['out of order fragments', container(part(1, small))],
+  ['missing first version-1 fragment', containerVersion(1, part(0x80000001, small))],
+  ['unsupported container version', containerVersion(2, part(0x80000000, small))],
 ])('rejects %s with a named JXL dimension error before full decode', async (_, bytes) => {
   const codec = getCodec('jxl');
   vi.spyOn(codec, 'canDecode').mockResolvedValue(true);
@@ -82,5 +95,15 @@ it('reads a small codestream without asking the full decoder for dimensions', as
   const fullDecode = vi.spyOn(codec, 'decode').mockResolvedValue(bitmap);
   expect(inspectImage(small)).toMatchObject({ format: 'jxl', width: 3, height: 2 });
   await expect(decodeImage(small)).resolves.toMatchObject({ width: 3, height: 2 });
+  expect(fullDecode).toHaveBeenCalledOnce();
+});
+
+it('reads a valid version-1 container whose jxlp boxes arrive out of order', async () => {
+  const codec = getCodec('jxl');
+  vi.spyOn(codec, 'canDecode').mockResolvedValue(true);
+  const bitmap = { width: 3, height: 2, close: vi.fn() } as unknown as ImageBitmap;
+  const fullDecode = vi.spyOn(codec, 'decode').mockResolvedValue(bitmap);
+  expect(inspectImage(outOfOrderFixture)).toMatchObject({ format: 'jxl', width: 3, height: 2 });
+  await expect(decodeImage(outOfOrderFixture)).resolves.toMatchObject({ width: 3, height: 2 });
   expect(fullDecode).toHaveBeenCalledOnce();
 });
