@@ -1,0 +1,1 @@
+import{r}from"./bpIC9HqP.js";const o=async e=>({kind:"text",text:r(e.input,"Input").replace(/[A-Za-z]/g,t=>String.fromCharCode(t.charCodeAt(0)+(t.toLowerCase()<="m"?13:-13))),language:"plaintext"});export{o as run};
