@@ -11,8 +11,6 @@ import { fileURLToPath } from "node:url";
 const WANTED = ["numpy", "micropip", "packaging"];
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PYODIDE_VERSION = JSON.parse(readFileSync(join(root, "node_modules", "pyodide", "package.json"), "utf8")).version;
-const BASE = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full`;
 const dir = join(root, "public", "vendor", "pyodide");
 const lockPath = join(dir, "pyodide-lock.json");
 
@@ -21,6 +19,10 @@ if (!existsSync(lockPath)) {
   process.exit(0);
 }
 const lock = JSON.parse(readFileSync(lockPath, "utf8"));
+// copy-sandbox-vendor copies the lockfile from node_modules/pyodide, so the
+// installed package is the release the lockfile belongs to.
+const PYODIDE_VERSION = JSON.parse(readFileSync(join(root, "node_modules", "pyodide", "package.json"), "utf8")).version;
+const BASE = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full`;
 
 // Wheels have dependencies; pull those in too so imports resolve offline.
 const queue = [...WANTED];
