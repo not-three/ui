@@ -60,6 +60,7 @@ function splitStatements(source: string): Statement[] {
 function findCodeToken(source: string, statement: Statement, token: string): number {
   const end = statement.start + statement.text.length;
   const word = /^[A-Za-z_0-9]+$/.test(token);
+  let match = -1;
   for (let i = statement.start; i < end; i++) {
     const character = source[i];
     if (character === '-' && source[i + 1] === '-') {
@@ -97,9 +98,13 @@ function findCodeToken(source: string, statement: Statement, token: string): num
     }
     if (source.startsWith(token, i) && i + token.length <= end && (!word || (
       !/[A-Za-z_0-9]/.test(source[i - 1] ?? '') && !/[A-Za-z_0-9]/.test(source[i + token.length] ?? '')
-    ))) return i;
+    ))) {
+      // sql.js gives token text without an offset; repeated code tokens are ambiguous.
+      if (match >= 0) return -1;
+      match = i;
+    }
   }
-  return -1;
+  return match;
 }
 
 function positionAt(source: string, offset: number): { line: number; column: number } {

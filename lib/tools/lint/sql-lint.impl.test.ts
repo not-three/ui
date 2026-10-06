@@ -34,9 +34,17 @@ test.each([
   ['earlier statement', 'SELECT "FROM" AS label;\nSELECT FROM;', 2, 8],
   ['comment before a later statement', 'SELECT 1; -- FROM\nSELECT FROM;', 2, 8],
   ['multiline statement', "SELECT 'FROM',\nFROM;", 2, 1],
-  ['repeated code token', 'SELECT FROM, FROM;', 1, 8],
 ] as const)('locates a SQLite syntax token after %s', async (_case, source, line, column) => {
   expect(await run({ input: textInput(source) }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line, column } }] });
+});
+test.each([
+  ['invalid first token', 'SELECT FROM, FROM;'],
+  ['invalid second token', 'SELECT 1 FROM FROM;'],
+] as const)('omits an ambiguous SQLite position for %s', async (_case, source) => {
+  const result = await run({ input: textInput(source) }, { dialect: 'sqlite' }, context);
+  expect(result).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+  if (result.kind !== 'report') throw new Error('Expected a SQL report');
+  expect(result.items[0]).not.toHaveProperty('position');
 });
 test('checks every SQLite statement without executing them', async () => {
   expect(await run({ input: textInput('SELECT 1; SELECT FROM;') }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
