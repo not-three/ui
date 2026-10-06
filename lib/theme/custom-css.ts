@@ -1,4 +1,5 @@
 export type CustomCssConfig = { customCSS?: string; customCSSURL?: string }
+export const CUSTOM_CSS_LOADED_EVENT = 'not3-custom-css-loaded'
 
 export function hasCustomCss(config: CustomCssConfig): boolean {
   return !!(config.customCSS?.trim() || config.customCSSURL?.trim())
@@ -15,8 +16,9 @@ export function syncCustomCss(activeTheme: string | null, config: CustomCssConfi
 
   // A URL takes precedence when both forms are configured.
   const kind = url ? 'LINK' : 'STYLE'
-  if (existing?.tagName !== kind) existing?.remove()
-  const element = existing?.tagName === kind ? existing : document.createElement(url ? 'link' : 'style')
+  const reusable = existing?.tagName === kind && (!url || existing.getAttribute('href') === url)
+  if (!reusable) existing?.remove()
+  const element = reusable && existing ? existing : document.createElement(url ? 'link' : 'style')
   element.id = 'not3-custom-css'
   if (url) {
     const link = element as HTMLLinkElement

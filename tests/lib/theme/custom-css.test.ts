@@ -32,4 +32,15 @@ describe('custom CSS lifecycle', () => {
     syncCustomCss('custom', { customCSS: ' ', customCSSURL: '\n' })
     expect(document.querySelector('#not3-custom-css')).toBeNull()
   })
+
+  it('replaces a URL link when the operator changes the URL', () => {
+    const first = 'data:text/css,body%7Bcolor%3Ared%7D'
+    const second = 'data:text/css,body%7Bcolor%3Ablue%7D'
+    syncCustomCss('custom', { customCSSURL: first })
+    const oldLink = document.getElementById('not3-custom-css')
+    syncCustomCss('custom', { customCSSURL: second })
+    expect(document.querySelectorAll('#not3-custom-css')).toHaveLength(1)
+    expect(document.getElementById('not3-custom-css')).not.toBe(oldLink)
+    expect(document.querySelector<HTMLLinkElement>('#not3-custom-css')?.getAttribute('href')).toBe(second)
+  })
 })

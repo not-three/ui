@@ -69,7 +69,7 @@ import { canStartCowork } from '~/lib/monaco/editor-actions';
 import { activeCowork, coworkShareOpen, leaveCowork } from '~/lib/cowork/active';
 import { TOOLS } from '~/lib/tools/registry';
 import { hasCustomCss } from '~/lib/theme/custom-css';
-import type { ThemeId } from '~/lib/theme/registry';
+import { resolveTheme, type ThemeId } from '~/lib/theme/registry';
 const store = useAppStore();
 const settings = useSettingsStore();
 const membersOpen = ref(false);
@@ -77,6 +77,10 @@ const membersOpen = ref(false);
 const runnable = computed(() => isRunnableLanguage(store.getCurrentLanguage().id));
 const formatAvailable = computed(() => canFormatNote(store, store.getCurrentLanguage().id));
 const chooseTheme = (theme: ThemeId | null) => { settings.theme = theme; };
+const selectedTheme = computed(() => settings.theme === null ? null : resolveTheme({
+  setting: settings.theme,
+  hasCustomCss: hasCustomCss(store.config),
+}).id);
 
 const entries = computed<NavigationEntry[]>(() => [
   {
@@ -190,10 +194,10 @@ const entries = computed<NavigationEntry[]>(() => [
         name: "Theme",
         entries: [
           { name: "Instance default", onClick: () => chooseTheme(null), checked: settings.theme === null },
-          { name: "Default", onClick: () => chooseTheme('default'), checked: settings.theme === 'default' },
-          { name: "Monokai", onClick: () => chooseTheme('monokai'), checked: settings.theme === 'monokai' },
-          { name: "White", onClick: () => chooseTheme('white'), checked: settings.theme === 'white' },
-          ...(hasCustomCss(store.config) ? [{ name: "Custom", onClick: () => chooseTheme('custom'), checked: settings.theme === 'custom' }] : []),
+          { name: "Default", onClick: () => chooseTheme('default'), checked: selectedTheme.value === 'default' },
+          { name: "Monokai", onClick: () => chooseTheme('monokai'), checked: selectedTheme.value === 'monokai' },
+          { name: "White", onClick: () => chooseTheme('white'), checked: selectedTheme.value === 'white' },
+          ...(hasCustomCss(store.config) ? [{ name: "Custom", onClick: () => chooseTheme('custom'), checked: selectedTheme.value === 'custom' }] : []),
         ],
       },
       {
