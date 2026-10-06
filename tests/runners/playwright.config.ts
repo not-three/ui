@@ -10,12 +10,18 @@ import { defineConfig } from "@playwright/test";
 import { drawCheckout } from "./draw-path.mjs";
 import { runnerPorts } from "./ports.mjs";
 
+const workerOverride = process.env.NOT3_RUNNER_WORKERS;
+const workers = workerOverride === undefined ? 2 : Number(workerOverride);
+if (workerOverride !== undefined && (!/^[1-9]\d*$/.test(workerOverride) || !Number.isSafeInteger(workers))) {
+  throw new Error("NOT3_RUNNER_WORKERS must be a positive integer");
+}
+
 export default defineConfig({
   testDir: ".",
   testMatch: "**/*.spec.ts",
   timeout: 120_000, // pyodide/php-wasm boots are slow on first load
   fullyParallel: true,
-  workers: 2,
+  workers,
   use: { baseURL: runnerPorts.staticOrigin },
   webServer: [
     {
