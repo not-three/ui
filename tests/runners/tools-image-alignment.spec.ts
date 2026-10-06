@@ -97,7 +97,9 @@ test('background model progress shows advancing bytes only after Run, then proce
     state.__modelFetches = 0;
     const original = window.fetch.bind(window);
     window.fetch = (resource, init) => {
-      if (!String(resource).includes('model_quantized.onnx')) return original(resource, init);
+      const url = String(resource);
+      if (url.endsWith('model_quantized.onnx.parts.json')) return Promise.resolve(new Response(null, { status: 404 }));
+      if (!url.endsWith('model_quantized.onnx')) return original(resource, init);
       state.__modelFetches = (state.__modelFetches ?? 0) + 1;
       return Promise.resolve(new Response(new ReadableStream<Uint8Array>({
         start(controller) {
