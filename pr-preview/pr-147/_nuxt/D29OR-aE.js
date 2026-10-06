@@ -1,0 +1,1 @@
+import{r as s}from"./bpIC9HqP.js";const c=async(n,o)=>{const t=Number(o.shift??3);if(!Number.isInteger(t)||t<-25||t>25)throw new Error("Shift must be an integer from -25 to 25");return{kind:"text",text:s(n.input,"Input").replace(/[A-Za-z]/g,i=>{const e=i.charCodeAt(0),r=e>=97?97:65;return String.fromCharCode(r+(e-r+t+26)%26)}),language:"plaintext"}};export{c as run};

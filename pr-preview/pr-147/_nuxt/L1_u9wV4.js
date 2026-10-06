@@ -1,0 +1,1 @@
+const a=async(r,i)=>{const t=r.left,e=r.right;if(!t||t.kind!=="text"||!e||e.kind!=="text")throw new Error("Two text inputs are required");const n=i.ignoreWhitespace?{displayLeft:t.text.replace(/\s+/g," ").trim(),displayRight:e.text.replace(/\s+/g," ").trim()}:{};return{kind:"diff",left:t.text,right:e.text,...n,language:t.language||e.language}};export{a as run};
