@@ -1,2 +1,0 @@
-import{a2 as c}from"./f1mhg7ek.js";import{s,v as u,i as m}from"./D7wJTuEw.js";const _=async r=>{const{parseDocument:n}=await c(async()=>{const{parseDocument:i}=await import("./BiKnrw8E.js");return{parseDocument:i}},[],import.meta.url),t=n(s(r),{uniqueKeys:!0});if(!t.errors.length)return u("Valid YAML");const e=t.errors[0],a=e.pos[0],o=s(r).slice(0,a).split(`
-`);return m(e.message,o.length,o.at(-1).length+1)};export{_ as run};
