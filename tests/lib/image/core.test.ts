@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { sniffFormat } from '../../../lib/image/codecs';
+import { getCodec, sniffFormat } from '../../../lib/image/codecs';
 import { decodeImage, inspectImage } from '../../../lib/image/decode';
 import { pixelsOf } from '../../../lib/image/raster';
 import { putHandoff, takeHandoff } from '../../../lib/tools/handoff';
@@ -27,8 +27,33 @@ it('rejects byte, pixel and canvas limits before browser decode', async () => {
   new DataView(png.buffer).setUint32(20, 1);
   await expect(decodeImage(png)).rejects.toThrow('16384');
   expect(decode).not.toHaveBeenCalled();
-  await expect(decodeImage(new Uint8Array(256 * 1024 * 1024 + 1))).rejects.toThrow('256 MiB');
+  const tooManyBytes = new Uint8Array(256 * 1024 * 1024 + 1);
+  tooManyBytes.set([255, 10]);
+  const jxlDecode = vi.spyOn(getCodec('jxl'), 'decode');
+  const heicDecode = vi.spyOn(getCodec('heic'), 'decode');
+  await expect(decodeImage(tooManyBytes)).rejects.toThrow('256 MiB');
+  tooManyBytes.set([0, 0, 0, 24]);
+  tooManyBytes.set(new TextEncoder().encode('ftypheic'), 4);
+  await expect(decodeImage(tooManyBytes)).rejects.toThrow('256 MiB');
+  expect(jxlDecode).not.toHaveBeenCalled();
+  expect(heicDecode).not.toHaveBeenCalled();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+it('checks uninspectable JXL and HEIC dimensions after codec decode', async () => {
+  for (const [format, bytes, width, height, message] of [
+    ['jxl', new Uint8Array([255, 10, 0, 0]), 10_000, 6_000, '50 MP'],
+    ['heic', new TextEncoder().encode('\0\0\0\x18ftypheic'), 16_385, 1, '16384'],
+  ] as const) {
+    expect(inspectImage(bytes).width).toBe(0);
+    const close = vi.fn();
+    vi.spyOn(getCodec(format), 'canDecode').mockResolvedValue(true);
+    vi.spyOn(getCodec(format), 'decode').mockResolvedValue({ width, height, close } as unknown as ImageBitmap);
+    await expect(decodeImage(bytes)).rejects.toThrow(message);
+    expect(close).toHaveBeenCalledOnce();
+    vi.restoreAllMocks();
+  }
 });
 
 it('reads JPEG orientation and recognises undecodable metadata containers', () => {

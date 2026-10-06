@@ -38,8 +38,8 @@ const extensions: Record<ImageFormat, string[]> = {
   png: ['png'], jpeg: ['jpg', 'jpeg'], webp: ['webp'], avif: ['avif'], jxl: ['jxl'],
   gif: ['gif'], bmp: ['bmp'], svg: ['svg'], heic: ['heic', 'heif'], ico: ['ico'],
 };
-const nativeDecode = new Set<ImageFormat>(['png', 'jpeg', 'webp', 'gif', 'bmp', 'avif', 'svg']);
-const nativeEncode = new Set<ImageFormat>(['png', 'jpeg', 'webp']);
+const nativeDecode = new Set<ImageFormat>(['png', 'jpeg', 'webp', 'gif', 'bmp', 'avif', 'svg', 'jxl', 'heic']);
+const nativeEncode = new Set<ImageFormat>(['png', 'jpeg', 'webp', 'avif', 'jxl']);
 const probeCache = new Map<ImageFormat, Promise<boolean>>();
 
 function canvas(width: number, height: number): OffscreenCanvas | HTMLCanvasElement {
@@ -102,12 +102,43 @@ function probe(format: ImageFormat): Promise<boolean> {
   })());
   return probeCache.get(format)!;
 }
+const vendor = () => import('./vendor-codecs');
+async function canDecode(format: ImageFormat): Promise<boolean> {
+  if (format === 'jxl' || format === 'heic') return (await vendor()).vendorAvailable(format, 'decode');
+  return nativeDecode.has(format);
+}
+async function canEncode(format: ImageFormat): Promise<boolean> {
+  if (await probe(format)) return true;
+  if (['png', 'jpeg', 'webp', 'avif', 'jxl'].includes(format)) return (await vendor()).vendorAvailable(format, 'encode');
+  return false;
+}
+async function decode(bytes: Uint8Array, format: ImageFormat, signal?: AbortSignal): Promise<ImageBitmap> {
+  if (nativeDecode.has(format)) {
+    try { return await browserDecode(bytes, format, signal); }
+    catch (error) {
+      if (signal?.aborted || !['png', 'jpeg', 'webp', 'avif', 'jxl', 'heic'].includes(format)) throw error;
+    }
+  }
+  if (['png', 'jpeg', 'webp', 'avif', 'jxl', 'heic'].includes(format)) return (await vendor()).decodeVendor(bytes, format as 'png' | 'jpeg' | 'webp' | 'avif' | 'jxl' | 'heic', signal);
+  throw new Error(`Cannot decode ${format}; this browser has no decoder and no vendored one`);
+}
+async function encode(bitmap: ImageBitmap, format: ImageFormat, options: EncodeOptions, signal?: AbortSignal): Promise<Blob> {
+  if (!options.lossless || format === 'png' || format === 'jpeg') {
+    if (await probe(format)) {
+      try { return await nativeEncodeBitmap(bitmap, format, options, signal); }
+      catch (error) { if (signal?.aborted) throw error; }
+    }
+  }
+  if (['png', 'jpeg', 'webp', 'avif', 'jxl'].includes(format)) return (await vendor()).encodeVendor(bitmap, format as 'png' | 'jpeg' | 'webp' | 'avif' | 'jxl', options, signal);
+  throw new Error(`Cannot encode ${format}; this browser has no encoder and no vendored one`);
+}
 const formats = Object.keys(mime) as ImageFormat[];
 const codecs = Object.fromEntries(formats.map(format => [format, {
   format, mimeType: mime[format], extensions: extensions[format],
-  canDecode: async () => nativeDecode.has(format), canEncode: () => probe(format),
-  decode: (bytes: Uint8Array, signal?: AbortSignal) => nativeDecode.has(format) ? browserDecode(bytes, format, signal) : Promise.reject(new Error(`Cannot decode ${format}; this browser has no decoder and no vendored one`)),
-  ...nativeEncode.has(format) ? { encode: (bitmap: ImageBitmap, options: EncodeOptions, signal?: AbortSignal) => nativeEncodeBitmap(bitmap, format, options, signal) } : {},
+  canDecode: () => canDecode(format), canEncode: () => canEncode(format),
+  decode: (bytes: Uint8Array, signal?: AbortSignal) => decode(bytes, format, signal),
+  ...nativeEncode.has(format) ? { encode: (bitmap: ImageBitmap, options: EncodeOptions, signal?: AbortSignal) => encode(bitmap, format, options, signal) } : {},
+  supportsLossless: ['webp', 'avif', 'jxl'].includes(format),
 }])) as Record<ImageFormat, Codec>;
 
 export const EXPORT_FORMATS: ImageFormat[] = ['png', 'jpeg', 'webp', 'avif', 'jxl'];
