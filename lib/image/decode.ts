@@ -1,4 +1,5 @@
 import { getCodec, sniffFormat, type ImageFormat } from './codecs';
+import { readJxlDimensions } from './jxl-header';
 import type { ToolInput } from '../tools/types';
 
 export const IMAGE_BYTE_LIMIT = 256 * 1024 * 1024;
@@ -65,6 +66,7 @@ export function inspectImage(bytes: Uint8Array): { format: ImageFormat | null; w
     }
   }
   if (format === 'avif' && bytes.length >= 12) animated = String.fromCharCode(...bytes.subarray(8, 12)) === 'avis';
+  if (format === 'jxl') ({ width, height } = readJxlDimensions(bytes) ?? { width: 0, height: 0 });
   if (format === 'ico' && bytes.length >= 8) { width = bytes[6] || 256; height = bytes[7] || 256; }
   if (format === 'webp' && bytes.length >= 30) {
     const chunk = String.fromCharCode(...bytes.subarray(12, 16));
@@ -118,7 +120,7 @@ export async function decodeImage(bytes: Uint8Array, name?: string, signal?: Abo
     const placeholder = await createImageBitmap(new ImageData(1, 1));
     return { kind: 'image', bitmap: placeholder, width: 0, height: 0, bytes, mimeType: codec.mimeType, name };
   }
-  if ((info.width <= 0 || info.height <= 0) && info.format !== 'jxl' && info.format !== 'heic') throw new Error(`Cannot inspect ${info.format} dimensions before decode`);
+  if ((info.width <= 0 || info.height <= 0) && info.format !== 'heic') throw new Error(`Cannot inspect ${info.format} dimensions before decode`);
   let bitmap: ImageBitmap;
   try {
     bitmap = await codec.decode(bytes, signal);
