@@ -1,1 +1,0 @@
-import{a2 as n}from"./B-AnMO_Q.js";import{r as o}from"./DUvdlj1-.js";const l=async t=>{const e=o(t.input),{default:r}=await n(async()=>{const{default:a}=await import("./CVh-0kcX.js");return{default:a}},[],import.meta.url);return{kind:"text",text:new r({html:!1,linkify:!0}).render(e),language:"html",filename:"converted.html"}};export{l as run};

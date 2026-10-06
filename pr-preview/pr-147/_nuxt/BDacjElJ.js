@@ -1,1 +1,0 @@
-const r=async(o,t)=>{const e=o.input;if(!e||e.kind!=="text")throw new Error("Text input is required");const n=t.scope!=="url";try{return{kind:"text",text:t.mode==="decode"?n?decodeURIComponent(e.text):decodeURI(e.text):n?encodeURIComponent(e.text):encodeURI(e.text),language:"plaintext"}}catch{throw new Error("Invalid URL escape sequence")}};export{r as run};

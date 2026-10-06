@@ -1,1 +1,0 @@
-function i(e){const t=e.input;if(!t||t.kind!=="text")throw new Error("Text input is required");return t.text}function n(e){return{kind:"report",items:[{level:"success",message:e}]}}function s(e,t,r){return{kind:"report",items:[{level:"error",message:e,...t&&r?{position:{line:t,column:r}}:{}}]}}export{s as i,i as s,n as v};
