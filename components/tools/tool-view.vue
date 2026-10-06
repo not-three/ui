@@ -153,14 +153,14 @@ function resetTool() {
 resetTool();
 watch(() => props.tool, resetTool);
 
-watch([sources, texts, files], () => { runner.invalidate(true); scheduleAutoRun(); }, { deep: true });
+watch([sources, texts, files], () => { stageValue.value = undefined; runner.invalidate(true); scheduleAutoRun(); }, { deep: true });
 watch(options, () => {
   runner.invalidate();
   if (props.tool.category !== 'image' && settings.tools.rememberOptions) settings.tools.lastOptions[props.tool.id] = rememberedOptions(props.tool, options);
   scheduleAutoRun();
 }, { deep: true });
 
-watch(() => props.noteContent, () => { runner.invalidate(true); scheduleAutoRun(); });
+watch(() => props.noteContent, () => { stageValue.value = undefined; runner.invalidate(true); scheduleAutoRun(); });
 watch(stageValue, () => { runner.invalidate(); scheduleAutoRun(); });
 onBeforeUnmount(() => { cancelAutoRun(); runner.dispose(); });
 
