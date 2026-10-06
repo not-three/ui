@@ -17,8 +17,9 @@ export const VENDOR_PATHS = {
   typescript: "typescript/typescript.js",
   coffeescript: "coffeescript/coffeescript.js",
   babel: "babel/babel.min.js",
-  react: "react/react.production.min.js",
-  reactDom: "react/react-dom.production.min.js",
+  // One bundle providing both the React and ReactDOM globals (React 19
+  // ships no UMD builds); built by scripts/copy-sandbox-vendor.mjs.
+  react: "react/react.min.js",
   // Deliberately the DEV build: the prod build strips every runtime warning,
   // so a note with a broken template binding failed completely silently.
   vue: "vue/vue.global.js",

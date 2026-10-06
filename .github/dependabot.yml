@@ -9,6 +9,11 @@ updates:
         dependency-type: "development"
       prod-deps:
         dependency-type: "production"
+    ignore:
+      # typescript-eslint requires typescript <6.1, and the TypeScript sandbox
+      # runner loads lib/typescript.js, which TypeScript 7 no longer ships.
+      - dependency-name: "typescript"
+        versions: [">=7"]
 
   - package-ecosystem: docker
     directory: /

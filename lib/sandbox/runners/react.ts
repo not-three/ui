@@ -11,7 +11,6 @@ export const ReactRunner: SandboxRunner = {
   build: ({ content, vendorBase }) => ({
     head:
       `<script src="${vendorBase}/${VENDOR_PATHS.react}"></script>` +
-      `<script src="${vendorBase}/${VENDOR_PATHS.reactDom}"></script>` +
       `<script src="${vendorBase}/${VENDOR_PATHS.babel}"></script>`,
     // The note is embedded as a JSON string literal (like every other
     // compiler runner), never spliced as raw source into the HTML. Relying on
@@ -33,7 +32,7 @@ export const ReactRunner: SandboxRunner = {
     // eval/new Function. The commonjs transform rewrites import/export into
     // require/exports, which the shims below satisfy.
     // Babel 8 defaults the react preset to the automatic runtime, which
-    // imports react/jsx-runtime; the UMD React globals only offer the
+    // imports react/jsx-runtime; the vendored React globals only offer the
     // classic React.createElement API.
     var compiled = Babel.transform(CODE, {
       presets: [["react", { runtime: "classic" }]],
