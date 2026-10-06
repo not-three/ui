@@ -106,23 +106,28 @@ test('a file download page opens the file alternatives', async ({ page }) => {
   await expect(dialog.locator('code').nth(1)).toContainText("'my file.txt'");
 });
 
-test('a P2P send offers only Link, CLI and Docker after the link exists', async ({ page }) => {
-  await mockApi(page);
-  await page.routeWebSocket('**/api/p2p', ws => {
-    ws.onMessage(message => {
-      if (JSON.parse(String(message)).type === 'create') ws.send(JSON.stringify({ type: 'created', sessionId: 'session-1', iceServers: [] }));
+for (const theme of ['default', 'monokai', 'white'] as const) {
+  test(`a P2P send offers Link, CLI and Docker with a scannable QR in ${theme}`, async ({ page }) => {
+    await page.addInitScript(id => localStorage.setItem('settings', JSON.stringify({ version: 4, theme: id })), theme);
+    await mockApi(page);
+    await page.routeWebSocket('**/api/p2p', ws => {
+      ws.onMessage(message => {
+        if (JSON.parse(String(message)).type === 'create') ws.send(JSON.stringify({ type: 'created', sessionId: 'session-1', iceServers: [] }));
+      });
     });
+    await page.goto(`${APP_ORIGIN}/`);
+    await page.getByRole('heading', { name: 'Tools' }).click();
+    await page.getByRole('button', { name: 'P2P Transfer' }).click();
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Choose file' }).click();
+    await (await chooser).setFiles({ name: 'sample.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
+    await page.getByRole('button', { name: 'Start', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Share alternatives' })).toBeVisible();
+    await expect(page.getByLabel('Transfer QR code')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await page.getByRole('button', { name: 'Share alternatives' }).click();
+    const dialog = page.locator('.dialog-content');
+    await expect(dialog.locator('[data-share-alternative] h2')).toHaveText(['Link', 'CLI', 'Docker']);
+    const link = await page.locator('p.break-all.select-all').textContent();
+    await expect(dialog.locator('code').first()).toHaveText(link!);
   });
-  await page.goto(`${APP_ORIGIN}/`);
-  await page.getByRole('heading', { name: 'Tools' }).click();
-  await page.getByRole('button', { name: 'P2P Transfer' }).click();
-  const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Choose file' }).click();
-  await (await chooser).setFiles({ name: 'sample.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
-  await page.getByRole('button', { name: 'Start', exact: true }).click();
-  await page.getByRole('button', { name: 'Share alternatives' }).click();
-  const dialog = page.locator('.dialog-content');
-  await expect(dialog.locator('[data-share-alternative] h2')).toHaveText(['Link', 'CLI', 'Docker']);
-  const link = await page.locator('p.break-all.select-all').textContent();
-  await expect(dialog.locator('code').first()).toHaveText(link!);
-});
+}

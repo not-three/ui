@@ -37,4 +37,7 @@ const close = () => store.dialog = null;
 .dialog-content.share-dialog-content {
   @apply w-[calc(100vw-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto;
 }
+html[data-theme='default'] .dialog-content input[type='range'] {
+  color-scheme: normal;
+}
 </style>
