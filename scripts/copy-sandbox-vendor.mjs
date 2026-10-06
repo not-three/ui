@@ -11,6 +11,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build, buildSync } from "esbuild";
 import { replaceCdnUrls } from "./vendor-cdn.mjs";
+import { createHash } from "node:crypto";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const modules = join(root, "node_modules");
@@ -314,6 +315,39 @@ for (const engine of ENGINES) {
   }
   ok++;
 }
+const ortFiles = [
+  "ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm",
+];
+const ortSource = join(modules, "onnxruntime-web", "dist");
+if (existsSync(ortSource)) {
+  const ortTarget = join(target, "image", "onnxruntime-web");
+  mkdirSync(ortTarget, { recursive: true });
+  for (const file of ortFiles) cpSync(join(ortSource, file), join(ortTarget, file));
+  console.log(`[vendor] onnxruntime-web ${((sizeOf(ortTarget)) / 1048576).toFixed(1)} MB`);
+} else console.warn("[vendor] MISSING onnxruntime-web runtime assets");
+
+const modelSource = "https://huggingface.co/Ko033/isnet-general-use-onnx/resolve/5349b617911fd60c619b52f32e2b593517b78df3/onnx/model_quantized.onnx";
+const modelSha256 = "5039225b9a4ac3df55f185d24b7a92d640c86cc4747002d7f23351e394de03a6";
+const modelCache = join(modules, ".cache", "not3-image", "model_quantized.onnx");
+const modelTarget = join(target, "image", "isnet-general-use", "model_quantized.onnx");
+async function copyModel() {
+  if (!existsSync(modelCache)) {
+    const response = await fetch(modelSource);
+    if (!response.ok) throw new Error(`Background model download failed: ${response.status}`);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    mkdirSync(dirname(modelCache), { recursive: true });
+    writeFileSync(modelCache, bytes);
+  }
+  const bytes = readFileSync(modelCache);
+  if (bytes.length !== 45_902_969 || createHash("sha256").update(bytes).digest("hex") !== modelSha256) {
+    rmSync(modelCache, { force: true });
+    throw new Error("Background model checksum or size mismatch");
+  }
+  mkdirSync(dirname(modelTarget), { recursive: true });
+  cpSync(modelCache, modelTarget);
+  console.log(`[vendor] isnet-general-use model ${(sizeOf(modelTarget) / 1048576).toFixed(1)} MB`);
+}
+if (existsSync(ortSource)) await copyModel();
 // One browser bundle keeps the parser, task-list plugin and common syntax
 // highlighter self-hosted while avoiding Node-style require() in the iframe.
 const markdownDir = join(target, "markdown");

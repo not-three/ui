@@ -45,6 +45,7 @@ import { palette } from './image/palette';
 import { regionBlur } from './image/region-blur';
 import { resize } from './image/resize';
 import { rotate } from './image/rotate';
+import { removeBackground } from './image/remove-background';
 import { stripMetadata } from './image/strip-metadata';
 
 export const TOOLS: ToolDefinition[] = [
@@ -53,7 +54,7 @@ export const TOOLS: ToolDefinition[] = [
   not3Payload, aes, caesar, hmac, jwt, rot13,
   letterCase, csvJson, diff, escapeText, jsonYaml, markdownHtml, minify, regex, sortLines, textStats, timestamp,
   cron, keypair, lorem, password, qr, uuid,
-  regionBlur, palette, compress, convert, crop, dataUrl, exif, favicon, resize, rotate, outline, stripMetadata,
+  regionBlur, palette, compress, convert, crop, dataUrl, exif, favicon, removeBackground, resize, rotate, outline, stripMetadata,
 ];
 
 export function getTool(id: string): ToolDefinition | undefined {

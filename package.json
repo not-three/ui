@@ -31,6 +31,7 @@
     "monaco-editor": "^0.57.0",
     "nanoid": "^6.0.1",
     "nuxt": "^4.5.2",
+    "onnxruntime-web": "^1.30.0",
     "pinia": "^4.0.3",
     "pinia-plugin-persistedstate": "^4.7.1",
     "prettier": "^3.9.9",
