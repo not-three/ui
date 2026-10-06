@@ -10,3 +10,10 @@ it('normalizes whitespace only when selected', async () => {
     kind: 'diff', left: 'a  b\n', right: 'a b', displayLeft: 'a b', displayRight: 'a b',
   });
 });
+
+it.each([
+  ['Unicode', 'é🙂', '東京'],
+  ['newline', 'a\n', 'b\n'],
+])('preserves %s on both sides', async (_name, left, right) => {
+  expect(await run({ left: textInput(left), right: textInput(right) }, { ignoreWhitespace: false }, context)).toMatchObject({ kind: 'diff', left, right });
+});
