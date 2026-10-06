@@ -67,3 +67,16 @@ test('converts a local CSV file on the standalone page', async ({ page }) => {
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('hello, world');
   network.assertNoNetwork();
 });
+
+test('previews deleting regex matches on the standalone page', async ({ page }) => {
+  await page.goto(`${APP_ORIGIN}/t/regex`);
+  const panel = page.getByRole('region', { name: 'Regex tester tool' });
+  await panel.getByLabel('Input text').fill('cat cat');
+  await panel.getByLabel('Pattern').fill('cat');
+  await panel.getByLabel('Preview deletion when replacement is empty').check();
+  const network = await withNoNetwork(page);
+  await panel.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(panel.getByRole('region', { name: 'Replacement preview' })).toBeVisible();
+  await expect(panel.getByRole('region', { name: 'Matches' })).toContainText('Match: cat');
+  network.assertNoNetwork();
+});

@@ -10,7 +10,8 @@ export const run: ToolRun = async (inputs, options) => {
     if (!Array.isArray(data) || data.some(row => !row || typeof row !== 'object' || Array.isArray(row))) {
       return errorReport('Expected a JSON array of objects');
     }
-    return { kind: 'text', text: Papa.unparse(data), language: 'csv', filename: 'converted.csv' };
+    const fields = [...new Set(data.flatMap(row => Object.keys(row)))];
+    return { kind: 'text', text: Papa.unparse(data, { columns: fields }), language: 'csv', filename: 'converted.csv' };
   }
   const parsed = Papa.parse<Record<string, string>>(source, { header: true, skipEmptyLines: true });
   if (parsed.errors.length) return { kind: 'report', items: parsed.errors.map(error => ({

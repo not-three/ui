@@ -16,6 +16,22 @@ it('quotes JSON fields when converting to CSV', async () => {
   if (result.kind === 'text') expect(result.text).toContain('"hello,\nworld"');
 });
 
+it('keeps fields introduced by later JSON rows through a CSV round trip', async () => {
+  const csv = await run({ input: textInput('[{"a":1},{"b":2}]') }, { direction: 'json-csv' }, context);
+  expect(csv).toMatchObject({ kind: 'text', language: 'csv' });
+  if (csv.kind !== 'text') return;
+  expect(csv.text.split(/\r?\n/)[0]).toBe('a,b');
+  const json = await run({ input: textInput(csv.text) }, { direction: 'csv-json' }, context);
+  expect(json).toMatchObject({ kind: 'text', language: 'json' });
+  if (json.kind === 'text') expect(JSON.parse(json.text)).toEqual([{ a: '1', b: '' }, { a: '', b: '2' }]);
+});
+
+it('orders JSON-to-CSV columns by first appearance across rows', async () => {
+  const csv = await run({ input: textInput('[{"z":1,"a":2},{"b":3,"z":4}]') }, { direction: 'json-csv' }, context);
+  expect(csv).toMatchObject({ kind: 'text', language: 'csv' });
+  if (csv.kind === 'text') expect(csv.text.split(/\r?\n/)[0]).toBe('z,a,b');
+});
+
 it('reports malformed CSV rows and invalid JSON', async () => {
   const csv = await run({ input: textInput('name,age\nJo,1,extra') }, { direction: 'csv-json' }, context);
   const json = await run({ input: textInput('{oops}') }, { direction: 'json-csv' }, context);

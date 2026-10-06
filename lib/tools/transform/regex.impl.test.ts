@@ -14,6 +14,14 @@ it('shows replacement preview as labelled report and diff parts', async () => {
   expect(result).toMatchObject({ kind: 'multi', parts: [{ label: 'Matches', output: { kind: 'report' } }, { label: 'Replacement preview', output: { kind: 'diff', left: 'cat cat', right: 'dog dog' } }] });
 });
 
+it('previews deleting matches when empty replacement is requested', async () => {
+  const result = await run({ input: textInput('cat cat') }, { pattern: 'cat', flags: 'g', replacement: '', previewDeletion: true }, context);
+  expect(result).toMatchObject({ kind: 'multi', parts: [
+    { label: 'Matches', output: { kind: 'report', items: [{ position: { line: 1, column: 1 } }, { position: { line: 1, column: 5 } }] } },
+    { label: 'Replacement preview', output: { kind: 'diff', left: 'cat cat', right: ' ' } },
+  ] });
+});
+
 it('reports only the replacement target when global flag is absent', async () => {
   const result = await run({ input: textInput('cat cat') }, { pattern: 'cat', flags: '', replacement: 'dog' }, context);
   expect(result).toMatchObject({ kind: 'multi', parts: [

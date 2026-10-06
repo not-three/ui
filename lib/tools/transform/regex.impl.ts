@@ -29,7 +29,7 @@ export const run: ToolRun = async (inputs, options) => {
     if (match[0].length === 0) matcher.lastIndex += (flags.includes('u') || flags.includes('v')) && (source.codePointAt(matcher.lastIndex) ?? 0) > 0xffff ? 2 : 1;
   }
   const report = { kind: 'report' as const, items: items.length ? items : [{ level: 'info' as const, message: 'No matches' }] };
-  if (String(options.replacement ?? '') === '') return report;
+  if (String(options.replacement ?? '') === '' && options.previewDeletion !== true) return report;
   expression.lastIndex = 0;
   const right = source.replace(expression, String(options.replacement));
   return { kind: 'multi', parts: [
