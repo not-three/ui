@@ -21,15 +21,36 @@ it('reports minimum achievable size when target is impossible', async () => {
 it('uses the export-row format and shows compression report', async () => {
   const codec = getCodec('webp');
   const oldEncode = codec.encode, oldCanEncode = codec.canEncode;
-  codec.encode = async (_bitmap, options) => new Blob([new Uint8Array(Number(options.quality)*1000)], { type: 'image/webp' });
+  let calls = 0;
+  codec.encode = async (_bitmap, options) => { calls++; return new Blob([new Uint8Array(Number(options.quality)*2000)], { type: 'image/webp' }); };
   codec.canEncode = async () => true;
   try {
     const result = await run({ input: image }, { target: 'max-size', maxSize: 100, unit: 'KB' }, { signal: new AbortController().signal, reportProgress: () => {}, imageExportFormat: 'webp' });
     expect(result.kind).toBe('multi');
     if (result.kind === 'multi') {
       expect(result.parts[0]?.output).toMatchObject({ kind: 'image', filename: 'large-compress.webp' });
+      const output = result.parts[0]?.output;
+      if (output?.kind === 'image') { expect(output.blob.type).toBe('image/webp'); expect(output.blob.size).toBeLessThanOrEqual(100*1024); }
       expect(result.parts[1]?.output).toMatchObject({ kind: 'text', text: expect.stringMatching(/\d+ % → .* KB, \d+ iterations/) });
+      expect(calls).toBeLessThanOrEqual(8);
     }
+  } finally { codec.encode = oldEncode; codec.canEncode = oldCanEncode; }
+});
+it('returns the smallest encoded Blob and says so when max size is impossible', async () => {
+  const codec = getCodec('webp');
+  const oldEncode = codec.encode, oldCanEncode = codec.canEncode;
+  let calls = 0;
+  codec.encode = async () => { calls++; return new Blob([new Uint8Array(130000+calls)], { type:'image/webp' }); };
+  codec.canEncode = async () => true;
+  try {
+    const result = await run({ input:image }, { target:'max-size', maxSize:100, unit:'KB' }, { signal:new AbortController().signal, reportProgress:()=>{}, imageExportFormat:'webp' });
+    expect(result.kind).toBe('multi');
+    if (result.kind === 'multi') {
+      const output = result.parts[0]?.output;
+      if (output?.kind === 'image') expect(output.blob.size).toBe(130001);
+      expect(result.parts[1]?.output).toMatchObject({ kind:'text', text:expect.stringContaining('minimum achievable size') });
+    }
+    expect(calls).toBeLessThanOrEqual(8);
   } finally { codec.encode = oldEncode; codec.canEncode = oldCanEncode; }
 });
 it('aborts a search before returning a stale result', async () => {
