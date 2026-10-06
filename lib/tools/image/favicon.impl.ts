@@ -49,7 +49,7 @@ export const run: ToolRun = async (inputs, options, context) => {
     context.reportProgress(pngs.size / new Set([...selected,16,32,48]).size);
   }
   context.signal.throwIfAborted();
-  const icoBytes = ico(icoEntries);
+  const icoBytes = ico(icoEntries.sort((a, b) => a.size - b.size));
   parts.push({ label: 'favicon.ico', output: { kind: 'bytes', bytes: icoBytes, mimeType: 'image/x-icon', filename: 'favicon.ico' } });
   for (const size of selected) parts.push({ label: `${size} × ${size} PNG`, output: { kind: 'image', blob: pngs.get(size)!, width: size, height: size, filename: `icon-${size}.png`, exportable: false } });
   const links = ['<link rel="icon" href="/favicon.ico" sizes="any">', ...selected.map(size => `<link rel="icon" type="image/png" sizes="${size}x${size}" href="/icon-${size}.png">`), '<link rel="manifest" href="/site.webmanifest">'];

@@ -30,6 +30,7 @@ it('shows decimal GPS coordinates and a location warning', async () => {
   expect(result.kind).toBe('multi');
   if (result.kind !== 'multi') return;
   expect(result.parts.find(part => part.label === 'Location')?.output).toMatchObject({
-    kind:'table', rows:[[51.5,-7.5,expect.stringContaining('location')]],
+    kind:'table', columns:['Latitude','Longitude'], rows:[[51.5,-7.5]],
   });
+  expect(result.parts.find(part => part.label === 'Location warning')?.output).toMatchObject({ kind:'text', text:expect.stringContaining('location') });
 });

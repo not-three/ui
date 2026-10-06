@@ -23,3 +23,12 @@ it('writes ICO PNG entries and selected PNG sizes with HTML and manifest snippet
   expect(result.parts.find(part => part.label === 'HTML')?.output).toMatchObject({ kind:'text', text:expect.stringContaining('favicon.ico') });
   expect(result.parts.find(part => part.label === 'Manifest')?.output).toMatchObject({ kind:'text', text:expect.stringContaining('icon-48.png') });
 });
+it('keeps ICO directory entries in 16, 32, 48 order when PNG size toggles change', async () => {
+  const input: ToolInput = { kind:'image', bitmap:solidBitmap(2,2,[1,2,3,255]), width:2, height:2, bytes:new Uint8Array(), mimeType:'image/png' };
+  const result = await run({ input }, { size16:false, size32:false, size48:true, size64:false, size128:false, size180:false, size192:false, size512:false }, { signal:new AbortController().signal, reportProgress:()=>{} });
+  expect(result.kind).toBe('multi');
+  if (result.kind !== 'multi') return;
+  const ico = result.parts.find(part => part.label === 'favicon.ico')?.output;
+  expect(ico?.kind).toBe('bytes');
+  if (ico?.kind === 'bytes') expect([ico.bytes[6],ico.bytes[22],ico.bytes[38]]).toEqual([16,32,48]);
+});
