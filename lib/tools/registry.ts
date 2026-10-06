@@ -37,6 +37,11 @@ import { timestamp } from './transform/timestamp';
 import { convert } from './image/convert';
 import { resize } from './image/resize';
 import { rotate } from './image/rotate';
+import { exif } from './image/exif';
+import { stripMetadata } from './image/strip-metadata';
+import { compress } from './image/compress';
+import { favicon } from './image/favicon';
+import { dataUrl } from './image/data-url';
 
 export const TOOLS: ToolDefinition[] = [
   cssLint, htmlLint, jsTsLint, jsonLint, markdownLint, sqlLint, xmlLint, yamlLint,
@@ -44,7 +49,7 @@ export const TOOLS: ToolDefinition[] = [
   not3Payload, aes, caesar, hmac, jwt, rot13,
   letterCase, csvJson, diff, escapeText, jsonYaml, markdownHtml, minify, regex, sortLines, textStats, timestamp,
   cron, keypair, lorem, password, qr, uuid,
-  convert, resize, rotate,
+  compress, convert, dataUrl, exif, favicon, resize, rotate, stripMetadata,
 ];
 
 export function getTool(id: string): ToolDefinition | undefined {
