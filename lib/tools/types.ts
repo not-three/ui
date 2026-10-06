@@ -1,5 +1,5 @@
-export type ToolCategory = 'lint' | 'hash' | 'encode' | 'crypto' | 'transform' | 'generate';
-export type ToolInputKind = 'text' | 'bytes';
+export type ToolCategory = 'lint' | 'hash' | 'encode' | 'crypto' | 'transform' | 'generate' | 'image';
+export type ToolInputKind = 'text' | 'bytes' | 'image';
 export type ToolSource = 'note' | 'selection' | 'file' | 'text';
 export type ToolOptionValue = string | number | boolean;
 
@@ -9,7 +9,11 @@ export interface ToolInputSpec {
   kind: ToolInputKind;
   optional?: boolean;
   defaultSource?: 'note' | 'selection' | 'empty';
+  stage?: 'crop' | 'region' | 'point';
 }
+
+export interface ImageRegion { x: number; y: number; width: number; height: number }
+export interface ImagePoint { x: number; y: number }
 
 export type ToolOptionSpec =
   | { id: string; label: string; type: 'select'; values: { value: string; label: string }[]; default: string; secret?: boolean }
@@ -19,13 +23,15 @@ export type ToolOptionSpec =
 
 export type ToolInput =
   | { kind: 'text'; text: string; language?: string; source?: ToolSource }
-  | { kind: 'bytes'; stream: ReadableStream<Uint8Array>; size?: number; name?: string; source?: ToolSource };
+  | { kind: 'bytes'; stream: ReadableStream<Uint8Array>; size?: number; name?: string; source?: ToolSource }
+  | { kind: 'image'; bitmap: ImageBitmap; width: number; height: number; bytes: Uint8Array; mimeType: string; name?: string; region?: ImageRegion; point?: ImagePoint; firstFrameOnly?: boolean; source?: ToolSource };
 
 export interface ToolPosition { line: number; column: number; endLine?: number; endColumn?: number }
 export interface ToolReportItem { level: 'error' | 'warning' | 'info' | 'success'; message: string; position?: ToolPosition }
 export type ToolSingleOutput =
   | { kind: 'text'; text: string; language?: string; filename?: string }
   | { kind: 'bytes'; bytes: Uint8Array; text?: string; filename?: string; mimeType?: string }
+  | { kind: 'image'; blob: Blob; width: number; height: number; filename: string; exportable?: boolean }
   | { kind: 'diff'; left: string; right: string; displayLeft?: string; displayRight?: string; language?: string }
   | { kind: 'report'; items: ToolReportItem[]; text?: string; language?: string }
   | { kind: 'table'; columns: string[]; rows: (string | number | boolean | null)[][] };
@@ -44,6 +50,7 @@ export interface ToolDefinition {
   category: ToolCategory;
   inputs: ToolInputSpec[];
   options: ToolOptionSpec[];
+  heavy?: boolean;
   load: () => Promise<{ run: ToolRun }>;
 }
 

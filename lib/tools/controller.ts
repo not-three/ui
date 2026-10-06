@@ -1,7 +1,7 @@
 import { resolveInput, type SourceValue } from './input';
-import type { ToolDefinition, ToolOptionValue, ToolOutput } from './types';
+import type { ToolDefinition, ToolInput, ToolOptionValue, ToolOutput } from './types';
 
-export interface ToolRunState { output: ToolOutput | null; error: string | null; progress: number; running: boolean }
+export interface ToolRunState { output: ToolOutput | null; inputImage?: Extract<ToolInput, {kind: 'image'}> | null; error: string | null; progress: number; running: boolean }
 
 export function rememberedOptions(tool: ToolDefinition, options: Record<string, ToolOptionValue>): Record<string, ToolOptionValue> {
   return Object.fromEntries(tool.options.filter(spec => !spec.secret && Object.hasOwn(options, spec.id)).map(spec => [spec.id, options[spec.id]!])) as Record<string, ToolOptionValue>;
@@ -26,11 +26,12 @@ export function createToolRunner(tool: ToolDefinition, onUpdate: (state: ToolRun
   let controller: AbortController | null = null;
   const state: ToolRunState = { output: null, error: null, progress: 0, running: false };
   const update = (patch: Partial<ToolRunState>) => { Object.assign(state, patch); onUpdate({ ...state }); };
-  function invalidate() {
+  function invalidate(clearInput = false) {
     sequence++;
     controller?.abort();
     controller = null;
-    update({ output: null, error: null, progress: 0, running: false });
+    if (clearInput) state.inputImage?.bitmap.close?.();
+    update({ output: null, ...(clearInput ? { inputImage: null } : {}), error: null, progress: 0, running: false });
   }
   async function run(sources: Record<string, SourceValue>, options: Record<string, ToolOptionValue>) {
     invalidate();
@@ -46,8 +47,13 @@ export function createToolRunner(tool: ToolDefinition, onUpdate: (state: ToolRun
           throw new Error(`${spec.label} is required`);
         }
         return [spec.id, await resolveInput(spec, value, signal)];
-      })));
+      }))) as Record<string, ToolInput>;
       if (signal.aborted) return;
+      const inputImage = Object.values(inputs).find(value => value.kind === 'image') as Extract<ToolInput, {kind: 'image'}> | undefined;
+      if (inputImage) {
+        if (state.inputImage && state.inputImage.bitmap !== inputImage.bitmap) state.inputImage.bitmap.close?.();
+        update({ inputImage });
+      }
       const module = await tool.load();
       if (signal.aborted) return;
       const output = await module.run(inputs, options, { signal, reportProgress: progress => {
@@ -58,5 +64,5 @@ export function createToolRunner(tool: ToolDefinition, onUpdate: (state: ToolRun
       if (own === sequence && !signal.aborted) update({ error: error instanceof Error ? error.message : String(error), running: false });
     }
   }
-  return { state, run, invalidate, dispose: invalidate };
+  return { state, run, invalidate, dispose: () => invalidate(true) };
 }

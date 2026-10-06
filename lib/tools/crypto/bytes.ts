@@ -3,6 +3,7 @@ import type { ToolContext, ToolInput } from '../types';
 export async function readBytes(input: ToolInput | undefined, context: ToolContext, limit = 64 * 1024 * 1024): Promise<Uint8Array> {
   if (!input) throw new Error('Input is required');
   if (input.kind === 'text') return new TextEncoder().encode(input.text);
+  if (input.kind !== 'bytes') throw new Error('Byte input required');
   if (input.size && input.size > limit) throw new Error('Browser cryptography is limited to 64 MiB per operation');
   const chunks: Uint8Array[] = [];
   let length = 0;
