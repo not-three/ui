@@ -64,5 +64,12 @@ export default defineNuxtConfig({
     server: {
       allowedHosts: true,
     },
+    resolve: {
+      alias: {
+        // y-monaco still imports monaco's pre-0.56 deep path, which the
+        // package's exports map no longer exposes; point it at the same module.
+        "monaco-editor/esm/vs/editor/editor.api.js": "monaco-editor/editor/editor.api.js",
+      },
+    },
   },
 });
