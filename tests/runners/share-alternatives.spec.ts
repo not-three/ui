@@ -48,6 +48,23 @@ test('a CBC note offers six rows and copies the exact SDK value from a legacy de
   }
 });
 
+for (const [theme, background, foreground] of [
+  ['default', 'rgb(0, 0, 0)', 'rgb(255, 255, 255)'],
+  ['monokai', 'rgb(39, 40, 34)', 'rgb(248, 248, 242)'],
+  ['white', 'rgb(255, 255, 255)', 'rgb(0, 0, 0)'],
+] as const) {
+  test(`share alternatives dialog follows ${theme} colors and metro borders`, async ({ page }) => {
+    await page.addInitScript(id => localStorage.setItem('settings', JSON.stringify({ version: 4, theme: id })), theme);
+    await openNote(page, 'gcm', 'alternatives');
+    const dialog = page.locator('.dialog-content');
+    await expect(dialog).toHaveCSS('background-color', background);
+    await expect(dialog).toHaveCSS('color', foreground);
+    await expect(dialog).toHaveCSS('border-top-width', '1px');
+    await expect(dialog.getByRole('button', { name: 'Copy Link' })).toHaveCSS('border-top-width', '1px');
+    await expect(dialog.locator('code').first()).toHaveCSS('border-top-color', foreground === 'rgb(0, 0, 0)' ? 'rgba(0, 0, 0, 0.2)' : theme === 'monokai' ? 'rgba(248, 248, 242, 0.2)' : 'rgba(255, 255, 255, 0.2)');
+  });
+}
+
 test('sharing an editable note saves a link with share=alternatives', async ({ page }) => {
   await mockApi(page);
   await page.route('**/api/note/json', route => route.fulfill({ json: { id: 'saved' } }));
