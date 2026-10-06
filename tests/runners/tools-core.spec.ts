@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { withNoNetwork } from './helpers';
+import { APP_ORIGIN, withNoNetwork } from './helpers';
 
 const info = { version: '2.1.1', availableTokens: 100, maxStorageTimeDays: 30, fileTransferEnabled: false, privateMode: false, p2pEnabled: false };
 
 async function openEditor(page: Page) {
   await page.route('**/api/info', route => route.fulfill({ json: info }));
-  await page.goto('http://127.0.0.1:8789/');
+  await page.goto(`${APP_ORIGIN}/`);
   await expect(page.locator('.monaco-editor').first()).toBeVisible({ timeout: 30_000 });
 }
 
@@ -19,12 +19,12 @@ test('catalogue opens from Tools menu and Ctrl+Alt+T', async ({ page }) => {
   await openEditor(page);
   await page.getByRole('heading', { name: 'Tools', exact: true }).click();
   await page.getByRole('button', { name: 'Tools…' }).click();
-  await expect(page).toHaveURL('http://127.0.0.1:8789/t');
+  await expect(page).toHaveURL(`${APP_ORIGIN}/t`);
   await expect(page.getByRole('link', { name: /Base64/ })).toBeVisible();
   await openEditor(page);
   await page.locator('#logo').click();
   await page.keyboard.press('Control+Alt+t');
-  await expect(page).toHaveURL('http://127.0.0.1:8789/t');
+  await expect(page).toHaveURL(`${APP_ORIGIN}/t`);
 });
 
 test('Base64 selection encodes and decodes locally', async ({ page }) => {
@@ -55,7 +55,7 @@ test('Base64 selection encodes and decodes locally', async ({ page }) => {
 });
 
 test('hashes a real file on the standalone route without an API request', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/hash');
+  await page.goto(`${APP_ORIGIN}/t/hash`);
   const panel = page.getByRole('region', { name: 'Hash tool' });
   await panel.getByLabel('Input source').selectOption('file');
   await panel.getByLabel('Input file').setInputFiles({ name: 'abc.txt', mimeType: 'text/plain', buffer: Buffer.from('abc') });
@@ -110,7 +110,7 @@ test('JSON lint command uses selected JSON within a larger note', async ({ page 
 });
 
 test('catalogue and palette find a tool by keyword', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t');
+  await page.goto(`${APP_ORIGIN}/t`);
   await page.getByRole('searchbox', { name: 'Search tools' }).fill('b64');
   await expect(page.getByRole('link', { name: /Base64/ })).toBeVisible();
   await page.getByRole('searchbox', { name: 'Search tools' }).fill('bse64');
@@ -129,7 +129,7 @@ for (const sample of [
   { id: 'json-lint', input: '{"a":1}', expected: 'Valid JSON', inputLabel: 'JSON text' },
 ]) {
   test(`${sample.id} runs locally from the standalone page`, async ({ page }) => {
-    await page.goto(`http://127.0.0.1:8789/t/${sample.id}`);
+    await page.goto(`${APP_ORIGIN}/t/${sample.id}`);
     const panel = page.getByRole('region', { name: new RegExp('tool$') });
     await panel.getByLabel(sample.inputLabel).fill(sample.input);
     const network = await withNoNetwork(page);
@@ -140,20 +140,20 @@ for (const sample of [
 }
 
 test('route options preset without taking input from query data', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/hash?algorithm=md5&input=private');
+  await page.goto(`${APP_ORIGIN}/t/hash?algorithm=md5&input=private`);
   const panel = page.getByRole('region', { name: 'Hash tool' });
   await expect(panel.getByLabel('Algorithm')).toHaveValue('md5');
   await expect(panel.getByLabel('Input text')).toHaveValue('');
 });
 
 test('unknown tool route returns to catalogue', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8789/t/missing');
-  await expect(page).toHaveURL('http://127.0.0.1:8789/t');
+  await page.goto(`${APP_ORIGIN}/t/missing`);
+  await expect(page).toHaveURL(`${APP_ORIGIN}/t`);
 });
 
 test('standalone text output opens in an editor note', async ({ page }) => {
   await page.route('**/api/info', route => route.fulfill({ json: info }));
-  await page.goto('http://127.0.0.1:8789/t/url');
+  await page.goto(`${APP_ORIGIN}/t/url`);
   const panel = page.getByRole('region', { name: 'URL encode/decode tool' });
   await panel.getByLabel('Input text').fill('a b');
   const network = await withNoNetwork(page);
