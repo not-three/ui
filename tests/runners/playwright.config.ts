@@ -15,6 +15,7 @@ export default defineConfig({
   testMatch: "**/*.spec.ts",
   timeout: 120_000, // pyodide/php-wasm boots are slow on first load
   fullyParallel: true,
+  workers: 2,
   use: { baseURL: runnerPorts.staticOrigin },
   webServer: [
     {

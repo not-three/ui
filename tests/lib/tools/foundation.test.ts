@@ -28,6 +28,19 @@ describe('tool registry', () => {
       expect(Object.keys(tests)).toContain(`../../../lib/tools/${tool.category}/${tool.id}.impl.test.ts`);
     }
   });
+
+  it('registers every definition in the tool directories with useful catalogue metadata', () => {
+    const modules = import.meta.glob('../../../lib/tools/{lint,hash,encode,crypto,transform,generate}/*.ts');
+    const definitions = Object.keys(modules)
+      .filter(path => !path.endsWith('.impl.ts') && !path.endsWith('.impl.test.ts') && !path.endsWith('.d.ts'))
+      .filter(path => !/(?:shared|bytes)\.ts$/.test(path));
+    expect(definitions.sort()).toEqual(TOOLS.map(tool => `../../../lib/tools/${tool.category}/${tool.id}.ts`).sort());
+    for (const tool of TOOLS) {
+      expect(tool.title.trim().length, tool.id).toBeGreaterThan(2);
+      expect(tool.description.trim().length, tool.id).toBeGreaterThan(20);
+      expect(tool.keywords.every(keyword => keyword.trim().length > 1), tool.id).toBe(true);
+    }
+  });
 });
 
 describe('input conversion', () => {
