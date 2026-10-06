@@ -28,6 +28,7 @@ test('AVIF and JXL exports round trip through vendored codecs on the app origin'
     await panel.getByRole('button', { name: 'Download' }).click();
     const exported = new Uint8Array(await readFile(await (await download).path()));
     expect(inspectImage(exported).format).toBe(format.toLowerCase());
+    if (format === 'JXL') expect(inspectImage(exported)).toMatchObject({ width: 3, height: 2 });
     await panel.getByLabel('Image file').setInputFiles({ name: `roundtrip.${format.toLowerCase()}`, mimeType: `image/${format.toLowerCase()}`, buffer: Buffer.from(exported) });
     await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('3 × 2 px');
   }
