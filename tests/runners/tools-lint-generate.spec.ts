@@ -23,6 +23,10 @@ test('Markdown lint reports a note heading through the editor panel without netw
   await page.getByRole('button', { name: 'Lint ▸' }).click();
   await page.getByRole('button', { name: 'Markdown lint', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Markdown lint tool' });
+  // The note navigation loads its icons from Iconify as the editor settles.
+  // Wait for those app requests before measuring the tool run itself.
+  await expect(page.getByTitle('Run / preview this note').locator('svg')).toBeVisible();
+  await expect(page.getByTitle('Format this note').locator('svg')).toBeVisible();
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('Heading level jumps', { timeout: 30_000 });
