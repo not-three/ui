@@ -37,6 +37,7 @@ import { timestamp } from './transform/timestamp';
 import { convert } from './image/convert';
 import { resize } from './image/resize';
 import { rotate } from './image/rotate';
+import { removeBackground } from './image/remove-background';
 
 export const TOOLS: ToolDefinition[] = [
   cssLint, htmlLint, jsTsLint, jsonLint, markdownLint, sqlLint, xmlLint, yamlLint,
@@ -44,7 +45,7 @@ export const TOOLS: ToolDefinition[] = [
   not3Payload, aes, caesar, hmac, jwt, rot13,
   letterCase, csvJson, diff, escapeText, jsonYaml, markdownHtml, minify, regex, sortLines, textStats, timestamp,
   cron, keypair, lorem, password, qr, uuid,
-  convert, resize, rotate,
+  convert, removeBackground, resize, rotate,
 ];
 
 export function getTool(id: string): ToolDefinition | undefined {
