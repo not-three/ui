@@ -49,7 +49,7 @@ export const TOOLS: ToolDefinition[] = [
   not3Payload, aes, caesar, hmac, jwt, rot13,
   letterCase, csvJson, diff, escapeText, jsonYaml, markdownHtml, minify, regex, sortLines, textStats, timestamp,
   cron, keypair, lorem, password, qr, uuid,
-  regionBlur, palette, convert, crop, resize, rotate, outline, removeBackground,
+  regionBlur, palette, convert, crop, removeBackground, resize, rotate, outline,
 ];
 
 export function getTool(id: string): ToolDefinition | undefined {
