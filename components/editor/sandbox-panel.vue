@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-full flex flex-col bg-[#111] text-white min-w-0 min-h-0">
+  <div class="w-full h-full flex flex-col bg-panel text-white min-w-0 min-h-0">
     <div class="flex items-center gap-3 px-2 py-1 bg-black text-sm flex-wrap">
       <span class="font-bold select-none">{{ runner?.label || "Sandbox" }}</span>
       <select
@@ -42,7 +42,7 @@
       :sandbox="SANDBOX_IFRAME_SANDBOX"
       referrerpolicy="no-referrer"
       :class="[
-        runner?.layout === 'preview' ? 'w-full flex-grow bg-white border-none' : 'hidden',
+        runner?.layout === 'preview' ? 'w-full flex-grow bg-panel border-none' : 'hidden',
         resizing ? 'pointer-events-none' : '',
       ]"
     />
@@ -121,6 +121,7 @@ import { runnersForLanguage } from "~/lib/sandbox/runners";
 import type { SandboxRunner } from "~/lib/sandbox/runners/types";
 import { resolveAutoRun } from "~/lib/sandbox/auto-run";
 import { initialRunnerView } from "~/lib/sandbox/runner-view";
+import { activeTheme } from '~/lib/theme/registry';
 import { createReplHistory } from "~/lib/sandbox/repl-history";
 
 /**
@@ -151,11 +152,11 @@ type Entry = {
 };
 
 const LEVEL_CLASSES: Record<string, string> = {
-  log: "text-gray-100",
+  log: "text-white/90",
   info: "text-blue-300",
   warn: "text-yellow-400",
   error: "text-red-400",
-  debug: "text-gray-500",
+  debug: "text-white/50",
   input: "text-green-400",
 };
 
@@ -337,7 +338,7 @@ function run() {
     allowNetwork: allowNetwork.value,
     origin: window.location.origin,
     basePath: uiBaseURL as string,
-    theme: "dark",
+    theme: activeTheme.value.scheme,
   });
   if (runner.value.tables) requestTables();
 }
@@ -388,6 +389,7 @@ const rerun = debounce(() => {
 }, 1000);
 
 watch(() => props.content, () => rerun());
+watch(activeTheme, () => { if (runner.value) run(); });
 watch(allowNetwork, run);
 watch(availableRunners, (list) => {
   if (!list.some((r) => r.id === engineId.value)) engineId.value = list[0]?.id ?? "";

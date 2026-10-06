@@ -12,8 +12,48 @@ const languageDetectionChunk = {
   },
 };
 
+// Runs before the SPA loads so a persisted built-in choice colors the first paint.
+const themeBootstrap = `(() => {
+  const root = document.documentElement;
+  const colors = {
+    default: ['0 0 0', '255 255 255', '17 17 17', '255 255 255', '30 30 30', 'dark', '#000000'],
+    monokai: ['39 40 34', '248 248 242', '30 31 28', '166 226 46', '39 40 34', 'dark', '#272822'],
+    white: ['255 255 255', '0 0 0', '243 243 243', '0 0 0', '243 243 243', 'light', '#ffffff']
+  };
+  let id = null;
+  try {
+    if (!localStorage.getItem('settings')) {
+      const cookie = document.cookie.split('; ').find(entry => entry.startsWith('settings='));
+      if (cookie) {
+        try {
+          const previous = decodeURIComponent(cookie.slice('settings='.length));
+          const parsed = JSON.parse(previous);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) localStorage.setItem('settings', previous);
+        } catch { /* Ignore an invalid legacy cookie. */ }
+      }
+    }
+    const stored = localStorage.getItem('settings');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      id = parsed && typeof parsed === 'object' ? parsed.theme : null;
+    }
+  } catch {
+    localStorage.removeItem('settings');
+    id = 'default';
+  }
+  if (id === null || id === 'custom') return;
+  if (!Object.prototype.hasOwnProperty.call(colors, id)) id = 'default';
+  const values = colors[id];
+  ['bg', 'fg', 'panel', 'accent', 'surface'].forEach((name, index) => root.style.setProperty('--not3-' + name, values[index]));
+  root.style.colorScheme = values[5];
+  root.dataset.theme = id;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', values[6]);
+  root.setAttribute('data-theme-ready', '');
+})();`;
+
 export default defineNuxtConfig({
-  css: ["~/assets/css/scrollbar.css", "~/assets/css/panel.css"],
+  css: ["~/assets/css/theme.css", "~/assets/css/scrollbar.css", "~/assets/css/panel.css"],
   app: {
     head: {
       charset: "utf-8",
@@ -32,7 +72,8 @@ export default defineNuxtConfig({
         { name: "msapplication-TileColor", content: "#000000" },
         { name: "theme-color", content: "#000000" },
       ],
-      style: [{ innerHTML: "body { background-color: #000; color: #fff; }" }],
+      style: [{ innerHTML: ':root { --not3-bg: 0 0 0; --not3-fg: 255 255 255; --not3-panel: 17 17 17; --not3-accent: 255 255 255; --not3-surface: 30 30 30; } body { background-color: rgb(var(--not3-bg)); color: rgb(var(--not3-fg)); } html:not([data-theme-ready]) body { visibility: hidden; }' }],
+      script: [{ innerHTML: themeBootstrap }],
     },
   },
   runtimeConfig: {
@@ -67,6 +108,7 @@ export default defineNuxtConfig({
     "pinia-plugin-persistedstate/nuxt",
     "@nuxt/icon",
   ],
+  piniaPluginPersistedstate: { storage: 'localStorage' },
   devtools: { enabled: true },
   ssr: false,
   compatibilityDate: "2024-10-19",

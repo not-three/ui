@@ -1,5 +1,5 @@
 <template>
-  <section class="h-full min-h-0 flex flex-col bg-[#111] text-white text-sm" role="region" :aria-label="`${tool.title} tool`" @dragover="onDragOver" @drop="onDrop">
+  <section class="h-full min-h-0 flex flex-col bg-panel text-white text-sm" role="region" :aria-label="`${tool.title} tool`" @dragover="onDragOver" @drop="onDrop">
     <header v-if="$slots.header" class="flex items-center gap-3 px-2 py-1 bg-black text-sm flex-wrap">
       <slot name="header" />
       <div class="flex-grow" />

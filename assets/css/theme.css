@@ -1,0 +1,13 @@
+:root {
+  --not3-bg: 0 0 0;
+  --not3-fg: 255 255 255;
+  --not3-panel: 17 17 17;
+  --not3-accent: 255 255 255;
+  --not3-surface: 30 30 30;
+  color-scheme: dark;
+}
+
+body {
+  background-color: rgb(var(--not3-bg));
+  color: rgb(var(--not3-fg));
+}

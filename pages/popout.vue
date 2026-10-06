@@ -1,5 +1,5 @@
 <template>
-  <div class="w-screen h-screen bg-[#111]">
+  <div class="w-screen h-screen bg-panel">
     <editor-sandbox-panel
       v-if="connected"
       :content="content"

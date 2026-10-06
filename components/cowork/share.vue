@@ -1,11 +1,11 @@
 <template>
   <transition-fade>
     <misc-overlay-container v-if="coworkShareOpen && activeCowork" class="z-40">
-      <div class="bg-black border-2 border-white/20 p-5 w-[90vw] max-w-lg text-white space-y-4">
+      <div class="bg-black border border-white/20 p-5 w-[90vw] max-w-lg text-white space-y-4">
         <h2 class="text-xl font-bold">Share cowork session</h2>
         <p>Anyone with this link can edit while the session is open.</p>
         <p class="break-all select-all" data-testid="cowork-link">{{ link }}</p>
-        <canvas ref="qrCanvas" class="bg-white p-2 max-w-full" aria-label="Cowork QR code" />
+        <canvas ref="qrCanvas" class="bg-[rgb(255_255_255)] p-2 max-w-full" aria-label="Cowork QR code" />
         <div class="flex gap-2">
           <button class="border border-white px-3 py-1" @click="copyLink">Copy link</button>
           <button class="border border-white px-3 py-1" @click="coworkShareOpen = false">Close</button>
