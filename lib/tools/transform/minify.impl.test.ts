@@ -48,3 +48,15 @@ it('keeps meaningful HTML text spacing and pre, script and style bodies', async 
 it('keeps literal comment text inside a textarea', async () => {
   expect(await minify('<textarea><!-- literal text --></textarea><!-- remove -->', 'html')).toMatchObject({ kind: 'text', text: '<textarea><!-- literal text --></textarea>', language: 'html' });
 });
+
+it('keeps comment-like text inside quoted HTML attributes', async () => {
+  expect(await minify('<div data-note="<!-- keep -->">x</div><!-- remove -->', 'html')).toMatchObject({
+    kind: 'text', text: '<div data-note="<!-- keep -->">x</div>', language: 'html',
+  });
+});
+
+it('preserves whitespace between elements that may be inline', async () => {
+  expect(await minify('<div style="display:inline">a</div> <span>b</span>', 'html')).toMatchObject({
+    kind: 'text', text: '<div style="display:inline">a</div> <span>b</span>', language: 'html',
+  });
+});

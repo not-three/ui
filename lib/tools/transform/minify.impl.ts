@@ -60,15 +60,59 @@ function minifyCss(source: string): string {
 }
 
 function minifyHtml(source: string): string {
-  const protectedParts: string[] = [];
-  const sentinel = (value: string) => {
-    const index = protectedParts.push(value) - 1;
-    return `\uE000${index}\uE001`;
-  };
-  const protectedSource = source.replace(/<(pre|script|style|textarea|title|xmp)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, sentinel);
-  return protectedSource.replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/(<\/(?:div|p|li|ul|ol|section|article|main|header|footer|table|tr|h[1-6])\s*>)\s+(?=<)/gi, '$1')
-    .replace(/\uE000(\d+)\uE001/g, (_, index: string) => protectedParts[Number(index)]!);
+  const rawTags = new Set(['pre', 'script', 'style', 'textarea', 'title', 'xmp']);
+  const lower = source.toLowerCase();
+  let out = '';
+  let i = 0;
+  while (i < source.length) {
+    if (source[i] !== '<') { out += source[i++]; continue; }
+    if (source.startsWith('<!--', i)) {
+      const end = source.indexOf('-->', i + 4);
+      i = end < 0 ? source.length : end + 3;
+      continue;
+    }
+    let end = i + 1;
+    let quote = '';
+    while (end < source.length) {
+      const char = source[end++];
+      if (quote) { if (char === quote) quote = ''; }
+      else if (char === '"' || char === "'") quote = char;
+      else if (char === '>') break;
+    }
+    const tag = source.slice(i, end);
+    const name = /^<([a-z][\w:-]*)\b/i.exec(tag)?.[1]?.toLowerCase();
+    if (name && rawTags.has(name) && tag.endsWith('>') && !tag.endsWith('/>')) {
+      let close = lower.indexOf(`</${name}`, end);
+      while (close >= 0 && !/[\s>]/.test(lower[close + name.length + 2] ?? '')) close = lower.indexOf(`</${name}`, close + 2);
+      if (close >= 0) {
+        const closeEnd = source.indexOf('>', close);
+        if (closeEnd >= 0) {
+          out += source.slice(i, closeEnd + 1);
+          i = closeEnd + 1;
+          continue;
+        }
+      }
+    }
+    let compact = '';
+    quote = '';
+    for (let j = 0; j < tag.length;) {
+      const char = tag[j]!;
+      if (quote) { compact += char; if (char === quote) quote = ''; j++; continue; }
+      if (char === '"' || char === "'") { quote = char; compact += char; j++; continue; }
+      if (/\s/.test(char)) {
+        while (j < tag.length && /\s/.test(tag[j]!)) j++;
+        const previous = compact.at(-1);
+        const next = tag[j];
+        if (previous && previous !== '<' && previous !== '=' && next !== '>' && next !== '=') compact += ' ';
+        continue;
+      }
+      compact += char;
+      j++;
+    }
+    out += compact;
+    i = end;
+  }
+  return out;
 }
 
 export const run: ToolRun = async (inputs, options) => {

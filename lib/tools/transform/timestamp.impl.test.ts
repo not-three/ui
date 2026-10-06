@@ -30,3 +30,8 @@ it('rejects impossible ISO calendar dates without rolling into another month', a
   expect(await convert('2023-02-29T12:00:00+01:00', 'unix')).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
   expect(await convert('2024-02-29T00:00:00Z', 'unix')).toMatchObject({ kind: 'text', text: '1709164800' });
 });
+
+it('rejects impossible RFC dates and accepts a valid leap day', async () => {
+  expect(await convert('Fri, 30 Feb 2024 00:00:00 GMT', 'iso')).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+  expect(await convert('Thu, 29 Feb 2024 00:00:00 GMT', 'unix')).toMatchObject({ kind: 'text', text: '1709164800' });
+});
