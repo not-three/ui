@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { APP_ORIGIN } from "./helpers";
 
 const info = {
   version: "2.1.1", availableTokens: 100, maxStorageTimeDays: 30,
@@ -7,7 +8,7 @@ const info = {
 
 async function openApp(page: Page, path = "/") {
   await page.route("**/api/info", (route) => route.fulfill({ json: info }));
-  await page.goto(`http://127.0.0.1:8789${path}`);
+  await page.goto(`${APP_ORIGIN}${path}`);
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 30_000 });
 }
 
@@ -18,7 +19,7 @@ async function saveSettings(page: Page, keybindings: unknown[]) {
   await page.keyboard.press("Backspace");
   await page.keyboard.insertText(JSON.stringify({ version: 4, keybindings }));
   await page.keyboard.press("Control+s");
-  await expect(page).toHaveURL("http://127.0.0.1:8789/");
+  await expect(page).toHaveURL(`${APP_ORIGIN}/`);
 }
 
 test("Ctrl+S on the title bar saves the current note", async ({ page }) => {
@@ -37,7 +38,7 @@ test("Ctrl+K Ctrl+S opens the read-only keymap view", async ({ page }) => {
   await page.locator("#logo").click();
   await page.keyboard.press("Control+k");
   await page.keyboard.press("Control+s");
-  await expect(page).toHaveURL("http://127.0.0.1:8789/keybindings");
+  await expect(page).toHaveURL(`${APP_ORIGIN}/keybindings`);
   await expect(page.locator(".monaco-editor")).toContainText("invalidUserEntries");
 });
 
@@ -52,21 +53,21 @@ test("a one-second-old chord prefix no longer holds Ctrl+S", async ({ page }) =>
   const create = page.waitForRequest((request) => request.url().endsWith("/api/note/json") && request.method() === "POST", { timeout: 15000 });
   await page.keyboard.press("Control+s");
   expect((await create).postDataJSON().content).toBeTruthy();
-  await expect(page).not.toHaveURL("http://127.0.0.1:8789/keybindings");
+  await expect(page).not.toHaveURL(`${APP_ORIGIN}/keybindings`);
 });
 
 test("Numpad0 binding runs from the title bar", async ({ page }) => {
   await saveSettings(page, [{ key: "numpad0", command: "not3.openKeybindings" }]);
   await page.locator("#logo").click();
   await page.keyboard.press("Numpad0");
-  await expect(page).toHaveURL("http://127.0.0.1:8789/keybindings");
+  await expect(page).toHaveURL(`${APP_ORIGIN}/keybindings`);
 });
 
 test("shifted punctuation binding runs from the title bar", async ({ page }) => {
   await saveSettings(page, [{ key: "shift+;", command: "not3.openKeybindings" }]);
   await page.locator("#logo").click();
   await page.keyboard.press("Shift+Semicolon");
-  await expect(page).toHaveURL("http://127.0.0.1:8789/keybindings");
+  await expect(page).toHaveURL(`${APP_ORIGIN}/keybindings`);
 });
 
 test("a negative Monaco binding removes the built-in Find shortcut", async ({ page }) => {
