@@ -10,21 +10,24 @@ export interface ThemeDefinition {
   scheme: ThemeScheme;
   monacoTheme: string;
   vars: Record<ThemeVar, string>;
+  surface: string;
 }
 
 export const THEMES: readonly ThemeDefinition[] = [
-  { id: 'default', label: 'Default', scheme: 'dark', monacoTheme: 'custom-dark', vars: { bg: '0 0 0', fg: '255 255 255', panel: '17 17 17', accent: '255 255 255' } },
-  { id: 'monokai', label: 'Monokai', scheme: 'dark', monacoTheme: 'not3-monokai', vars: { bg: '39 40 34', fg: '248 248 242', panel: '30 31 28', accent: '166 226 46' } },
-  { id: 'white', label: 'White', scheme: 'light', monacoTheme: 'not3-light', vars: { bg: '255 255 255', fg: '0 0 0', panel: '243 243 243', accent: '0 0 0' } },
-  { id: 'custom', label: 'Custom', scheme: 'dark', monacoTheme: 'custom-dark', vars: { bg: '0 0 0', fg: '255 255 255', panel: '17 17 17', accent: '255 255 255' } },
+  { id: 'default', label: 'Default', scheme: 'dark', monacoTheme: 'custom-dark', vars: { bg: '0 0 0', fg: '255 255 255', panel: '17 17 17', accent: '255 255 255' }, surface: '30 30 30' },
+  { id: 'monokai', label: 'Monokai', scheme: 'dark', monacoTheme: 'not3-monokai', vars: { bg: '39 40 34', fg: '248 248 242', panel: '30 31 28', accent: '166 226 46' }, surface: '39 40 34' },
+  { id: 'white', label: 'White', scheme: 'light', monacoTheme: 'not3-light', vars: { bg: '255 255 255', fg: '0 0 0', panel: '243 243 243', accent: '0 0 0' }, surface: '243 243 243' },
+  { id: 'custom', label: 'Custom', scheme: 'dark', monacoTheme: 'custom-dark', vars: { bg: '0 0 0', fg: '255 255 255', panel: '17 17 17', accent: '255 255 255' }, surface: '30 30 30' },
 ];
 const active = shallowRef<ThemeDefinition>(THEMES[0]!);
 export const activeTheme = readonly(active);
 
 const THEME_VARS: readonly ThemeVar[] = ['bg', 'fg', 'panel', 'accent'];
-const SURFACES: Record<ThemeId, string> = {
-  default: '30 30 30', monokai: '39 40 34', white: '243 243 243', custom: '30 30 30',
-};
+
+export function themeColor(theme: ThemeDefinition): string {
+  const hex = theme.vars.bg.split(' ').map(channel => Number(channel).toString(16).padStart(2, '0')).join('');
+  return `#${hex}`;
+}
 
 export function resolveTheme(input: {
   setting: ThemeId | null;
@@ -44,7 +47,7 @@ export function applyTheme(theme: ThemeDefinition, root: HTMLElement = document.
     else root.style.setProperty(`--not3-${name}`, theme.vars[name]);
   }
   if (theme.id === 'custom') root.style.removeProperty('--not3-surface');
-  else root.style.setProperty('--not3-surface', SURFACES[theme.id]);
+  else root.style.setProperty('--not3-surface', theme.surface);
   const doc = root.ownerDocument;
   let meta = doc.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (!meta) {
@@ -52,7 +55,6 @@ export function applyTheme(theme: ThemeDefinition, root: HTMLElement = document.
     meta.name = 'theme-color';
     doc.head.append(meta);
   }
-  const hex = theme.vars.bg.split(' ').map(channel => Number(channel).toString(16).padStart(2, '0')).join('');
-  meta.content = `#${hex}`;
+  meta.content = themeColor(theme);
   active.value = theme;
 }
