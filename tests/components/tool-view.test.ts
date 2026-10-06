@@ -137,6 +137,24 @@ it('auto-runs changed note text after 300 ms but never auto-runs a file', async 
   } finally { vi.useRealTimers(); }
 });
 
+it('runs a zero-input generator only when Run is clicked', async () => {
+  vi.useFakeTimers();
+  try {
+    const run = vi.fn(async () => ({ kind: 'text', text: 'generated' } as const));
+    const tool: ToolDefinition = {
+      ...resultTool({ kind: 'text', text: 'unused' }),
+      id: 'generator', inputs: [], load: async () => ({ run }),
+    };
+    const wrapper = mount(ToolView, { props: { tool, host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true } } });
+    await wrapper.setProps({ noteContent: 'changed' });
+    await vi.advanceTimersByTimeAsync(350);
+    expect(run).not.toHaveBeenCalled();
+    await wrapper.get('button[name="run"]').trigger('click');
+    await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
+    wrapper.unmount();
+  } finally { vi.useRealTimers(); }
+});
+
 it('cancels pending note auto-run when switched to a file', async () => {
   vi.useFakeTimers();
   try {
