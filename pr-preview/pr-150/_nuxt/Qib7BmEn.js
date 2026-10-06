@@ -1,0 +1,1 @@
+import{Mt as e,_t as t,f as n,on as r,ut as i}from"./C61trjtR.js";import{t as a}from"./BYFaMFso.js";var o=t({__name:`[id]`,setup(t){let o=n().params.id;return(t,n)=>{let s=a;return e(),i(s,{"open-file":r(o)},null,8,[`open-file`])}}});export{o as default};
