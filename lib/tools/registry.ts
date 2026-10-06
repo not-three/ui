@@ -5,6 +5,14 @@ import { url } from './encode/url';
 import { jsonLint } from './lint/json-lint';
 import { hash } from './hash/hash';
 import { diff } from './transform/diff';
+import { aes } from './crypto/aes';
+import { caesar } from './crypto/caesar';
+import { hmac } from './crypto/hmac';
+import { jwt } from './crypto/jwt';
+import { not3Payload } from './crypto/not3-payload';
+import { rot13 } from './crypto/rot13';
+import { keypair } from './generate/keypair';
+import { password } from './generate/password';
 import { jsonYaml } from './transform/json-yaml';
 import { csvJson } from './transform/csv-json';
 import { minify } from './transform/minify';
@@ -16,7 +24,12 @@ import { markdownHtml } from './transform/markdown-html';
 import { textStats } from './transform/text-stats';
 import { timestamp } from './transform/timestamp';
 
-export const TOOLS: ToolDefinition[] = [jsonLint, hash, base64, hex, url, letterCase, csvJson, diff, escapeText, jsonYaml, markdownHtml, minify, regex, sortLines, textStats, timestamp];
+export const TOOLS: ToolDefinition[] = [
+  jsonLint, hash, base64, hex, url,
+  not3Payload, aes, caesar, hmac, jwt, rot13,
+  letterCase, csvJson, diff, escapeText, jsonYaml, markdownHtml, minify, regex, sortLines, textStats, timestamp,
+  keypair, password,
+];
 
 export function getTool(id: string): ToolDefinition | undefined {
   return TOOLS.find(tool => tool.id === id);
