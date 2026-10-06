@@ -24,6 +24,7 @@
         </div>
       </div>
     </div>
+    <a v-if="output.continueWith" class="panel-btn self-start" :href="`/t/${output.continueWith.toolId}`" @click.prevent="continueWith(output.continueWith.toolId)">{{ output.continueWith.label }}</a>
     <p v-if="error" role="alert" class="text-red-400">{{ error }}</p>
   </div>
 </template>
@@ -63,22 +64,23 @@ async function probe() {
   const preferred = props.imageExportFormat ?? settings.tools.image.exportFormat as ImageFormat;
   format.value = available.value.includes(preferred) ? preferred : available.value.includes('png') ? 'png' : available.value[0] ?? 'png';
   if (format.value !== preferred) emit('update:imageExportFormat', format.value);
-  quality.value = settings.tools.image.exportQuality;
-  schedule();
+  quality.value = props.output.encodedQuality ?? settings.tools.image.exportQuality;
+  schedule(true);
 }
-watch(() => props.output, () => { job.dispose(); job = createImageExport(props.output.blob, props.output.width, props.output.height); preview.value = 'after'; schedule(); });
+watch(() => props.output, () => { job.dispose(); job = createImageExport(props.output.blob, props.output.width, props.output.height); preview.value = 'after'; quality.value = props.output.encodedQuality ?? settings.tools.image.exportQuality; schedule(true); });
 void probe();
-function schedule() {
+function schedule(useOriginal = false) {
   clearTimer(); job.dispose(); readyBlob.value = null; error.value = '';
   const own = ++serial;
   if (props.output.exportable === false) { readyBlob.value = props.output.blob; return; }
+  if (useOriginal && !lossless.value && props.output.blob.type === getCodec(format.value).mimeType) { readyBlob.value = props.output.blob; return; }
   timer = setTimeout(async () => {
     timer = null;
     try { const blob = await job.encode(format.value, { quality: quality.value, lossless: lossless.value }); if (own === serial) readyBlob.value = blob; }
     catch (reason) { if (own === serial && !(reason instanceof DOMException && reason.name === 'AbortError')) error.value = reason instanceof Error ? reason.message : String(reason); }
   }, 300);
 }
-watch(lossless, schedule);
+watch(lossless, () => schedule());
 onBeforeUnmount(() => { serial++; clearTimer(); job.dispose(); });
 function setFormat(value: string) { format.value = value as ImageFormat; emit('update:imageExportFormat', format.value); settings.tools.image.exportFormat = value; schedule(); }
 function setQuality(event: Event) { quality.value = Math.max(1, Math.min(100, Number((event.target as HTMLInputElement).value) || 82)); settings.tools.image.exportQuality = quality.value; schedule(); }
@@ -86,7 +88,7 @@ function extension() { return format.value === 'jpeg' ? 'jpg' : format.value; }
 function download() {
   if (!readyBlob.value) return;
   const url = URL.createObjectURL(readyBlob.value);
-  const anchor = document.createElement('a'); anchor.href = url; anchor.download = props.output.filename.replace(/\.[^.]+$/, '') + '.' + extension(); anchor.click();
+  const anchor = document.createElement('a'); anchor.href = url; anchor.download = props.output.exportable === false ? props.output.filename : props.output.filename.replace(/\.[^.]+$/, '') + '.' + extension(); anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 async function copyImage() {

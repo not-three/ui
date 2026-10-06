@@ -1,7 +1,7 @@
 import { resolveInput, type SourceValue } from './input';
-import type { ToolContext, ToolDefinition, ToolInput, ToolOptionValue, ToolOutput } from './types';
+import type { ToolContext, ToolDefinition, ToolInput, ToolOptionValue, ToolOutput, ToolProgressDetail } from './types';
 
-export interface ToolRunState { output: ToolOutput | null; inputImage?: Extract<ToolInput, {kind: 'image'}> | null; error: string | null; progress: number; running: boolean }
+export interface ToolRunState { output: ToolOutput | null; inputImage?: Extract<ToolInput, {kind: 'image'}> | null; error: string | null; progress: number; progressDetail?: ToolProgressDetail; running: boolean }
 
 export function rememberedOptions(tool: ToolDefinition, options: Record<string, ToolOptionValue>): Record<string, ToolOptionValue> {
   return Object.fromEntries(tool.options.filter(spec => !spec.secret && Object.hasOwn(options, spec.id)).map(spec => [spec.id, options[spec.id]!])) as Record<string, ToolOptionValue>;
@@ -31,7 +31,7 @@ export function createToolRunner(tool: ToolDefinition, onUpdate: (state: ToolRun
     controller?.abort();
     controller = null;
     if (clearInput) state.inputImage?.bitmap.close?.();
-    update({ output: null, ...(clearInput ? { inputImage: null } : {}), error: null, progress: 0, running: false });
+    update({ output: null, ...(clearInput ? { inputImage: null } : {}), error: null, progress: 0, progressDetail: undefined, running: false });
   }
   async function run(sources: Record<string, SourceValue>, options: Record<string, ToolOptionValue>, contextExtras: Pick<ToolContext, 'imageExportFormat'> = {}) {
     invalidate();
@@ -56,8 +56,8 @@ export function createToolRunner(tool: ToolDefinition, onUpdate: (state: ToolRun
       }
       const module = await tool.load();
       if (signal.aborted) return;
-      const output = await module.run(inputs, options, { ...contextExtras, signal, reportProgress: progress => {
-        if (own === sequence && !signal.aborted) update({ progress: Math.max(0, Math.min(1, progress)) });
+      const output = await module.run(inputs, options, { ...contextExtras, signal, reportProgress: (progress, progressDetail) => {
+        if (own === sequence && !signal.aborted) update({ progress: Math.max(0, Math.min(1, progress)), progressDetail });
       } });
       if (own === sequence && !signal.aborted) update({ output, progress: 1, running: false });
     } catch (error) {

@@ -56,7 +56,7 @@ export const run: ToolRun = async (inputs, options, context) => {
   if (source.data.every((value, index) => index % 4 !== 3 || value === 255)) {
     return { kind: 'multi', parts: [
       { label: 'Hint', output: { kind: 'report', items: [{ level: 'info', message: 'Remove background first, then use Continue with… to open Remove background.' }] } },
-      { label: 'Original image', output: await rasterOutput(source, filename) },
+      { label: 'Original image', output: { ...await rasterOutput(source, filename), continueWith: { toolId: 'remove-background', label: 'Remove background first' } } },
     ] };
   }
   const thickness = Math.max(0, Math.min(128, Math.round(Number(options.thickness ?? 12)) || 0));

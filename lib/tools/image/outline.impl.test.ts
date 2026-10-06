@@ -26,5 +26,7 @@ it('offers background removal for an opaque image', async () => {
   for (let p = 0; p < data.length; p += 4) data.set([20, 30, 40, 255], p);
   const output = await run({ input: imageInput({ width: 4, height: 4, data }) }, {}, context);
   expect(output.kind).toBe('multi');
-  expect(JSON.stringify(output)).toContain('Remove background first');
+  if (output.kind === 'multi') expect(output.parts.find(part => part.label === 'Original image')?.output).toMatchObject({
+    kind: 'image', continueWith: { toolId: 'remove-background', label: 'Remove background first' },
+  });
 });

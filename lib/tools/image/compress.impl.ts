@@ -39,7 +39,7 @@ export const run: ToolRun = async (inputs, options, context) => {
   const size = result.blob.size < 1048576 ? `${Math.round(result.blob.size / 1024)} KB` : `${(result.blob.size / 1048576).toFixed(1)} MB`;
   const message = `${result.quality} % → ${size}, ${result.iterations} iterations${result.metTarget ? '' : `; minimum achievable size is ${size}`}`;
   return { kind: 'multi', parts: [
-    { label: 'Compressed image', output: { kind: 'image', blob: result.blob, width: image.width, height: image.height, filename: `${stem(image.name)}-compress.${codec.extensions[0]}` } },
+    { label: 'Compressed image', output: { kind: 'image', blob: result.blob, width: image.width, height: image.height, filename: `${stem(image.name)}-compress.${codec.extensions[0]}`, encodedQuality: result.quality } },
     { label: 'Compression', output: { kind: 'text', text: message, language: 'plaintext' } },
   ] };
 };
