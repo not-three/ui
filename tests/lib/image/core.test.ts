@@ -41,19 +41,15 @@ it('rejects byte, pixel and canvas limits before browser decode', async () => {
   vi.unstubAllGlobals();
 });
 
-it('checks uninspectable JXL and HEIC dimensions after codec decode', async () => {
-  for (const [format, bytes, width, height, message] of [
-    ['jxl', new Uint8Array([255, 10, 0, 0]), 10_000, 6_000, '50 MP'],
-    ['heic', new TextEncoder().encode('\0\0\0\x18ftypheic'), 16_385, 1, '16384'],
-  ] as const) {
-    expect(inspectImage(bytes).width).toBe(0);
-    const close = vi.fn();
-    vi.spyOn(getCodec(format), 'canDecode').mockResolvedValue(true);
-    vi.spyOn(getCodec(format), 'decode').mockResolvedValue({ width, height, close } as unknown as ImageBitmap);
-    await expect(decodeImage(bytes)).rejects.toThrow(message);
-    expect(close).toHaveBeenCalledOnce();
-    vi.restoreAllMocks();
-  }
+it('keeps the HEIC image-handle limit and closes an oversized decoded bitmap', async () => {
+  const bytes = new TextEncoder().encode('\0\0\0\x18ftypheic');
+  expect(inspectImage(bytes).width).toBe(0);
+  const close = vi.fn();
+  vi.spyOn(getCodec('heic'), 'canDecode').mockResolvedValue(true);
+  vi.spyOn(getCodec('heic'), 'decode').mockResolvedValue({ width: 16_385, height: 1, close } as unknown as ImageBitmap);
+  await expect(decodeImage(bytes)).rejects.toThrow('16384');
+  expect(close).toHaveBeenCalledOnce();
+  vi.restoreAllMocks();
 });
 
 it('reads JPEG orientation and recognises undecodable metadata containers', () => {
@@ -96,7 +92,10 @@ it('releases a decoded bitmap when cancellation wins the decode race', async () 
 });
 
 it('names a recognised format when no decoder is installed', async () => {
-  await expect(decodeImage(new Uint8Array([255, 10, 0, 0]))).rejects.toThrow('Cannot decode jxl; this browser has no decoder and no vendored one');
+  const codec = getCodec('jxl');
+  vi.spyOn(codec, 'canDecode').mockResolvedValue(false);
+  await expect(decodeImage(new Uint8Array([255, 10, 8, 0, 4, 0]))).rejects.toThrow('Cannot decode jxl; this browser has no decoder and no vendored one');
+  vi.restoreAllMocks();
 });
 
 it('reads animation flags beyond the first kilobyte of a PNG and from AVIF brands', () => {
