@@ -1,5 +1,5 @@
 import { resolveInput, type SourceValue } from './input';
-import type { ToolDefinition, ToolInput, ToolOptionValue, ToolOutput } from './types';
+import type { ToolContext, ToolDefinition, ToolInput, ToolOptionValue, ToolOutput } from './types';
 
 export interface ToolRunState { output: ToolOutput | null; inputImage?: Extract<ToolInput, {kind: 'image'}> | null; error: string | null; progress: number; running: boolean }
 
@@ -33,7 +33,7 @@ export function createToolRunner(tool: ToolDefinition, onUpdate: (state: ToolRun
     if (clearInput) state.inputImage?.bitmap.close?.();
     update({ output: null, ...(clearInput ? { inputImage: null } : {}), error: null, progress: 0, running: false });
   }
-  async function run(sources: Record<string, SourceValue>, options: Record<string, ToolOptionValue>) {
+  async function run(sources: Record<string, SourceValue>, options: Record<string, ToolOptionValue>, contextExtras: Pick<ToolContext, 'imageExportFormat'> = {}) {
     invalidate();
     const own = sequence;
     controller = new AbortController();
@@ -56,7 +56,7 @@ export function createToolRunner(tool: ToolDefinition, onUpdate: (state: ToolRun
       }
       const module = await tool.load();
       if (signal.aborted) return;
-      const output = await module.run(inputs, options, { signal, reportProgress: progress => {
+      const output = await module.run(inputs, options, { ...contextExtras, signal, reportProgress: progress => {
         if (own === sequence && !signal.aborted) update({ progress: Math.max(0, Math.min(1, progress)) });
       } });
       if (own === sequence && !signal.aborted) update({ output, progress: 1, running: false });

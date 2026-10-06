@@ -31,6 +31,22 @@ it('aborts a running job on option change and discards late completion', async (
   expect(states.at(-1)).toBe('empty');
 });
 
+it('passes the selected export format to a run and aborts its signal on dispose after completion', async () => {
+  let signal: AbortSignal | undefined;
+  let format: string | undefined;
+  const imageTool: ToolDefinition = { ...tool, inputs: [], load: async () => ({ run: async (_inputs, _options, context) => {
+    signal = context.signal;
+    format = context.imageExportFormat;
+    return { kind: 'text', text: 'done' };
+  } }) };
+  const runner = createToolRunner(imageTool, () => {});
+  await runner.run({}, {}, { imageExportFormat: 'jpeg' });
+  expect(format).toBe('jpeg');
+  expect(signal?.aborted).toBe(false);
+  runner.dispose();
+  expect(signal?.aborted).toBe(true);
+});
+
 it('never remembers secret values or reads them from a route query', () => {
   const options = { normal: 'visible', password: 'private' };
   expect(rememberedOptions(tool, options)).toEqual({ normal: 'visible' });

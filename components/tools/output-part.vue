@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-2">
-    <tools-image-output v-if="output.kind === 'image'" :output="output" :host="host" :tool-id="toolId" :input-image="inputImage" />
+    <tools-image-output v-if="output.kind === 'image'" :output="output" :host="host" :tool-id="toolId" :input-image="inputImage" :image-export-format="imageExportFormat" @update:image-export-format="$emit('update:imageExportFormat', $event)" />
     <template v-else>
     <tools-monaco-output v-if="output.kind === 'text' || output.kind === 'diff'" :output="output" />
     <img v-if="imageUrl" :src="imageUrl" alt="Image preview" class="max-w-full max-h-96 self-start bg-white border border-white/20" :style="{ imageRendering: 'pixelated' }">
@@ -37,9 +37,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { ToolHost, ToolInput, ToolSingleOutput } from '~/lib/tools/types';
+import type { ImageFormat } from '~/lib/image/codecs';
 import ToolsImageOutput from './image-output.vue';
 import ToolsMonacoOutput from './monaco-output.vue';
-const props = defineProps<{ output: ToolSingleOutput; host: ToolHost; toolId: string; noteSource: boolean; selectionSource: boolean; inputImage?: Extract<ToolInput, {kind: 'image'}> | null }>();
+const props = defineProps<{ output: ToolSingleOutput; host: ToolHost; toolId: string; noteSource: boolean; selectionSource: boolean; inputImage?: Extract<ToolInput, {kind: 'image'}> | null; imageExportFormat?: ImageFormat }>();
+defineEmits<{ 'update:imageExportFormat': [format: ImageFormat] }>();
 const actionError = ref('');
 const LEVEL_CLASSES: Record<string, string> = { error: 'text-red-400', warning: 'text-yellow-400', info: 'text-white/60', success: 'text-green-400' };
 const hasEditorSource = computed(() => !!props.host.getNote() && (props.noteSource || props.selectionSource));

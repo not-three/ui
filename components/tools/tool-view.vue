@@ -53,7 +53,7 @@
         <div class="h-full bg-white" :style="{ width: `${state.progress * 100}%` }" />
       </div>
       <p v-if="state.error" class="text-red-400 text-xs" role="alert">{{ state.error }}</p>
-      <tools-output v-if="state.output" :output="state.output" :host="host" :tool-id="tool.id" :note-source="noteSource" :selection-source="selectionSource" :input-image="state.inputImage" class="flex-grow" />
+      <tools-output v-if="state.output" :output="state.output" :host="host" :tool-id="tool.id" :note-source="noteSource" :selection-source="selectionSource" :input-image="state.inputImage" :image-export-format="imageExportFormat" class="flex-grow" @update:image-export-format="imageExportFormat = $event" />
     </div>
   </section>
 </template>
@@ -61,6 +61,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, reactive, shallowRef, ref, watch } from 'vue';
 import { createToolRunner, presetOptions, rememberedOptions, type ToolRunState } from '~/lib/tools/controller';
+import { EXPORT_FORMATS, getCodec, type ImageFormat } from '~/lib/image/codecs';
 import { takeHandoff } from '~/lib/tools/handoff';
 import type { SourceValue } from '~/lib/tools/input';
 import type { ImagePoint, ImageRegion, ToolDefinition, ToolHost, ToolOptionValue, ToolSource } from '~/lib/tools/types';
@@ -82,6 +83,7 @@ const fileInputs: Record<string, HTMLInputElement | null> = {};
 const options = reactive<Record<string, ToolOptionValue>>({});
 const state = shallowRef<ToolRunState>({ output: null, error: null, progress: 0, running: false });
 const stageValue = ref<ImageRegion | ImagePoint>();
+const imageExportFormat = ref<ImageFormat>(settings.tools.image.exportFormat as ImageFormat);
 const imageStageMode = computed(() => props.tool.inputs.find(spec => spec.kind === 'image')?.stage ?? 'view');
 const stageAspect = computed(() => {
   if (imageStageMode.value !== 'crop') return undefined;
@@ -129,6 +131,7 @@ function resetTool() {
   for (const key of Object.keys(files)) Reflect.deleteProperty(files, key);
   for (const key of Object.keys(options)) Reflect.deleteProperty(options, key);
   stageValue.value = undefined;
+  imageExportFormat.value = settings.tools.image.exportFormat as ImageFormat;
   for (const spec of props.tool.inputs) {
     sources[spec.id] = spec.defaultSource !== 'empty' && props.host.getSelection() ? 'selection' : spec.defaultSource !== 'empty' && props.host.getNote() ? 'note' : 'text';
     texts[spec.id] = '';
@@ -200,7 +203,14 @@ function sourceValues(): Record<string, SourceValue> {
       : { source, text: texts[spec.id] ?? '', ...geometry }];
   }));
 }
-async function run() { cancelAutoRun(); await runner.run(sourceValues(), { ...options }); }
+async function run() {
+  cancelAutoRun();
+  if (props.tool.category === 'image' && !await getCodec(imageExportFormat.value).canEncode()) {
+    const supported = await Promise.all(EXPORT_FORMATS.map(async format => await getCodec(format).canEncode() ? format : null));
+    imageExportFormat.value = supported.find((format): format is ImageFormat => format !== null) ?? 'png';
+  }
+  await runner.run(sourceValues(), { ...options }, props.tool.category === 'image' ? { imageExportFormat: imageExportFormat.value } : {});
+}
 
 const noteSource = computed(() => props.tool.inputs.some(spec => sources[spec.id] === 'note'));
 const selectionSource = computed(() => props.tool.inputs.some(spec => sources[spec.id] === 'selection'));

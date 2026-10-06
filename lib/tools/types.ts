@@ -1,3 +1,5 @@
+import type { ImageFormat } from '../image/codecs';
+
 export type ToolCategory = 'lint' | 'hash' | 'encode' | 'crypto' | 'transform' | 'generate' | 'image';
 export type ToolInputKind = 'text' | 'bytes' | 'image';
 export type ToolSource = 'note' | 'selection' | 'file' | 'text';
@@ -40,6 +42,7 @@ export type ToolOutput = ToolSingleOutput | { kind: 'multi'; parts: { label: str
 export interface ToolContext {
   signal: AbortSignal;
   reportProgress: (fraction: number) => void;
+  imageExportFormat?: ImageFormat;
 }
 export type ToolRun = (inputs: Record<string, ToolInput>, options: Record<string, ToolOptionValue>, context: ToolContext) => Promise<ToolOutput>;
 export interface ToolDefinition {

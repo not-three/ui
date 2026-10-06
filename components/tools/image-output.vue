@@ -37,7 +37,8 @@ import { TOOLS } from '~/lib/tools/registry';
 import type { ToolHost, ToolInput, ToolSingleOutput } from '~/lib/tools/types';
 import ToolsImageStage from './image-stage.vue';
 import ToolsSegmented from './segmented.vue';
-const props = defineProps<{ output: Extract<ToolSingleOutput, {kind: 'image'}>; host: ToolHost; toolId: string; inputImage?: Extract<ToolInput, {kind: 'image'}> | null }>();
+const props = defineProps<{ output: Extract<ToolSingleOutput, {kind: 'image'}>; host: ToolHost; toolId: string; inputImage?: Extract<ToolInput, {kind: 'image'}> | null; imageExportFormat?: ImageFormat }>();
+const emit = defineEmits<{ 'update:imageExportFormat': [format: ImageFormat] }>();
 const settings = useSettingsStore();
 const router = useRouter();
 const format = ref<ImageFormat>('png');
@@ -59,8 +60,9 @@ function clearTimer() { if (timer) clearTimeout(timer); timer = null; }
 async function probe() {
   const possible = await Promise.all(EXPORT_FORMATS.map(async item => await getCodec(item).canEncode() ? item : null));
   available.value = possible.filter((item): item is ImageFormat => !!item);
-  const preferred = settings.tools.image.exportFormat as ImageFormat;
+  const preferred = props.imageExportFormat ?? settings.tools.image.exportFormat as ImageFormat;
   format.value = available.value.includes(preferred) ? preferred : available.value.includes('png') ? 'png' : available.value[0] ?? 'png';
+  if (format.value !== preferred) emit('update:imageExportFormat', format.value);
   quality.value = settings.tools.image.exportQuality;
   schedule();
 }
@@ -78,7 +80,7 @@ function schedule() {
 }
 watch(lossless, schedule);
 onBeforeUnmount(() => { serial++; clearTimer(); job.dispose(); });
-function setFormat(value: string) { format.value = value as ImageFormat; settings.tools.image.exportFormat = value; schedule(); }
+function setFormat(value: string) { format.value = value as ImageFormat; emit('update:imageExportFormat', format.value); settings.tools.image.exportFormat = value; schedule(); }
 function setQuality(event: Event) { quality.value = Math.max(1, Math.min(100, Number((event.target as HTMLInputElement).value) || 82)); settings.tools.image.exportQuality = quality.value; schedule(); }
 function extension() { return format.value === 'jpeg' ? 'jpg' : format.value; }
 function download() {
