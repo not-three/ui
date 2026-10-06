@@ -11,3 +11,13 @@
 .panel-input {
   @apply bg-black border border-white/40 text-xs px-1 py-0.5 text-white focus:outline-none focus:border-white;
 }
+
+/* The title-bar logo reveals the site name on hover, in the editor bar and the tools chrome alike. */
+.navigation-logo-text {
+  @apply font-bold select-none transition-all duration-200;
+  @apply max-w-0 -mr-1 overflow-hidden whitespace-pre;
+  @apply print:max-w-32 print:mr-0;
+}
+#logo:hover + h1 {
+  @apply max-w-32 mr-0;
+}
