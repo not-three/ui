@@ -1,37 +1,49 @@
 <template>
-  <section class="h-full min-h-0 flex flex-col gap-3 overflow-auto p-3 text-white bg-zinc-900" role="region" :aria-label="`${tool.title} tool`">
-    <header>
-      <h2 class="text-lg font-semibold">{{ tool.title }}</h2>
-      <p class="text-sm text-zinc-300">{{ tool.description }}</p>
+  <section class="h-full min-h-0 flex flex-col bg-[#111] text-white text-sm" role="region" :aria-label="`${tool.title} tool`">
+    <header v-if="$slots.header" class="flex items-center gap-3 px-2 py-1 bg-black text-sm flex-wrap">
+      <slot name="header" />
+      <div class="flex-grow" />
+      <button name="run" class="panel-btn" :disabled="state.running" @click="run">{{ state.running ? 'Running…' : 'Run' }}</button>
+      <slot name="actions" />
     </header>
-    <div v-for="spec in tool.inputs" :key="spec.id" class="flex flex-col gap-1">
-      <label :for="`source-${spec.id}`">{{ spec.label }}</label>
-      <select :id="`source-${spec.id}`" v-model="sources[spec.id]" :aria-label="`${spec.label} source`" class="tool-control">
-        <option value="note" :disabled="!host.getNote()">Note</option>
-        <option value="selection" :disabled="!host.getSelection()">Selection</option>
-        <option value="file">File</option>
-        <option value="text">Text</option>
-      </select>
-      <textarea v-if="sources[spec.id] === 'text'" v-model="texts[spec.id]" :aria-label="`${spec.label} text`" class="tool-control min-h-24 font-mono" />
-      <template v-if="sources[spec.id] === 'file'">
-        <input type="file" :aria-label="`${spec.label} file`" @change="chooseFile(spec.id, $event)">
-        <span v-if="files[spec.id]" class="text-sm">{{ files[spec.id]?.name }} ({{ files[spec.id]?.size }} bytes)</span>
-      </template>
+    <p class="text-xs text-white/60 px-2 py-1 border-b border-white/20">{{ tool.description }}</p>
+    <div class="flex-grow min-h-0 overflow-auto p-2 flex flex-col gap-2">
+      <div v-if="tool.inputs.length || tool.options.length" class="flex flex-col gap-1">
+        <div v-for="spec in tool.inputs" :key="spec.id" class="flex flex-col gap-1">
+          <div class="flex items-center gap-2 min-w-0">
+            <label :for="`source-${spec.id}`" class="tool-label">{{ spec.label }}</label>
+            <select :id="`source-${spec.id}`" v-model="sources[spec.id]" :aria-label="`${spec.label} source`" class="panel-select">
+              <option value="note" :disabled="!host.getNote()">Note</option>
+              <option value="selection" :disabled="!host.getSelection()">Selection</option>
+              <option value="file">File</option>
+              <option value="text">Text</option>
+            </select>
+            <template v-if="sources[spec.id] === 'file'">
+              <button type="button" name="choose-file" class="panel-btn text-xs py-0.5" @click="fileInputs[spec.id]?.click()">Choose file</button>
+              <input :ref="element => { fileInputs[spec.id] = element as HTMLInputElement | null }" type="file" class="sr-only" tabindex="-1" :aria-label="`${spec.label} file`" @change="chooseFile(spec.id, $event)">
+              <span class="text-xs text-white/60 truncate min-w-0">{{ files[spec.id] ? `${files[spec.id]?.name} (${files[spec.id]?.size} bytes)` : 'No file chosen' }}</span>
+            </template>
+          </div>
+          <textarea v-if="sources[spec.id] === 'text'" v-model="texts[spec.id]" :aria-label="`${spec.label} text`" class="panel-input font-mono min-h-24 w-full resize-y" />
+        </div>
+        <div v-for="option in tool.options" :key="option.id" class="flex items-center gap-2 min-w-0">
+          <label :for="`option-${option.id}`" class="tool-label">{{ option.label }}</label>
+          <select v-if="option.type === 'select'" :id="`option-${option.id}`" v-model="options[option.id]" class="panel-select" @keydown.enter.prevent="run">
+            <option v-for="value in option.values" :key="value.value" :value="value.value">{{ value.label }}</option>
+          </select>
+          <input v-else-if="option.type === 'boolean'" :id="`option-${option.id}`" v-model="options[option.id]" type="checkbox" @keydown.enter.prevent="run">
+          <input v-else :id="`option-${option.id}`" v-model="options[option.id]" :type="option.type === 'number' ? 'number' : option.secret ? 'password' : 'text'" :placeholder="option.type === 'text' ? option.placeholder : undefined" class="panel-input flex-grow min-w-0" :class="option.type === 'number' ? 'max-w-32' : ''" @keydown.enter.prevent="run">
+        </div>
+      </div>
+      <div v-if="!$slots.header" class="flex items-center gap-2">
+        <button name="run" class="panel-btn" :disabled="state.running" @click="run">{{ state.running ? 'Running…' : 'Run' }}</button>
+      </div>
+      <div v-if="state.running" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="1" :aria-valuenow="state.progress" class="h-1.5 border border-white/40 flex-shrink-0">
+        <div class="h-full bg-white" :style="{ width: `${state.progress * 100}%` }" />
+      </div>
+      <p v-if="state.error" class="text-red-400 text-xs" role="alert">{{ state.error }}</p>
+      <tools-output v-if="state.output" :output="state.output" :host="host" :tool-id="tool.id" :note-source="noteSource" :selection-source="selectionSource" class="flex-grow" />
     </div>
-    <div v-for="option in tool.options" :key="option.id" class="flex flex-col gap-1">
-      <label :for="`option-${option.id}`">{{ option.label }}</label>
-      <select v-if="option.type === 'select'" :id="`option-${option.id}`" v-model="options[option.id]" class="tool-control" @keydown.enter.prevent="run">
-        <option v-for="value in option.values" :key="value.value" :value="value.value">{{ value.label }}</option>
-      </select>
-      <input v-else-if="option.type === 'boolean'" :id="`option-${option.id}`" v-model="options[option.id]" type="checkbox" @keydown.enter.prevent="run">
-      <input v-else :id="`option-${option.id}`" v-model="options[option.id]" :type="option.type === 'number' ? 'number' : option.secret ? 'password' : 'text'" :placeholder="option.type === 'text' ? option.placeholder : undefined" class="tool-control" @keydown.enter.prevent="run">
-    </div>
-    <div class="flex items-center gap-3">
-      <button name="run" class="tool-button" :disabled="state.running" @click="run">{{ state.running ? 'Running…' : 'Run' }}</button>
-      <progress v-if="state.running" :value="state.progress" max="1" aria-label="Progress" class="flex-grow" />
-    </div>
-    <p v-if="state.error" class="text-red-300" role="alert">{{ state.error }}</p>
-    <tools-output v-if="state.output" :output="state.output" :host="host" :tool-id="tool.id" :note-source="noteSource" :selection-source="selectionSource" />
   </section>
 </template>
 
@@ -47,6 +59,7 @@ const settings = useSettingsStore();
 const sources = reactive<Record<string, ToolSource>>({});
 const texts = reactive<Record<string, string>>({});
 const files = reactive<Record<string, File | undefined>>({});
+const fileInputs: Record<string, HTMLInputElement | null> = {};
 const options = reactive<Record<string, ToolOptionValue>>({});
 const state = ref<ToolRunState>({ output: null, error: null, progress: 0, running: false });
 let runner = createToolRunner(props.tool, value => { state.value = value; });
@@ -106,6 +119,5 @@ const selectionSource = computed(() => props.tool.inputs.some(spec => sources[sp
 </script>
 
 <style scoped>
-.tool-control { @apply bg-zinc-800 border border-zinc-500 rounded px-2 py-1 text-white; }
-.tool-button { @apply bg-zinc-700 hover:bg-zinc-600 border border-zinc-500 rounded px-2 py-1 text-white; }
+.tool-label { @apply text-xs text-white/60 w-32 flex-shrink-0 leading-tight; }
 </style>

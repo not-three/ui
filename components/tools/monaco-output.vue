@@ -1,4 +1,4 @@
-<template><div ref="container" class="min-h-48 h-64 w-full border border-zinc-600" :aria-label="output.kind === 'diff' ? 'Diff output' : 'Text output'" /></template>
+<template><div ref="container" class="min-h-48 h-64 w-full border border-white/20" :aria-label="output.kind === 'diff' ? 'Diff output' : 'Text output'" /></template>
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue';

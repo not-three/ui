@@ -1,8 +1,8 @@
 <template>
   <section aria-label="Tool output" class="flex flex-col gap-2 min-h-36">
     <template v-if="output.kind === 'multi'">
-      <section v-for="(part, index) in output.parts" :key="index" class="border border-zinc-600 rounded p-2 flex flex-col gap-2" :aria-label="part.label">
-        <h3 class="font-semibold">{{ part.label }}</h3>
+      <section v-for="(part, index) in output.parts" :key="index" class="flex flex-col gap-1" :class="index ? 'border-t border-white/20 pt-2' : ''" :aria-label="part.label">
+        <h3 class="text-xs font-bold">{{ part.label }}</h3>
         <tools-output-part v-if="part.output.kind !== 'multi'" :output="part.output" :host="host" :tool-id="toolId" :note-source="noteSource" :selection-source="selectionSource" />
         <p v-else role="alert">Nested multi output is not supported.</p>
       </section>

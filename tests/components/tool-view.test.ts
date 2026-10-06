@@ -241,3 +241,66 @@ it('opens a standalone report text in a new note', async () => {
   expect(pageHost.createNote).toHaveBeenCalledWith('{"sub":"a"}', 'json');
   wrapper.unmount();
 });
+
+it('names the tool once through its description and lays options out as label rows', () => {
+  const tool: ToolDefinition = { ...resultTool({ kind: 'text', text: '' }), options: [
+    { id: 'mode', label: 'Mode', type: 'select', default: 'a', values: [{ value: 'a', label: 'A' }] },
+    { id: 'strict', label: 'Strict', type: 'boolean', default: false },
+  ] };
+  const wrapper = mount(ToolView, { props: { tool, host, noteContent: 'source' } });
+  expect(wrapper.find('h2').exists()).toBe(false);
+  expect(wrapper.text().split('A test tool')).toHaveLength(2);
+  for (const id of ['mode', 'strict']) {
+    const control = wrapper.get(`#option-${id}`);
+    const label = wrapper.get(`label[for="option-${id}"]`);
+    expect(label.element.parentElement).toBe(control.element.parentElement);
+  }
+  wrapper.unmount();
+});
+
+it('puts Run into the header row when a host supplies one', () => {
+  const wrapper = mount(ToolView, {
+    props: { tool: resultTool({ kind: 'text', text: '' }), host, noteContent: 'source' },
+    slots: { header: '<span>Tools</span>', actions: '<button name="close">Close</button>' },
+  });
+  const header = wrapper.get('header');
+  expect(header.text()).toContain('Tools');
+  expect(header.find('button[name="run"]').exists()).toBe(true);
+  expect(header.find('button[name="close"]').exists()).toBe(true);
+  expect(wrapper.findAll('button[name="run"]')).toHaveLength(1);
+  wrapper.unmount();
+});
+
+it('chooses a file through an outlined button and shows its name and size inline', async () => {
+  const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'text', text: '' }), host, noteContent: 'source' } });
+  await wrapper.get('select[aria-label="Input source"]').setValue('file');
+  const fileInput = wrapper.get('input[type="file"]');
+  const click = vi.spyOn(fileInput.element as HTMLInputElement, 'click');
+  await wrapper.get('button[name="choose-file"]').trigger('click');
+  expect(click).toHaveBeenCalledOnce();
+  Object.defineProperty(fileInput.element, 'files', { value: [{ name: 'abc.txt', size: 3 }] });
+  await fileInput.trigger('change');
+  expect(wrapper.text()).toContain('abc.txt');
+  expect(wrapper.text()).toContain('3 bytes');
+  wrapper.unmount();
+});
+
+it('shows a running tool as a progress track', async () => {
+  const tool: ToolDefinition = { ...resultTool({ kind: 'text', text: '' }), load: async () => ({ run: () => new Promise<never>(() => {}) }) };
+  const wrapper = mount(ToolView, { props: { tool, host, noteContent: 'source' } });
+  await wrapper.get('button[name="run"]').trigger('click');
+  await vi.waitFor(() => expect(wrapper.find('[role="progressbar"]').exists()).toBe(true));
+  expect(wrapper.get('[role="progressbar"]').attributes('aria-label')).toBe('Progress');
+  expect(wrapper.find('progress').exists()).toBe(false);
+  wrapper.unmount();
+});
+
+it('renders report items as level, position and message rows', async () => {
+  const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'report', items: [{ level: 'error', message: 'bad', position: { line: 2, column: 4 } }, { level: 'info', message: 'fine' }] }), host, noteContent: 'source' } });
+  await wrapper.get('select[aria-label="Input source"]').setValue('note');
+  await wrapper.get('button[name="run"]').trigger('click');
+  await vi.waitFor(() => expect(wrapper.find('button[name="reveal"]').exists()).toBe(true));
+  const rows = wrapper.findAll('[data-report-item]').map(row => row.text().replace(/\s+/g, ' '));
+  expect(rows).toEqual(['error: 2:4 bad', 'info: fine']);
+  wrapper.unmount();
+});

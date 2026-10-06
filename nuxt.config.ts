@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  css: ["~/assets/css/scrollbar.css"],
+  css: ["~/assets/css/scrollbar.css", "~/assets/css/panel.css"],
   app: {
     head: {
       charset: "utf-8",
