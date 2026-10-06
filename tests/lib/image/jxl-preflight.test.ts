@@ -80,6 +80,8 @@ it.each([
   ['out of order fragments', container(part(1, small))],
   ['missing first version-1 fragment', containerVersion(1, part(0x80000001, small))],
   ['unsupported container version', containerVersion(2, part(0x80000000, small))],
+  ['jxlp followed by jxlc', containerVersion(1, part(0x80000000, large), box('jxlc', small))],
+  ['jxlc followed by jxlp', containerVersion(1, box('jxlc', small), part(0x80000000, large))],
 ])('rejects %s with a named JXL dimension error before full decode', async (_, bytes) => {
   const codec = getCodec('jxl');
   vi.spyOn(codec, 'canDecode').mockResolvedValue(true);

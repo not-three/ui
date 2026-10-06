@@ -44,6 +44,8 @@ export function readJxlDimensions(bytes: Uint8Array): { width: number; height: n
   let version: number | null = null;
   let nextPart = 0;
   let seen: Uint8Array | undefined;
+  let codestream: Uint8Array | null = null;
+  let sawPart = false;
   for (let offset = signature.length; offset < bytes.length;) {
     if (offset + 8 > bytes.length) return null;
     const view = new DataView(bytes.buffer, bytes.byteOffset + offset);
@@ -60,10 +62,11 @@ export function readJxlDimensions(bytes: Uint8Array): { width: number; height: n
       version = view.getUint32(headerSize + 4);
       if (version > 1) return null;
     } else if (type === 'jxlc') {
-      if (version === null || nextPart !== 0) return null;
-      return sizeHeader(bytes.subarray(payload, Math.min(payload + prefix.length, offset + size)));
+      if (version === null || sawPart || codestream) return null;
+      codestream = bytes.subarray(payload, Math.min(payload + prefix.length, offset + size));
     } else if (type === 'jxlp') {
-      if (version === null || size - headerSize < 4) return null;
+      if (version === null || codestream || size - headerSize < 4) return null;
+      sawPart = true;
       const index = view.getUint32(headerSize) & 0x7fffffff;
       if (version === 0 && index !== nextPart++) return null;
       if (version === 1) {
@@ -83,6 +86,7 @@ export function readJxlDimensions(bytes: Uint8Array): { width: number; height: n
     }
     offset += size;
   }
+  if (codestream) return sizeHeader(codestream);
   if (!fragments.length) return null;
   if (seen) {
     for (let index = 0; index <= fragments.at(-1)!.index; index++) {
