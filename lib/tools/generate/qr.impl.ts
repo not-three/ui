@@ -21,7 +21,7 @@ export const run: ToolRun = async (inputs, options) => {
   const width = Number(options.width ?? 256);
   const margin = Number(options.margin ?? 4);
   const errorCorrectionLevel = String(options.errorCorrection ?? 'M');
-  if (!Number.isInteger(width) || width < 64 || width > 2048 || !Number.isInteger(margin) || margin < 0 || margin > 16) throw new Error('Invalid QR size or margin');
+  if (!Number.isInteger(width) || width < 64 || width > 4096 || !Number.isInteger(margin) || margin < 0 || margin > 16) throw new Error('Invalid QR size or margin');
   if (!['L', 'M', 'Q', 'H'].includes(errorCorrectionLevel)) throw new Error('Invalid error correction level');
   const QRCode = await import('qrcode');
   const qr = QRCode.create(input.text, { errorCorrectionLevel: errorCorrectionLevel as 'L' | 'M' | 'Q' | 'H' });

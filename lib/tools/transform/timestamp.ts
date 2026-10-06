@@ -1,8 +1,8 @@
 import type { ToolDefinition } from '../types';
 export const timestamp: ToolDefinition = {
-  id: 'timestamp', title: 'Timestamp converter', category: 'transform',
+  id: 'timestamp', title: 'Timestamp', category: 'transform',
   description: 'Convert Unix seconds, ISO 8601, or RFC 2822 dates to Unix, ISO, or RFC output in an IANA timezone.',
-  keywords: ['timestamp', 'unix', 'epoch', 'iso', 'rfc', 'timezone'],
+  keywords: ['timestamp', 'unix', 'epoch', 'iso', 'rfc', 'timezone', 'converter', 'date'],
   inputs: [{ id: 'input', label: 'Input', kind: 'text', defaultSource: 'note' }],
   options: [
     { id: 'format', label: 'Output format', type: 'select', default: 'iso', values: [{ value: 'unix', label: 'Unix seconds' }, { value: 'iso', label: 'ISO 8601' }, { value: 'rfc', label: 'RFC 2822' }] },

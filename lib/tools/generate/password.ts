@@ -1,6 +1,6 @@
 import type { ToolDefinition } from '../types';
 export const password: ToolDefinition = {
-  id: 'password', title: 'Password generator', category: 'generate', description: 'Generate a random secret locally and show its estimated entropy.', keywords: ['random', 'secret', 'entropy'], inputs: [],
+  id: 'password', title: 'Password', category: 'generate', description: 'Generate a random secret locally and show its estimated entropy.', keywords: ['random', 'secret', 'entropy', 'generator'], inputs: [],
   options: [
     { id: 'length', label: 'Length', type: 'number', default: 24, min: 1, max: 4096 },
     { id: 'lowercase', label: 'Lowercase', type: 'boolean', default: true },

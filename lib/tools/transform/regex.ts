@@ -1,8 +1,8 @@
 import type { ToolDefinition } from '../types';
 export const regex: ToolDefinition = {
-  id: 'regex', title: 'Regex tester', category: 'transform',
+  id: 'regex', title: 'Regex', category: 'transform',
   description: 'Find regex matches with line and column positions; optionally preview a replacement or deletion as a diff.',
-  keywords: ['regex', 'regular expression', 'match', 'replace'],
+  keywords: ['regex', 'regular expression', 'match', 'replace', 'tester'],
   inputs: [{ id: 'input', label: 'Input', kind: 'text', defaultSource: 'note' }],
   options: [
     { id: 'pattern', label: 'Pattern', type: 'text', default: '' },

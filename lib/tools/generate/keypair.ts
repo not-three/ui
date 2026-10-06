@@ -1,6 +1,6 @@
 import type { ToolDefinition } from '../types';
 export const keypair: ToolDefinition = {
-  id: 'keypair', title: 'Key pair generator', category: 'generate', description: 'Generate RSA-OAEP, RSA-PSS, ECDSA or supported Ed25519 keys locally and export PEM.', keywords: ['rsa', 'ecdsa', 'ed25519', 'pem'], inputs: [],
+  id: 'keypair', title: 'Key pair', category: 'generate', description: 'Generate RSA-OAEP, RSA-PSS, ECDSA or supported Ed25519 keys locally and export PEM.', keywords: ['rsa', 'ecdsa', 'ed25519', 'pem', 'generator', 'keys'], inputs: [],
   options: [
     { id: 'algorithm', label: 'Algorithm', type: 'select', values: ['RSA-OAEP', 'RSA-PSS', 'ECDSA', 'Ed25519'].map(value => ({ value, label: value })), default: 'RSA-PSS' },
     { id: 'rsaBits', label: 'RSA bits', type: 'select', values: ['2048', '4096'].map(value => ({ value, label: value })), default: '2048' },
