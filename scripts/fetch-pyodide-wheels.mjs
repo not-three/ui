@@ -8,11 +8,11 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PYODIDE_VERSION = "0.26.4";
-const BASE = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full`;
 const WANTED = ["numpy", "micropip", "packaging"];
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const PYODIDE_VERSION = JSON.parse(readFileSync(join(root, "node_modules", "pyodide", "package.json"), "utf8")).version;
+const BASE = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full`;
 const dir = join(root, "public", "vendor", "pyodide");
 const lockPath = join(dir, "pyodide-lock.json");
 
