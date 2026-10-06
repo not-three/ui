@@ -73,15 +73,19 @@ export function inspectImage(bytes: Uint8Array): { format: ImageFormat | null; w
     if (chunk === 'VP8L' && bytes.length >= 25) { width = 1 + (bytes[21]! | (bytes[22]! & 0x3f) << 8); height = 1 + ((bytes[22]! >> 6) | bytes[23]! << 2 | (bytes[24]! & 15) << 10); }
   }
   if (format === 'jpeg') {
-    for (let p = 2; p + 4 < bytes.length;) {
-      if (bytes[p] !== 255) break;
-      const marker = bytes[p + 1]!;
+    for (let p = 2; p < bytes.length;) {
+      if (bytes[p++] !== 255) break;
+      while (bytes[p] === 255) p++;
+      if (p >= bytes.length) break;
+      const marker = bytes[p++]!;
       if (marker === 217 || marker === 218) break;
-      const length = u16(bytes, p + 2);
-      if (length < 2 || p + 2 + length > bytes.length) break;
-      if (marker === 225) rotate = orientation(bytes, p + 4);
-      if ([192,193,194,195,198,199,201,202,203,205,206,207].includes(marker) && length >= 7) { height = u16(bytes, p + 5); width = u16(bytes, p + 7); }
-      p += 2 + length;
+      if (marker === 1 || marker === 216 || (marker >= 208 && marker <= 215)) continue;
+      if (p + 2 > bytes.length) break;
+      const length = u16(bytes, p);
+      if (length < 2 || p + length > bytes.length) break;
+      if (marker === 225) rotate = orientation(bytes, p + 2);
+      if ([192,193,194,195,198,199,201,202,203,205,206,207].includes(marker) && length >= 7) { height = u16(bytes, p + 3); width = u16(bytes, p + 5); }
+      p += length;
     }
   }
   if (format === 'svg') {
@@ -114,15 +118,17 @@ export async function decodeImage(bytes: Uint8Array, name?: string, signal?: Abo
     const placeholder = await createImageBitmap(new ImageData(1, 1));
     return { kind: 'image', bitmap: placeholder, width: 0, height: 0, bytes, mimeType: codec.mimeType, name };
   }
+  if (info.width <= 0 || info.height <= 0) throw new Error(`Cannot inspect ${info.format} dimensions before decode`);
+  let bitmap: ImageBitmap;
   try {
-    const bitmap = await codec.decode(bytes, signal);
-    try {
-      signal?.throwIfAborted();
-      checkImageLimits(bytes.byteLength, bitmap.width, bitmap.height);
-      return { kind: 'image', bitmap, width: bitmap.width, height: bitmap.height, bytes, mimeType: codec.mimeType, name, firstFrameOnly: info.animated };
-    } catch (error) { bitmap.close(); throw error; }
+    bitmap = await codec.decode(bytes, signal);
   } catch (error) {
     if (signal?.aborted) throw error;
     throw new Error(`Cannot decode ${info.format}; this browser has no decoder and no vendored one`, { cause: error });
   }
+  try {
+    signal?.throwIfAborted();
+    checkImageLimits(bytes.byteLength, bitmap.width, bitmap.height);
+    return { kind: 'image', bitmap, width: bitmap.width, height: bitmap.height, bytes, mimeType: codec.mimeType, name, firstFrameOnly: info.animated };
+  } catch (error) { bitmap.close(); throw error; }
 }
