@@ -64,4 +64,3 @@ function download() {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 </script>
-
