@@ -22,6 +22,14 @@ it('reports only the replacement target when global flag is absent', async () =>
   ] });
 });
 
+it('starts a sticky replacement preview at the beginning of the source', async () => {
+  const result = await run({ input: textInput('cat cat') }, { pattern: 'cat', flags: 'y', replacement: 'dog' }, context);
+  expect(result).toMatchObject({ kind: 'multi', parts: [
+    { label: 'Matches', output: { kind: 'report', items: [{ position: { line: 1, column: 1 } }] } },
+    { label: 'Replacement preview', output: { kind: 'diff', left: 'cat cat', right: 'dog cat' } },
+  ] });
+});
+
 it('surfaces invalid patterns and terminates zero-width global matches', async () => {
   expect(await run({ input: textInput('x') }, { pattern: '[', flags: 'g', replacement: '' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
   const result = await run({ input: textInput('ab') }, { pattern: '(?=.)', flags: 'g', replacement: '' }, context);

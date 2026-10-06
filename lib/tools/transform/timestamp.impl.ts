@@ -23,6 +23,31 @@ function validCalendarDate(year: number, month: number, day: number): boolean {
   return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1]!;
 }
 
+function parseRfc3339(source: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?([Zz]|[+-]\d{2}:\d{2})$/.exec(source);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  if (!validCalendarDate(year, month, day) || hour > 23 || minute > 59 || second > 59) return null;
+  const milliseconds = Number((match[7] ?? '').slice(0, 3).padEnd(3, '0'));
+  const zone = match[8]!;
+  let offsetMinutes = 0;
+  if (zone.toUpperCase() !== 'Z') {
+    const offsetHours = Number(zone.slice(1, 3));
+    const offsetRemainder = Number(zone.slice(4, 6));
+    if (offsetHours > 23 || offsetRemainder > 59) return null;
+    offsetMinutes = (zone[0] === '+' ? 1 : -1) * (offsetHours * 60 + offsetRemainder);
+  }
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  date.setUTCHours(hour, minute, second, milliseconds);
+  return date.getTime() - offsetMinutes * 60_000;
+}
+
 function parseRfc(source: string): number | null {
   const match = /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s+(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?\s+([+-]\d{4}|GMT|UT|UTC|Z|EST|EDT|CST|CDT|MST|MDT|PST|PDT)$/i.exec(source);
   if (!match) return null;
@@ -55,18 +80,8 @@ export const run: ToolRun = async (inputs, options) => {
   const source = requireText(inputs.input).trim();
   const format = String(options.format ?? 'iso');
   const timezone = String(options.timezone ?? 'UTC').trim();
-  const isoDate = /^(\d{4})-(\d{2})-(\d{2})T/.exec(source);
-  if (isoDate) {
-    const year = Number(isoDate[1]);
-    const month = Number(isoDate[2]);
-    const day = Number(isoDate[3]);
-    if (!validCalendarDate(year, month, day)) return errorReport('Invalid ISO calendar date');
-    const time = /T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(source);
-    if (!time || Number(time[1]) > 23 || Number(time[2]) > 59 || Number(time[3] ?? 0) > 59) return errorReport('Invalid ISO time');
-  }
   const epoch = /^-?\d+(?:\.\d+)?$/.test(source) ? Number(source) * 1000
-    : isoDate ? Date.parse(source)
-      : /^[A-Za-z]{3},/.test(source) ? parseRfc(source) ?? NaN : NaN;
+    : parseRfc3339(source) ?? parseRfc(source) ?? NaN;
   if (!Number.isFinite(epoch) || !Number.isFinite(new Date(epoch).getTime())) return errorReport('Invalid timestamp');
   if (format === 'unix') return { kind: 'text', text: String(Math.floor(epoch / 1000)) };
   let parts: ReturnType<typeof zonedParts>;

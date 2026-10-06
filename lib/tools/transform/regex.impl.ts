@@ -30,6 +30,7 @@ export const run: ToolRun = async (inputs, options) => {
   }
   const report = { kind: 'report' as const, items: items.length ? items : [{ level: 'info' as const, message: 'No matches' }] };
   if (String(options.replacement ?? '') === '') return report;
+  expression.lastIndex = 0;
   const right = source.replace(expression, String(options.replacement));
   return { kind: 'multi', parts: [
     { label: 'Matches', output: report },

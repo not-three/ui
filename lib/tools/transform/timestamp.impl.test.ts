@@ -62,3 +62,23 @@ it.each([
 ])('accepts %s', async (_name, source, expected) => {
   expect(await convert(source, 'unix')).toMatchObject({ kind: 'text', text: expected });
 });
+
+it.each([
+  ['fractional seconds and offset', '2024-02-29T23:30:00.125+01:00', '1709245800'],
+  ['lowercase time and zone markers', '2024-02-29t00:00:00z', '1709164800'],
+])('accepts RFC3339 %s', async (_name, source, expected) => {
+  expect(await convert(source, 'unix')).toMatchObject({ kind: 'text', text: expected });
+});
+
+it.each([
+  ['offset hour outside range', '2024-02-29T00:00:00+24:00'],
+  ['offset minute outside range', '2024-02-29T00:00:00+23:60'],
+  ['trailing text', '2024-02-29T00:00:00Z junk'],
+  ['missing seconds', '2024-02-29T00:00Z'],
+  ['missing zone', '2024-02-29T00:00:00'],
+  ['extra time field', '2024-02-29T00:00:00:00Z'],
+  ['leap second', '2024-02-29T00:00:60Z'],
+  ['invalid leap day', '2023-02-29T00:00:00Z'],
+])('rejects RFC3339 %s', async (_name, source) => {
+  expect(await convert(source, 'unix')).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+});
