@@ -61,6 +61,18 @@ it('preserves whitespace between elements that may be inline', async () => {
   });
 });
 
+it('keeps less-than comparisons in HTML text as text', async () => {
+  expect(await minify('<div>a < b > c</div>', 'html')).toMatchObject({
+    kind: 'text', text: '<div>a < b > c</div>', language: 'html',
+  });
+  expect(await minify('<div>a < b > c<span>ok</span> < 2 > d</div>', 'html')).toMatchObject({
+    kind: 'text', text: '<div>a < b > c<span>ok</span> < 2 > d</div>', language: 'html',
+  });
+  expect(await minify('<div data-note="a < b > c">x</div>', 'html')).toMatchObject({
+    kind: 'text', text: '<div data-note="a < b > c">x</div>', language: 'html',
+  });
+});
+
 it.each([
   ['pre', '<pre>  a\n b </pre>', '<pre>  a\n b </pre>'],
   ['textarea', '<textarea>  a\n b </textarea>', '<textarea>  a\n b </textarea>'],

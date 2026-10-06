@@ -61,6 +61,7 @@ function minifyCss(source: string): string {
 
 function minifyHtml(source: string): string {
   const rawTags = new Set(['pre', 'script', 'style', 'textarea', 'title', 'xmp']);
+  const tagOpener = /<\/?[a-z][\w:-]*(?=[\s/>])/iy;
   const lower = source.toLowerCase();
   let out = '';
   let i = 0;
@@ -72,6 +73,8 @@ function minifyHtml(source: string): string {
       i = end < 0 ? source.length : end + 3;
       continue;
     }
+    tagOpener.lastIndex = i;
+    if (!tagOpener.test(source)) { out += source[i++]; continue; }
     let end = i + 1;
     let quote = '';
     while (end < source.length) {
@@ -81,6 +84,7 @@ function minifyHtml(source: string): string {
       else if (char === '>') break;
     }
     const tag = source.slice(i, end);
+    if (!tag.endsWith('>')) { out += tag; break; }
     const name = /^<([a-z][\w:-]*)\b/i.exec(tag)?.[1]?.toLowerCase();
     if (name && rawTags.has(name) && tag.endsWith('>') && !tag.endsWith('/>')) {
       let close = lower.indexOf(`</${name}`, end);
