@@ -1,6 +1,7 @@
 <template>
   <div class="flex flex-col gap-2">
     <tools-monaco-output v-if="output.kind === 'text' || output.kind === 'diff'" :output="output" />
+    <img v-if="imageUrl" :src="imageUrl" alt="Image preview" class="max-w-full max-h-96 self-start bg-white border border-white/20" :style="{ imageRendering: 'pixelated' }">
     <p v-if="output.kind === 'bytes'" class="text-xs text-white/60">{{ output.bytes.byteLength }} bytes</p>
     <tools-monaco-output v-if="output.kind === 'bytes' && output.text !== undefined" :output="{ kind: 'text', text: output.text, language: 'plaintext' }" />
     <ul v-if="output.kind === 'report'" class="font-mono text-xs">
@@ -31,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { ToolHost, ToolSingleOutput } from '~/lib/tools/types';
 import ToolsMonacoOutput from './monaco-output.vue';
 const props = defineProps<{ output: ToolSingleOutput; host: ToolHost; toolId: string; noteSource: boolean; selectionSource: boolean }>();
@@ -39,6 +40,18 @@ const actionError = ref('');
 const LEVEL_CLASSES: Record<string, string> = { error: 'text-red-400', warning: 'text-yellow-400', info: 'text-white/60', success: 'text-green-400' };
 const hasEditorSource = computed(() => !!props.host.getNote() && (props.noteSource || props.selectionSource));
 const editableText = computed(() => props.output.kind === 'text' || props.output.kind === 'bytes' ? props.output.text : undefined);
+
+// Image bytes (for example a generated QR code) are previewed inline through an
+// object URL that is released as soon as the output changes or the part unmounts.
+const imageUrl = ref('');
+function releaseImage() { if (imageUrl.value) URL.revokeObjectURL(imageUrl.value); imageUrl.value = ''; }
+watch(() => props.output, output => {
+  releaseImage();
+  if (output.kind === 'bytes' && output.mimeType?.startsWith('image/') && typeof URL.createObjectURL === 'function') {
+    imageUrl.value = URL.createObjectURL(new Blob([output.bytes as BlobPart], { type: output.mimeType }));
+  }
+}, { immediate: true });
+onBeforeUnmount(releaseImage);
 
 function outputText(): string {
   const output = props.output;

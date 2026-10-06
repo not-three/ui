@@ -14,14 +14,14 @@ test('catalogue groups all tools and searches descriptions, keywords, and catego
     const tools = TOOLS.filter(tool => tool.category === category);
     await expect(section.getByRole('link')).toHaveCount(tools.length);
     for (const tool of tools) {
-      const link = section.getByRole('link', { name: new RegExp(tool.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) });
+      const link = section.getByRole('link', { name: new RegExp('^' + tool.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) });
       await expect(link).toContainText(tool.description);
       await expect(link).toHaveAttribute('href', `/t/${tool.id}`);
     }
   }
   for (const [query, id] of [['checksum', 'hash'], ['placeholder', 'lorem'], ['syntax', 'json-lint'], ['bse64', 'base64'], ['crypto', 'aes']]) {
     await page.getByRole('searchbox', { name: 'Search tools' }).fill(query);
-    await expect(page.getByRole('link', { name: new RegExp(TOOLS.find(tool => tool.id === id)!.title, 'i') })).toBeVisible();
+    await expect(page.getByRole('link', { name: new RegExp('^' + TOOLS.find(tool => tool.id === id)!.title, 'i') })).toBeVisible();
   }
   network.assertNoNetwork();
 });
@@ -66,7 +66,7 @@ test('phone width stacks the editor above the tool panel', async ({ page }) => {
   expect(panel!.y).toBeGreaterThanOrEqual(editor!.y + editor!.height - 1);
   expect(panel!.width).toBeLessThanOrEqual(375);
   const network = await withNoNetwork(page);
-  await page.getByRole('region', { name: 'Base64 tool' }).getByLabel('Input source').selectOption('text');
+  await page.getByRole('region', { name: 'Base64 tool' }).getByLabel('Input source').getByRole('radio', { name: 'Text' }).click();
   await page.getByRole('region', { name: 'Base64 tool' }).getByLabel('Input text').fill('hello');
   await page.getByRole('region', { name: 'Base64 tool' }).getByRole('button', { name: 'Run', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Tool output' })).toContainText('aGVsbG8=');
@@ -77,14 +77,14 @@ test('standalone output actions follow whether bytes contain editable text', asy
   await page.goto(`${APP_ORIGIN}/t/hex`);
   const panel = page.getByRole('region', { name: 'Hex tool' });
   await panel.getByLabel('Input text').fill('ff');
-  await panel.getByLabel('Mode').selectOption('decode');
+  await panel.getByLabel('Mode').getByRole('radio', { name: 'Decode' }).click();
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('1 bytes');
   await expect(panel.getByRole('button', { name: 'Download' })).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Copy' })).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Open in editor' })).toHaveCount(0);
-  await panel.getByLabel('Mode').selectOption('encode');
+  await panel.getByLabel('Mode').getByRole('radio', { name: 'Encode' }).click();
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('button', { name: 'Copy' })).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Open in editor' })).toBeVisible();

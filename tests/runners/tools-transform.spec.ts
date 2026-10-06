@@ -33,7 +33,7 @@ test('sorts selected lines in the editor locally', async ({ page }) => {
   await page.keyboard.press('Control+a');
   await openTransform(page, 'Sort lines');
   const panel = page.getByRole('region', { name: 'Sort lines tool' });
-  await expect(panel.getByLabel('Input source')).toHaveValue('selection');
+  await expect(panel.getByLabel('Input source').getByRole('radio', { name: 'Selection' })).toBeChecked();
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('a');
@@ -48,7 +48,7 @@ test('counts the current note without a request', async ({ page }) => {
   await page.keyboard.insertText('hello world');
   await openTransform(page, 'Text statistics');
   const panel = page.getByRole('region', { name: 'Text statistics tool' });
-  await expect(panel.getByLabel('Input source')).toHaveValue('note');
+  await expect(panel.getByLabel('Input source').getByRole('radio', { name: 'Note' })).toBeChecked();
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('table')).toContainText('Words');
@@ -59,7 +59,7 @@ test('counts the current note without a request', async ({ page }) => {
 test('converts a local CSV file on the standalone page', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/csv-json`);
   const panel = page.getByRole('region', { name: 'CSV ↔ JSON tool' });
-  await panel.getByLabel('Input source').selectOption('file');
+  await panel.getByLabel('Input source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Input file').setInputFiles({ name: 'people.csv', mimeType: 'text/csv', buffer: Buffer.from('name,note\n"Zoë","hello, world"') });
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
@@ -70,7 +70,7 @@ test('converts a local CSV file on the standalone page', async ({ page }) => {
 
 test('previews deleting regex matches on the standalone page', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/regex`);
-  const panel = page.getByRole('region', { name: 'Regex tester tool' });
+  const panel = page.getByRole('region', { name: 'Regex tool' });
   await panel.getByLabel('Input text').fill('cat cat');
   await panel.getByLabel('Pattern').fill('cat');
   await panel.getByLabel('Preview deletion when replacement is empty').check();

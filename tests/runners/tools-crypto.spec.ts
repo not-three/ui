@@ -28,7 +28,7 @@ test('ROT13 works on a selected editor range without network', async ({ page }) 
 test('HMAC streams a file on its standalone page without network', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/hmac`);
   const panel = page.getByRole('region', { name: 'HMAC tool' });
-  await panel.getByLabel('Input source').selectOption('file');
+  await panel.getByLabel('Input source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Input file').setInputFiles({ name: 'abc.txt', mimeType: 'text/plain', buffer: Buffer.from('abc') });
   await panel.getByLabel('Secret key text').fill('key');
   const network = await withNoNetwork(page);
@@ -41,8 +41,8 @@ test('HMAC streams a file on its standalone page without network', async ({ page
 
 test('AES encrypts a file and downloads binary ciphertext locally', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/aes`);
-  const panel = page.getByRole('region', { name: 'AES encrypt/decrypt tool' });
-  await panel.getByLabel('Input source').selectOption('file');
+  const panel = page.getByRole('region', { name: 'AES tool' });
+  await panel.getByLabel('Input source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Input file').setInputFiles({ name: 'secret.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([0, 255, 1]) });
   await panel.getByLabel('Password or hex key text').fill('browser secret');
   const network = await withNoNetwork(page);
@@ -56,7 +56,7 @@ test('AES encrypts a file and downloads binary ciphertext locally', async ({ pag
 
 test('password output can be downloaded without persisting its value', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/password`);
-  const panel = page.getByRole('region', { name: 'Password generator tool' });
+  const panel = page.getByRole('region', { name: 'Password tool' });
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   const secret = await panel.getByRole('region', { name: 'Secret' }).locator('.monaco-editor').textContent();

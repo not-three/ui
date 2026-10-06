@@ -41,8 +41,8 @@ test('Base64 selection encodes and decodes locally', async ({ page }) => {
   await expect(page.locator('.monaco-editor').first()).toContainText('aGVsbG8=');
   await page.locator('.monaco-editor').first().click();
   await page.keyboard.press('Control+a');
-  await expect(panel.getByLabel('Input source')).toHaveValue('selection');
-  await panel.getByLabel('Mode').selectOption('decode');
+  await expect(panel.getByLabel('Input source').getByRole('radio', { name: 'Selection' })).toBeChecked();
+  await panel.getByLabel('Mode').getByRole('radio', { name: 'Decode' }).click();
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('5 bytes');
   const download = page.waitForEvent('download');
@@ -57,7 +57,7 @@ test('Base64 selection encodes and decodes locally', async ({ page }) => {
 test('hashes a real file on the standalone route without an API request', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/hash`);
   const panel = page.getByRole('region', { name: 'Hash tool' });
-  await panel.getByLabel('Input source').selectOption('file');
+  await panel.getByLabel('Input source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Input file').setInputFiles({ name: 'abc.txt', mimeType: 'text/plain', buffer: Buffer.from('abc') });
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
@@ -102,7 +102,7 @@ test('JSON lint command uses selected JSON within a larger note', async ({ page 
   await page.keyboard.insertText('JSON lint');
   await page.keyboard.press('Enter');
   const panel = page.getByRole('region', { name: 'JSON lint tool' });
-  await expect(panel.getByLabel('JSON source')).toHaveValue('selection');
+  await expect(panel.getByLabel('JSON source').getByRole('radio', { name: 'Selection' })).toBeChecked();
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('Valid JSON');
@@ -154,7 +154,7 @@ test('unknown tool route returns to catalogue', async ({ page }) => {
 test('standalone text output opens in an editor note', async ({ page }) => {
   await page.route('**/api/info', route => route.fulfill({ json: info }));
   await page.goto(`${APP_ORIGIN}/t/url`);
-  const panel = page.getByRole('region', { name: 'URL encode/decode tool' });
+  const panel = page.getByRole('region', { name: 'URL tool' });
   await panel.getByLabel('Input text').fill('a b');
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();

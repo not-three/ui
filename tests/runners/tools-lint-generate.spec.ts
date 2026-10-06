@@ -49,7 +49,7 @@ test('QR tool downloads PNG from pasted text without network', async ({ page }) 
 test('CSS lint reads a local file without network', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/css-lint`);
   const panel = page.getByRole('region', { name: 'CSS lint tool' });
-  await panel.getByLabel('Input source').selectOption('file');
+  await panel.getByLabel('Input source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Input file').setInputFiles({ name: 'site.css', mimeType: 'text/css', buffer: Buffer.from('body { color: red; }') });
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();
@@ -70,7 +70,7 @@ test('SQL lint checks SQLite syntax on the standalone route without network', as
 test('SQL lint parses PostgreSQL DDL without network', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/sql-lint`);
   const panel = page.getByRole('region', { name: 'SQL lint tool' });
-  await panel.getByLabel('Dialect').selectOption('postgresql');
+  await panel.getByLabel('Dialect').getByRole('radio', { name: 'PostgreSQL' }).click();
   await panel.getByLabel('Input text').fill('CREATE TABLE items (id integer PRIMARY KEY);');
   const network = await withNoNetwork(page);
   await panel.getByRole('button', { name: 'Run', exact: true }).click();

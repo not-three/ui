@@ -7,6 +7,11 @@ const settings = { tools: { rememberOptions: true, lastOptions: {} as Record<str
 vi.stubGlobal('useSettingsStore', () => settings);
 const { default: ToolView } = await import('~/components/tools/tool-view.vue');
 
+type Wrapper = ReturnType<typeof mount>;
+const group = (wrapper: Wrapper, label: string) => `[role="radiogroup"][aria-label="${label}"]`;
+const pick = (wrapper: Wrapper, label: string, value: string) => wrapper.get(`${group(wrapper, label)} button[value="${value}"]`).trigger('click');
+const picked = (wrapper: Wrapper, label: string) => wrapper.get(`${group(wrapper, label)} button[aria-checked="true"]`).attributes('value');
+
 const resultTool = (output: ToolOutput): ToolDefinition => ({
   id: 'test', title: 'Test', description: 'A test tool', keywords: ['sample'], category: 'transform',
   inputs: [{ id: 'input', label: 'Input', kind: 'text', defaultSource: 'note' }], options: [],
@@ -24,9 +29,8 @@ beforeEach(() => {
 
 it('offers four sources and replaces an editor selection with text output', async () => {
   const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'text', text: 'result' }), host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true } } });
-  const picker = wrapper.get('select[aria-label="Input source"]');
-  expect(picker.findAll('option').map(option => option.text())).toEqual(['Note', 'Selection', 'File', 'Text']);
-  await picker.setValue('selection');
+  expect(wrapper.findAll(`${group(wrapper, 'Input source')} button`).map(button => button.text())).toEqual(['Note', 'Selection', 'File', 'Text']);
+  await pick(wrapper, 'Input source', 'selection');
   await wrapper.get('button[name="run"]').trigger('click');
   await vi.waitFor(() => expect(wrapper.find('button[name="replace-selection"]').exists()).toBe(true));
   await wrapper.get('button[name="replace-selection"]').trigger('click');
@@ -36,21 +40,21 @@ it('offers four sources and replaces an editor selection with text output', asyn
 
 it('starts a note-default text tool from an available selection', () => {
   const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'text', text: 'result' }), host, noteContent: 'source' } });
-  expect((wrapper.get('select[aria-label="Input source"]').element as HTMLSelectElement).value).toBe('selection');
+  expect(picked(wrapper, 'Input source')).toBe('selection');
   wrapper.unmount();
 });
 
 it('falls back to the note when no selection exists', () => {
   host.getSelection = () => null;
   const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'text', text: 'result' }), host, noteContent: 'source' } });
-  expect((wrapper.get('select[aria-label="Input source"]').element as HTMLSelectElement).value).toBe('note');
+  expect(picked(wrapper, 'Input source')).toBe('note');
   wrapper.unmount();
 });
 
 it('uses selection for the Diff left input and leaves the empty right input editable', () => {
   const wrapper = mount(ToolView, { props: { tool: diff, host, noteContent: 'source' } });
-  expect((wrapper.get('select[aria-label="Left source"]').element as HTMLSelectElement).value).toBe('selection');
-  expect((wrapper.get('select[aria-label="Right source"]').element as HTMLSelectElement).value).toBe('text');
+  expect(picked(wrapper, 'Left source')).toBe('selection');
+  expect(picked(wrapper, 'Right source')).toBe('text');
   wrapper.unmount();
 });
 
@@ -76,7 +80,7 @@ it('does not offer text replacement for invalid UTF-8 bytes', async () => {
 
 it('reveals a report position when the source is a note', async () => {
   const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'report', items: [{ level: 'error', message: 'bad', position: { line: 2, column: 4 } }] }), host, noteContent: 'source' } });
-  await wrapper.get('select[aria-label="Input source"]').setValue('note');
+  await pick(wrapper, 'Input source', 'note');
   await wrapper.get('button[name="run"]').trigger('click');
   await vi.waitFor(() => expect(wrapper.find('button[name="reveal"]').exists()).toBe(true));
   await wrapper.get('button[name="reveal"]').trigger('click');
@@ -86,7 +90,7 @@ it('reveals a report position when the source is a note', async () => {
 
 it('rejects an oversized file inline before reading it', async () => {
   const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'text', text: 'unused' }), host, noteContent: 'source' } });
-  await wrapper.get('select[aria-label="Input source"]').setValue('file');
+  await pick(wrapper, 'Input source', 'file');
   const file = { name: 'huge.txt', size: 16 * 1024 * 1024 + 1, stream: vi.fn() } as unknown as File;
   const fileInput = wrapper.get('input[type="file"]');
   Object.defineProperty(fileInput.element, 'files', { value: [file] });
@@ -122,14 +126,14 @@ it('auto-runs changed note text after 300 ms but never auto-runs a file', async 
   vi.useFakeTimers();
   try {
     const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'text', text: 'result' }), host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true } } });
-    await wrapper.get('select[aria-label="Input source"]').setValue('note');
+    await pick(wrapper, 'Input source', 'note');
     await wrapper.setProps({ noteContent: 'changed' });
     await vi.advanceTimersByTimeAsync(299);
     expect(wrapper.find('[aria-label="Tool output"]').exists()).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
     await wrapper.vm.$nextTick();
     expect(wrapper.find('[aria-label="Tool output"]').exists()).toBe(true);
-    await wrapper.get('select[aria-label="Input source"]').setValue('file');
+    await pick(wrapper, 'Input source', 'file');
     await wrapper.setProps({ noteContent: 'changed again' });
     await vi.advanceTimersByTimeAsync(350);
     expect(wrapper.find('[aria-label="Tool output"]').exists()).toBe(false);
@@ -159,10 +163,10 @@ it('cancels pending note auto-run when switched to a file', async () => {
   vi.useFakeTimers();
   try {
     const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'text', text: 'result' }), host, noteContent: 'source' } });
-    await wrapper.get('select[aria-label="Input source"]').setValue('note');
+    await pick(wrapper, 'Input source', 'note');
     await wrapper.setProps({ noteContent: 'changed' });
     await vi.advanceTimersByTimeAsync(100);
-    await wrapper.get('select[aria-label="Input source"]').setValue('file');
+    await pick(wrapper, 'Input source', 'file');
     const file = { name: 'input.txt', size: 3, stream: vi.fn() } as unknown as File;
     const fileInput = wrapper.get('input[type="file"]');
     Object.defineProperty(fileInput.element, 'files', { value: [file] });
@@ -174,34 +178,86 @@ it('cancels pending note auto-run when switched to a file', async () => {
   } finally { vi.useRealTimers(); }
 });
 
-it('cancels pending note auto-run when an option changes', async () => {
+it('restarts the automatic run when an option changes', async () => {
   vi.useFakeTimers();
   try {
     const run = vi.fn(async () => ({ kind: 'text', text: 'result' } as const));
     const tool: ToolDefinition = { ...resultTool({ kind: 'text', text: 'unused' }), options: [{ id: 'mode', label: 'Mode', type: 'text', default: '' }], load: async () => ({ run }) };
     const wrapper = mount(ToolView, { props: { tool, host, noteContent: 'source' } });
-    await wrapper.get('select[aria-label="Input source"]').setValue('note');
+    await pick(wrapper, 'Input source', 'note');
     await wrapper.setProps({ noteContent: 'changed' });
+    await vi.advanceTimersByTimeAsync(200);
     await wrapper.get('#option-mode').setValue('new');
+    await vi.advanceTimersByTimeAsync(250);
+    expect(run).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(50);
+    await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
+    expect(run.mock.calls[0]?.[1]).toEqual({ mode: 'new' });
+    wrapper.unmount();
+  } finally { vi.useRealTimers(); }
+});
+
+it('drops the old tool\'s pending run and auto-runs the new tool on its own input', async () => {
+  vi.useFakeTimers();
+  try {
+    const oldRun = vi.fn(async () => ({ kind: 'text', text: 'old tool' } as const));
+    const run = vi.fn(async () => ({ kind: 'text', text: 'new tool' } as const));
+    const wrapper = mount(ToolView, { props: { tool: { ...resultTool({ kind: 'text', text: 'unused' }), load: async () => ({ run: oldRun }) }, host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true } } });
+    await pick(wrapper, 'Input source', 'note');
+    await wrapper.setProps({ noteContent: 'changed' });
+    await wrapper.setProps({ tool: { ...resultTool({ kind: 'text', text: 'unused' }), id: 'new', load: async () => ({ run }) } });
+    await vi.advanceTimersByTimeAsync(350);
+    expect(oldRun).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
+    wrapper.unmount();
+  } finally { vi.useRealTimers(); }
+});
+
+it('runs on open when the note already has content and stays quiet for an empty note', async () => {
+  vi.useFakeTimers();
+  try {
+    const run = vi.fn(async () => ({ kind: 'text', text: 'result' } as const));
+    const tool: ToolDefinition = { ...resultTool({ kind: 'text', text: 'unused' }), load: async () => ({ run }) };
+    host.getSelection = () => null;
+    const wrapper = mount(ToolView, { props: { tool, host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true } } });
+    await vi.advanceTimersByTimeAsync(350);
+    await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
+    wrapper.unmount();
+    host.getNote = () => ({ text: '', language: 'json' });
+    const empty = mount(ToolView, { props: { tool, host, noteContent: '' }, global: { stubs: { ToolsMonacoOutput: true } } });
+    await vi.advanceTimersByTimeAsync(350);
+    expect(run).toHaveBeenCalledOnce();
+    empty.unmount();
+  } finally { vi.useRealTimers(); }
+});
+
+it('waits for Run when a tool has a secret option', async () => {
+  vi.useFakeTimers();
+  try {
+    const run = vi.fn(async () => ({ kind: 'text', text: 'result' } as const));
+    const tool: ToolDefinition = { ...resultTool({ kind: 'text', text: 'unused' }), options: [{ id: 'key', label: 'Key', type: 'text', default: '', secret: true }], load: async () => ({ run }) };
+    const wrapper = mount(ToolView, { props: { tool, host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true } } });
+    await pick(wrapper, 'Input source', 'note');
+    await wrapper.setProps({ noteContent: 'changed' });
     await vi.advanceTimersByTimeAsync(350);
     expect(run).not.toHaveBeenCalled();
     wrapper.unmount();
   } finally { vi.useRealTimers(); }
 });
 
-it('cancels pending note auto-run when the tool changes', async () => {
-  vi.useFakeTimers();
-  try {
-    const run = vi.fn(async () => ({ kind: 'text', text: 'new tool' } as const));
-    const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'text', text: 'old tool' }), host, noteContent: 'source' } });
-    await wrapper.get('select[aria-label="Input source"]').setValue('note');
-    await wrapper.setProps({ noteContent: 'changed' });
-    await wrapper.setProps({ tool: { ...resultTool({ kind: 'text', text: 'unused' }), id: 'new', load: async () => ({ run }) } });
-    await vi.advanceTimersByTimeAsync(350);
-    expect(run).not.toHaveBeenCalled();
-    expect(wrapper.find('[aria-label="Tool output"]').exists()).toBe(false);
-    wrapper.unmount();
-  } finally { vi.useRealTimers(); }
+it('renders small select options as a button group and larger ones as a dropdown', async () => {
+  const values = (count: number) => Array.from({ length: count }, (_, index) => ({ value: `v${index}`, label: `V${index}` }));
+  const tool: ToolDefinition = { ...resultTool({ kind: 'text', text: 'unused' }), options: [
+    { id: 'small', label: 'Small', type: 'select', values: values(2), default: 'v0' },
+    { id: 'large', label: 'Large', type: 'select', values: values(5), default: 'v0' },
+  ] };
+  const wrapper = mount(ToolView, { props: { tool, host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true } } });
+  expect(picked(wrapper, 'Small')).toBe('v0');
+  await pick(wrapper, 'Small', 'v1');
+  expect(picked(wrapper, 'Small')).toBe('v1');
+  expect(settings.tools.lastOptions.test).toEqual({ small: 'v1', large: 'v0' });
+  expect(wrapper.find('select#option-large').exists()).toBe(true);
+  wrapper.unmount();
 });
 
 it('renders labelled report and diff parts with their own actions', async () => {
@@ -210,7 +266,7 @@ it('renders labelled report and diff parts with their own actions', async () => 
     { label: 'Replacement', output: { kind: 'diff', left: 'old', right: 'new' } },
   ] } as const;
   const wrapper = mount(ToolView, { props: { tool: resultTool(multi as never), host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true } } });
-  await wrapper.get('select[aria-label="Input source"]').setValue('note');
+  await pick(wrapper, 'Input source', 'note');
   await wrapper.get('button[name="run"]').trigger('click');
   await vi.waitFor(() => expect(wrapper.text()).toContain('Replacement'));
   expect(wrapper.text()).toContain('Matches');
@@ -244,13 +300,14 @@ it('opens a standalone report text in a new note', async () => {
 
 it('names the tool once through its description and lays options out as label rows', () => {
   const tool: ToolDefinition = { ...resultTool({ kind: 'text', text: '' }), options: [
-    { id: 'mode', label: 'Mode', type: 'select', default: 'a', values: [{ value: 'a', label: 'A' }] },
+    { id: 'mode', label: 'Mode', type: 'select', default: 'a', values: Array.from({ length: 6 }, (_, index) => ({ value: `v${index}`, label: `V${index}` })) },
     { id: 'strict', label: 'Strict', type: 'boolean', default: false },
+    { id: 'size', label: 'Size', type: 'number', default: 1 },
   ] };
   const wrapper = mount(ToolView, { props: { tool, host, noteContent: 'source' } });
   expect(wrapper.find('h2').exists()).toBe(false);
   expect(wrapper.text().split('A test tool')).toHaveLength(2);
-  for (const id of ['mode', 'strict']) {
+  for (const id of ['mode', 'strict', 'size']) {
     const control = wrapper.get(`#option-${id}`);
     const label = wrapper.get(`label[for="option-${id}"]`);
     expect(label.element.parentElement).toBe(control.element.parentElement);
@@ -273,7 +330,7 @@ it('puts Run into the header row when a host supplies one', () => {
 
 it('chooses a file through an outlined button and shows its name and size inline', async () => {
   const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'text', text: '' }), host, noteContent: 'source' } });
-  await wrapper.get('select[aria-label="Input source"]').setValue('file');
+  await pick(wrapper, 'Input source', 'file');
   const fileInput = wrapper.get('input[type="file"]');
   const click = vi.spyOn(fileInput.element as HTMLInputElement, 'click');
   await wrapper.get('button[name="choose-file"]').trigger('click');
@@ -297,7 +354,7 @@ it('shows a running tool as a progress track', async () => {
 
 it('renders report items as level, position and message rows', async () => {
   const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'report', items: [{ level: 'error', message: 'bad', position: { line: 2, column: 4 } }, { level: 'info', message: 'fine' }] }), host, noteContent: 'source' } });
-  await wrapper.get('select[aria-label="Input source"]').setValue('note');
+  await pick(wrapper, 'Input source', 'note');
   await wrapper.get('button[name="run"]').trigger('click');
   await vi.waitFor(() => expect(wrapper.find('button[name="reveal"]').exists()).toBe(true));
   const rows = wrapper.findAll('[data-report-item]').map(row => row.text().replace(/\s+/g, ' '));
