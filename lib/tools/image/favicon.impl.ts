@@ -50,7 +50,7 @@ export const run: ToolRun = async (inputs, options, context) => {
   }
   context.signal.throwIfAborted();
   const icoBytes = ico(icoEntries.sort((a, b) => a.size - b.size));
-  parts.push({ label: 'favicon.ico', output: { kind: 'bytes', bytes: icoBytes, mimeType: 'image/x-icon', filename: 'favicon.ico' } });
+  parts.push({ label: 'favicon.ico', output: { kind: 'image', blob: new Blob([icoBytes as BlobPart], { type: 'image/x-icon' }), width: 48, height: 48, filename: 'favicon.ico', exportable: false } });
   for (const size of selected) parts.push({ label: `${size} × ${size} PNG`, output: { kind: 'image', blob: pngs.get(size)!, width: size, height: size, filename: `icon-${size}.png`, exportable: false } });
   const links = ['<link rel="icon" href="/favicon.ico" sizes="any">', ...selected.map(size => `<link rel="icon" type="image/png" sizes="${size}x${size}" href="/icon-${size}.png">`), '<link rel="manifest" href="/site.webmanifest">'];
   const manifest = { icons: selected.map(size => ({ src: `/icon-${size}.png`, sizes: `${size}x${size}`, type: 'image/png' })) };

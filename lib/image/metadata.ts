@@ -109,17 +109,18 @@ export function stripMetadata(bytes: Uint8Array, format: ImageFormat): Uint8Arra
       if (p + 4 > bytes.length) { parts.push(bytes.subarray(p)); break; }
       const size = be16(bytes, p + 2);
       if (size < 2 || p + 2 + size > bytes.length) { parts.push(bytes.subarray(p)); break; }
-      if (![0xe1,0xe2,0xed,0xfe].includes(marker)) parts.push(bytes.subarray(p, p + 2 + size));
+      if (!((marker >= 0xe1 && marker <= 0xed) || marker === 0xef || marker === 0xfe)) parts.push(bytes.subarray(p, p + 2 + size));
       p += 2 + size;
     }
     return join(parts);
   }
   if (format === 'png') {
     const parts = [bytes.subarray(0,8)];
-    const metadata = new Set(['eXIf','tEXt','zTXt','iTXt','iCCP','tIME','pHYs']);
+    const requiredAncillary = new Set(['tRNS','acTL','fcTL','fdAT']);
     for (let p = 8; p + 12 <= bytes.length;) {
       const size = be32(bytes,p); if (size > bytes.length-p-12) { parts.push(bytes.subarray(p)); break; }
-      if (!metadata.has(ascii(bytes,p+4,4))) parts.push(bytes.subarray(p,p+size+12));
+      const type = ascii(bytes,p+4,4);
+      if (!(type.charCodeAt(0) & 0x20) || requiredAncillary.has(type)) parts.push(bytes.subarray(p,p+size+12));
       p += size+12;
     }
     return join(parts);

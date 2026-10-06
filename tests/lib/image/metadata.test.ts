@@ -24,6 +24,16 @@ it('removes JPEG APP1/APP13 while preserving entropy-coded scan bytes', () => {
 it('removes PNG metadata chunks and preserves the IDAT bytes', () => {
   expect([...stripMetadata(png(), 'png')]).toEqual([137,80,78,71,13,10,26,10,0,0,0,1,...ascii('IDAT'),42,0,0,0,0]);
 });
+it('removes ancillary PNG metadata but preserves transparency data', () => {
+  const signature = Uint8Array.from([137,80,78,71,13,10,26,10]);
+  const pngChunk = (type: string, value: number) => Uint8Array.from([0,0,0,1,...ascii(type),value,0,0,0,0]);
+  const source = Uint8Array.from([...signature,...pngChunk('gAMA',5),...pngChunk('tRNS',6),...pngChunk('IDAT',7)]);
+  expect(stripMetadata(source, 'png')).toEqual(Uint8Array.from([...signature,...pngChunk('tRNS',6),...pngChunk('IDAT',7)]));
+});
+it('removes additional JPEG application metadata while leaving scan bytes untouched', () => {
+  const source = Uint8Array.from([255,216,255,227,0,4,9,8,255,218,0,2,1,2,3,255,217]);
+  expect(stripMetadata(source, 'jpeg')).toEqual(Uint8Array.from([255,216,255,218,0,2,1,2,3,255,217]));
+});
 
 it('removes WebP EXIF and updates RIFF size', () => {
   const stripped = stripMetadata(webp(), 'webp');

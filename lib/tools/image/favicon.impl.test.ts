@@ -14,12 +14,14 @@ it('writes ICO PNG entries and selected PNG sizes with HTML and manifest snippet
   expect(result.kind).toBe('multi');
   if (result.kind !== 'multi') return;
   const ico = result.parts.find(part => part.label === 'favicon.ico')?.output;
-  expect(ico?.kind).toBe('bytes');
-  if (ico?.kind === 'bytes') {
-    expect([...ico.bytes.subarray(0,6)]).toEqual([0,0,1,0,3,0]);
-    expect([ico.bytes[6],ico.bytes[22],ico.bytes[38]]).toEqual([16,32,48]);
+  expect(ico?.kind).toBe('image');
+  if (ico?.kind === 'image') {
+    expect(ico.blob.type).toBe('image/x-icon');
+    const bytes = new Uint8Array(await ico.blob.arrayBuffer());
+    expect([...bytes.subarray(0,6)]).toEqual([0,0,1,0,3,0]);
+    expect([bytes[6],bytes[22],bytes[38]]).toEqual([16,32,48]);
   }
-  expect(result.parts.filter(part => part.output.kind === 'image')).toHaveLength(3);
+  expect(result.parts.filter(part => part.output.kind === 'image' && part.output.filename.endsWith('.png'))).toHaveLength(3);
   expect(result.parts.find(part => part.label === 'HTML')?.output).toMatchObject({ kind:'text', text:expect.stringContaining('favicon.ico') });
   expect(result.parts.find(part => part.label === 'Manifest')?.output).toMatchObject({ kind:'text', text:expect.stringContaining('icon-48.png') });
 });
@@ -29,6 +31,9 @@ it('keeps ICO directory entries in 16, 32, 48 order when PNG size toggles change
   expect(result.kind).toBe('multi');
   if (result.kind !== 'multi') return;
   const ico = result.parts.find(part => part.label === 'favicon.ico')?.output;
-  expect(ico?.kind).toBe('bytes');
-  if (ico?.kind === 'bytes') expect([ico.bytes[6],ico.bytes[22],ico.bytes[38]]).toEqual([16,32,48]);
+  expect(ico?.kind).toBe('image');
+  if (ico?.kind === 'image') {
+    const bytes = new Uint8Array(await ico.blob.arrayBuffer());
+    expect([bytes[6],bytes[22],bytes[38]]).toEqual([16,32,48]);
+  }
 });
