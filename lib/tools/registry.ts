@@ -24,10 +24,22 @@ import { not3Payload } from './crypto/not3-payload';
 import { rot13 } from './crypto/rot13';
 import { keypair } from './generate/keypair';
 import { password } from './generate/password';
+import { jsonYaml } from './transform/json-yaml';
+import { csvJson } from './transform/csv-json';
+import { minify } from './transform/minify';
+import { sortLines } from './transform/sort-lines';
+import { letterCase } from './transform/case';
+import { escapeText } from './transform/escape';
+import { regex } from './transform/regex';
+import { markdownHtml } from './transform/markdown-html';
+import { textStats } from './transform/text-stats';
+import { timestamp } from './transform/timestamp';
 
 export const TOOLS: ToolDefinition[] = [
   cssLint, htmlLint, jsTsLint, jsonLint, markdownLint, sqlLint, xmlLint, yamlLint,
-  hash, base64, hex, url, not3Payload, aes, caesar, hmac, jwt, rot13, diff,
+  hash, base64, hex, url,
+  not3Payload, aes, caesar, hmac, jwt, rot13,
+  letterCase, csvJson, diff, escapeText, jsonYaml, markdownHtml, minify, regex, sortLines, textStats, timestamp,
   cron, keypair, lorem, password, qr, uuid,
 ];
 
