@@ -16,13 +16,14 @@ async function visit(page: Page, config: Record<string, string>, setting?: strin
 }
 
 test('raw operator CSS exposes Custom and injects one style', async ({ page }) => {
-  await visit(page, { customCSS: ':root { --not3-bg: 210 0 0; }' })
+  await visit(page, { customCSS: ':root { --not3-bg: 210 0 0; --not3-accent: 255 0 0; }' })
   await openTheme(page)
   await page.getByRole('radio', { name: 'Custom' }).click()
   await expect(page.locator('style#not3-custom-css')).toHaveCount(1)
   await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(210, 0, 0)')
   await openTheme(page)
   await expect(page.getByRole('radio', { name: 'Custom' })).toHaveAttribute('aria-checked', 'true')
+  await expect(page.getByRole('radio', { name: 'Custom' }).locator('span[aria-hidden="true"]')).toHaveCSS('color', 'rgb(255, 0, 0)')
 })
 
 test('operator default Custom has CSS at the first ready frame', async ({ page }) => {
