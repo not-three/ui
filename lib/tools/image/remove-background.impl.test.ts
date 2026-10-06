@@ -7,9 +7,11 @@ const runSession = vi.fn(async () => ({ output_image: { data: new Float32Array(1
 const create = vi.fn(async () => ({ run: runSession, release }));
 const downloadModel = vi.fn(async (_signal: AbortSignal, reportProgress: (fraction: number) => void) => { reportProgress(0.3); return new Uint8Array([1, 2, 3]); });
 vi.mock('./background-model.impl', () => ({ downloadModel }));
-vi.mock('onnxruntime-web/webgpu', () => ({
-  env: { wasm: {} }, Tensor: class { constructor(public type: string, public data: Float32Array, public dims: number[]) {} },
-  InferenceSession: { create },
+vi.mock('../../image/ort-loader', () => ({
+  loadOrt: async () => ({
+    env: { wasm: {} }, Tensor: class { constructor(public type: string, public data: Float32Array, public dims: number[]) {} },
+    InferenceSession: { create },
+  }),
 }));
 
 beforeEach(() => { vi.resetModules(); vi.clearAllMocks(); });

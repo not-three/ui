@@ -2,7 +2,7 @@ import type { ToolRun } from '../types';
 import { pixelsOf, rasterOutput, requireImage, stem } from './shared';
 import { MODEL_SIDE, compositeMask, featherMask, normalizeMask, prepareImage } from './background-mask.impl';
 import { downloadModel } from './background-model.impl';
-const WASM_PATH = '/vendor/image/onnxruntime-web/';
+import { loadOrt } from '../../image/ort-loader';
 
 export const run: ToolRun = async (inputs, options, context) => {
   const image = requireImage(inputs.input);
@@ -13,12 +13,10 @@ export const run: ToolRun = async (inputs, options, context) => {
   const tensorData = prepareImage(raster);
   const bytes = await downloadModel(context.signal, context.reportProgress);
   context.signal.throwIfAborted();
-  const ort = await import('onnxruntime-web/webgpu');
-  ort.env.wasm.wasmPaths = WASM_PATH;
-  ort.env.wasm.numThreads = 1;
+  const hasGpu = typeof navigator !== 'undefined' && 'gpu' in navigator;
+  const ort = await loadOrt({ webgpu: hasGpu, signal: context.signal, onProgress: (loaded, total) => context.reportProgress(0.55 + 0.1 * loaded / Math.max(total, 1), { phase: 'download', loadedBytes: loaded, totalBytes: total }) });
   context.signal.throwIfAborted();
   let session: Awaited<ReturnType<typeof ort.InferenceSession.create>>;
-  const hasGpu = typeof navigator !== 'undefined' && 'gpu' in navigator;
   if (hasGpu) {
     try { session = await ort.InferenceSession.create(bytes, { executionProviders: ['webgpu', 'wasm'] }); }
     catch { session = await ort.InferenceSession.create(bytes, { executionProviders: ['wasm'] }); }

@@ -11,6 +11,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build, buildSync } from "esbuild";
 import { replaceCdnUrls } from "./vendor-cdn.mjs";
+import { PART_LIMIT, splitLargeFiles } from "./vendor-split.mjs";
 import { createHash } from "node:crypto";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -313,8 +314,12 @@ for (const engine of ENGINES) {
   }
   ok++;
 }
+// The runtime is loaded from here at run time, never through the bundler
+// (lib/image/ort-loader.ts): the WebGPU bundle needs the asyncify binary,
+// the plain bundle the smaller wasm-only one.
 const ortFiles = [
-  "ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm",
+  "ort.webgpu.min.mjs", "ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm",
+  "ort.wasm.min.mjs", "ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.wasm",
 ];
 const ortSource = join(modules, "onnxruntime-web", "dist");
 if (existsSync(ortSource)) {
@@ -391,6 +396,12 @@ const markdownMb = sizeOf(markdownDir) / 1048576;
 if (markdownMb >= 2) throw new Error(`markdown vendor bundle exceeds 2 MB: ${markdownMb.toFixed(2)} MB`);
 await copyImageCodecs();
 const filesSanitized = existsSync(target) ? sanitizeCdnReferences(target) : 0;
+// Last: cut every file above the hosting platform's per-file limit into parts
+// (see vendor-split.mjs); the browser reassembles them from the manifest.
+const splitManifests = existsSync(target) ? splitLargeFiles(target, PART_LIMIT) : [];
+for (const manifest of splitManifests) {
+  console.log(`[vendor] split ${relative(root, manifest.path)} into ${manifest.parts.length} parts (${(manifest.size / 1048576).toFixed(1)} MB)`);
+}
 const mb = existsSync(target) ? sizeOf(target) / 1048576 : 0;
 console.log(`[vendor] ${ok}/${ENGINES.length} engines, ${mb.toFixed(1)} MB in public/vendor`);
 if (filesSanitized) {
