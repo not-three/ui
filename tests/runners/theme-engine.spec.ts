@@ -65,6 +65,19 @@ test('White passes a light scheme into the markdown sandbox', async ({ page }) =
   await expect(preview).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 });
 
+test('tool output Monaco follows White and a live switch to Monokai', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('settings', JSON.stringify({ version: 4, theme: 'white' })));
+  await page.goto(`${APP_ORIGIN}/t/timestamp`);
+  const panel = page.getByRole('region', { name: 'Timestamp tool' });
+  await panel.getByLabel('Input source').getByRole('radio', { name: 'Text' }).click();
+  await panel.getByRole('textbox', { name: 'Input text' }).fill('0');
+  await panel.getByRole('button', { name: 'Run', exact: true }).click();
+  const output = panel.getByLabel('Text output').locator('.monaco-editor');
+  await expect(output).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await selectTheme(page, 'monokai');
+  await expect(output).toHaveCSS('background-color', 'rgb(39, 40, 34)');
+});
+
 test('malformed persisted settings does not prevent startup', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('settings', '{bad json'));
   await app(page);
