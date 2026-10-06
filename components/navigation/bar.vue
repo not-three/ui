@@ -67,6 +67,7 @@ import { isRunnableLanguage } from '~/lib/sandbox/runners';
 import { canFormatNote } from '~/lib/format/availability';
 import { canStartCowork } from '~/lib/monaco/editor-actions';
 import { activeCowork, coworkShareOpen, leaveCowork } from '~/lib/cowork/active';
+import { TOOLS } from '~/lib/tools/registry';
 const store = useAppStore();
 const settings = useSettingsStore();
 const membersOpen = ref(false);
@@ -129,24 +130,12 @@ const entries = computed<NavigationEntry[]>(() => [
   {
     name: "Tools",
     entries: [
+      { name: 'Tools…', onClick: Actions.OPEN_TOOLS },
+      ...[...new Set(TOOLS.map(tool => tool.category))].map(category => ({
+        name: category.charAt(0).toUpperCase() + category.slice(1),
+        entries: TOOLS.filter(tool => tool.category === category).map(tool => ({ name: tool.title, onClick: () => Actions.OPEN_TOOL(tool.id) })),
+      })),
       ...(formatAvailable.value ? [{ name: "Format", onClick: Actions.FORMAT }] : []),
-      {
-        name: "Edit Settings",
-        onClick: Actions.OPEN_SETTINGS,
-        disabled: store.settings,
-        title: store.settings ? "Settings editor is already open" : undefined,
-      },
-      {
-        name: "Reset Settings",
-        onClick: () => store.dialog = new YesNoDialog(
-          "Reset Settings",
-          "Are you sure you want to reset all settings?",
-          () => {
-            settings.$reset();
-            window.location.reload();
-          }
-        ),
-      },
       {
         name: "File Transfer",
         onClick: Actions.OPEN_FILE_TRANSFER,
@@ -194,6 +183,23 @@ const entries = computed<NavigationEntry[]>(() => [
   {
     name: "About",
     entries: [
+      {
+        name: "Edit Settings",
+        onClick: Actions.OPEN_SETTINGS,
+        disabled: store.settings,
+        title: store.settings ? "Settings editor is already open" : undefined,
+      },
+      {
+        name: "Reset Settings",
+        onClick: () => store.dialog = new YesNoDialog(
+          "Reset Settings",
+          "Are you sure you want to reset all settings?",
+          () => {
+            settings.$reset();
+            window.location.reload();
+          }
+        ),
+      },
       {
         name: "Github Repository",
         onClick: () => window.open("https://github.com/not-three/main", "_blank"),

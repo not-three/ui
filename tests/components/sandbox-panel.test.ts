@@ -52,7 +52,7 @@ describe("sandbox panel language changes", () => {
       await wrapper.setProps({ languageId: "json" });
       expect(wrapper.get("iframe").attributes("srcdoc")).toBe("");
 
-      await wrapper.get("button.sandbox-btn").trigger("click");
+      await wrapper.findAll("button").find(button => button.text() === "Run")!.trigger("click");
       expect(wrapper.get("iframe").attributes("srcdoc")).toContain('var language = "json"');
     } finally {
       wrapper.unmount();

@@ -10,9 +10,29 @@ import {
   SANDBOX_TABLES_REQUEST,
   SANDBOX_TABLES_RESULT,
 } from "../../lib/sandbox/protocol";
+import { runnerPorts } from "./ports.mjs";
 
 export const TOKEN = "e2e-token";
-export const ORIGIN = "http://127.0.0.1:8788";
+// NOT3_RUNNER_PORT_BASE defaults to 8788; set it to isolate static, app, and draw origins.
+export const STATIC_ORIGIN = runnerPorts.staticOrigin;
+export const APP_ORIGIN = runnerPorts.appOrigin;
+export const DRAW_ORIGIN = runnerPorts.drawOrigin;
+export const ORIGIN = STATIC_ORIGIN;
+
+/** Arm immediately before a tool run, then call assertNoNetwork after its output appears. App assets at NOT3_RUNNER_PORT_BASE+1 remain available. */
+export async function withNoNetwork(page: Page) {
+  const unexpected: string[] = [];
+  await page.route('**/*', async route => {
+    const url = new URL(route.request().url());
+    if (url.origin === APP_ORIGIN && (url.pathname.startsWith('/_nuxt/') || url.pathname.startsWith('/assets/'))) {
+      await route.continue();
+      return;
+    }
+    unexpected.push(route.request().url());
+    await route.abort();
+  });
+  return { assertNoNetwork: () => expect(unexpected, `tool sent requests outside app assets: ${unexpected.join(', ')}`).toEqual([]) };
+}
 
 type Recorded = Record<string, unknown>;
 

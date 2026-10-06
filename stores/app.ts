@@ -17,7 +17,7 @@ type UiConfig = {
   pullRequest?: string
 }
 
-export const useAppStore = defineStore('app', {
+const useAppStoreBase = defineStore('app', {
   state: () => ({
     api: {} as Not3Client,
     config: {
@@ -44,7 +44,8 @@ export const useAppStore = defineStore('app', {
       mimeTypes: lang.mimeTypes || [],
     })).sort((a, b) => a.id.localeCompare(b.id)),
     excalidraw: false,
-    sandbox: false,
+    sidePanel: null as 'sandbox' | 'tools' | null,
+    activeToolId: 'base64',
     // Panel moved into its own window; the Window handle itself lives
     // module-scope in lib/sandbox/popout-bridge.ts (pinia state must stay
     // serializable).
@@ -142,3 +143,16 @@ export const useAppStore = defineStore('app', {
     }
   }
 })
+
+export function useAppStore(...args: Parameters<typeof useAppStoreBase>): ReturnType<typeof useAppStoreBase> & { sandbox: boolean } {
+  const store = useAppStoreBase(...args) as ReturnType<typeof useAppStoreBase> & { sandbox: boolean };
+  if (!Object.getOwnPropertyDescriptor(store, 'sandbox')) {
+    Object.defineProperty(store, 'sandbox', {
+      configurable: true,
+      enumerable: false,
+      get: () => store.sidePanel === 'sandbox',
+      set: (open: boolean) => { store.sidePanel = open ? 'sandbox' : store.sidePanel === 'sandbox' ? null : store.sidePanel; },
+    });
+  }
+  return store;
+}

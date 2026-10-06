@@ -7,6 +7,7 @@
     </div>
     <editor-sandbox v-if="store.sandbox && !store.sandboxPopout" />
     <editor-sandbox-popout-bridge v-if="store.sandbox && store.sandboxPopout" />
+    <tools-panel v-if="store.sidePanel === 'tools'" />
   </div>
 </template>
 
@@ -21,6 +22,7 @@ import { activeCowork } from '~/lib/cowork/active';
 import { createMonacoKeybindingAdapter } from "~/lib/monaco/keybindings-adapter";
 import { setMonacoActions, subscribeKeybindings } from "~/lib/keybindings/runtime";
 import { registerFormatEditor } from "~/lib/actions/format";
+import { registerToolEditor } from '~/lib/tools/hosts';
 import { canFormatNote } from "~/lib/format/availability";
 import * as monaco from "monaco-editor";
 
@@ -69,6 +71,12 @@ function registerEditorActions() {
         keybindings: [],
         run: () => action.run(),
       }),
+      editor.addAction({
+        id: action.id,
+        label: action.label,
+        keybindings: [],
+        run: () => action.run(),
+      }),
     );
   }
   setMonacoActions(editor.getSupportedActions().map(({ id, label }) => ({ id, label })));
@@ -111,6 +119,7 @@ onMounted(async () => {
     renderWhitespace: settings.editor.renderWhitespace ? "all" : "none",
     stickyScroll: { enabled: settings.editor.stickyScroll },
   });
+  registerToolEditor(editor);
 
   registerFormatEditor(editor);
   stopBindings = subscribeKeybindings((compiled) => bindingAdapter.apply(compiled));
@@ -149,6 +158,7 @@ onBeforeUnmount(() => {
   stopBindings?.();
   bindingAdapter.dispose();
   registerFormatEditor(null);
+  registerToolEditor(null);
   editor?.dispose();
 });
 

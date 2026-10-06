@@ -1,5 +1,6 @@
 import * as Actions from "~/lib/actions";
 import { activeCowork } from '~/lib/cowork/active';
+import { TOOLS } from '~/lib/tools/registry';
 
 export interface EditorActionDefinition {
   /** Shared command id used by page, Monaco and draw. */
@@ -25,6 +26,8 @@ export const EDITOR_ACTIONS: EditorActionDefinition[] = [
   { id: "not3.sandbox", label: "!3: Run / preview note", run: Actions.OPEN_SANDBOX },
   { id: "not3.openKeybindings", label: "!3: Show keybindings", run: Actions.OPEN_KEYBINDINGS },
   { id: "not3.startCowork", label: "!3: Start cowork session", run: Actions.START_COWORK },
+  { id: 'not3.tools', label: '!3: Tools catalogue', run: Actions.OPEN_TOOLS },
+  ...TOOLS.map(tool => ({ id: `not3.tool.${tool.id}`, label: `!3: ${tool.title} (${tool.keywords.join(', ')})`, run: () => Actions.OPEN_TOOL(tool.id) })),
 ];
 
 export function canStartCowork(store: ReturnType<typeof useAppStore>): boolean {

@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runnerPorts } from "./ports.mjs";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MIME = {
@@ -42,4 +43,4 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(404).end("not found");
   }
-}).listen(8788, "127.0.0.1");
+}).listen(runnerPorts.staticPort, "127.0.0.1");

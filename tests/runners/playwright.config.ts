@@ -8,30 +8,39 @@
 // need real wasm, a real CSP and a real opaque-origin iframe.
 import { defineConfig } from "@playwright/test";
 import { drawCheckout } from "./draw-path.mjs";
+import { runnerPorts } from "./ports.mjs";
+
+const workerOverride = process.env.NOT3_RUNNER_WORKERS;
+const workers = workerOverride === undefined ? 2 : Number(workerOverride);
+if (workerOverride !== undefined && (!/^[1-9]\d*$/.test(workerOverride) || !Number.isSafeInteger(workers))) {
+  throw new Error("NOT3_RUNNER_WORKERS must be a positive integer");
+}
 
 export default defineConfig({
   testDir: ".",
+  testMatch: "**/*.spec.ts",
   timeout: 120_000, // pyodide/php-wasm boots are slow on first load
   fullyParallel: true,
-  use: { baseURL: "http://127.0.0.1:8788" },
+  workers,
+  use: { baseURL: runnerPorts.staticOrigin },
   webServer: [
     {
       // Relative to this config's directory; serve.mjs finds the repo root
       // from its own URL, so it does not care about the cwd.
       command: "node serve.mjs",
-      port: 8788,
-      reuseExistingServer: true,
+      port: runnerPorts.staticPort,
+      reuseExistingServer: false,
     },
     {
-      command: "pnpm --dir ../.. exec nuxt dev --host 127.0.0.1 --port 8789",
-      port: 8789,
-      reuseExistingServer: true,
+      command: `pnpm --dir ../.. exec nuxt dev --host 127.0.0.1 --port ${runnerPorts.appPort}`,
+      port: runnerPorts.appPort,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
     ...(drawCheckout ? [{
       command: "node serve-draw.mjs",
-      port: 8790,
-      reuseExistingServer: true,
+      port: runnerPorts.drawPort,
+      reuseExistingServer: false,
       timeout: 120_000,
     }] : []),
   ],

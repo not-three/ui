@@ -1,6 +1,7 @@
 import { DEFAULT_KEYBINDINGS } from "./defaults";
 import { parseChord, type ParsedChord } from "./parse";
 import { parseWhen, type KeyContext } from "./when";
+import { TOOLS } from '~/lib/tools/registry';
 
 export interface KeybindingEntry { key: string; command: string; when?: string; args?: unknown }
 export interface InvalidKeybinding { index: number; entry: unknown; reason: string }
@@ -12,8 +13,8 @@ const contexts: KeyContext[] = ["editorTextFocus", "not3.page", "not3.draw"];
 export const NOT3_COMMANDS = [
   "save", "saveUntilRead", "saveForCustomTime", "duplicate", "new", "download",
   "format", "shareLink", "shareCurl", "openSettings", "fileTransfer",
-  "excalidraw", "sandbox", "openKeybindings", "startCowork",
-].map((id) => `not3.${id}`);
+  "excalidraw", "sandbox", "openKeybindings", "startCowork", "tools",
+].map((id) => `not3.${id}`).concat(TOOLS.map(tool => `not3.tool.${tool.id}`));
 const not3Commands = new Set(NOT3_COMMANDS);
 const drawTools = new Set(["selection", "rectangle", "diamond", "ellipse", "arrow", "line", "freedraw", "text", "image", "eraser", "hand", "laser", "frame"]);
 const drawCommands = new Set(["draw.zoomIn", "draw.zoomOut", "draw.zoomReset", "draw.scrollToContent", "draw.toggleGrid", "draw.toggleTheme", "draw.key"]);

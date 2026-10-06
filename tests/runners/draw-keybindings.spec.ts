@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { drawCheckout } from "./draw-path.mjs";
+import { APP_ORIGIN, DRAW_ORIGIN } from "./helpers";
 
 test.skip(!drawCheckout, "Draw checkout unavailable");
 
@@ -11,9 +12,9 @@ const info = {
 async function openApp(page: Page, path = "/") {
   await page.route("**/api/info", (route) => route.fulfill({ json: info }));
   await page.route("**/config.json", (route) => route.fulfill({ json: {
-    baseURL: "/api/", drawURL: "http://127.0.0.1:8790",
+    baseURL: "/api/", drawURL: DRAW_ORIGIN,
   } }));
-  await page.goto(`http://127.0.0.1:8789${path}`);
+  await page.goto(`${APP_ORIGIN}${path}`);
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 30_000 });
 }
 
@@ -25,13 +26,13 @@ async function saveSettings(page: Page, keybindings: unknown[]) {
   await page.keyboard.insertText(JSON.stringify({ version: 4, keybindings }));
   await page.getByRole("heading", { name: "File" }).click();
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(page).toHaveURL("http://127.0.0.1:8789/");
+  await expect(page).toHaveURL(`${APP_ORIGIN}/`);
 }
 
 async function openDraw(page: Page) {
   await page.getByRole("heading", { name: "Tools" }).click();
   await page.getByRole("button", { name: "Open Excalidraw" }).click();
-  await expect(page.locator("iframe")).toHaveAttribute("src", "http://127.0.0.1:8790");
+  await expect(page.locator("iframe")).toHaveAttribute("src", DRAW_ORIGIN);
   const frame = page.frameLocator("iframe");
   await expect(frame.locator(".excalidraw-container")).toBeVisible({ timeout: 30_000 });
   return frame;
@@ -86,7 +87,7 @@ test("a rebound save works in the editor, title bar, and draw", async ({ page })
   await page.keyboard.press("Control+Alt+s");
   await expect.poll(() => saves).toBe(1);
   await expect(page).toHaveURL(/\/q\/saved-1#/);
-  await page.goto("http://127.0.0.1:8789/");
+  await page.goto(`${APP_ORIGIN}/`);
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 30_000 });
   await page.locator(".monaco-editor").click();
   await page.keyboard.insertText("save from title");
@@ -98,7 +99,7 @@ test("a rebound save works in the editor, title bar, and draw", async ({ page })
   await page.keyboard.press("Control+Alt+s");
   await expect.poll(() => saves).toBe(2);
   await expect(page).toHaveURL(/\/q\/saved-2#/);
-  await page.goto("http://127.0.0.1:8789/");
+  await page.goto(`${APP_ORIGIN}/`);
   await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 30_000 });
   const frame = await openDraw(page);
   await frame.locator(".excalidraw-container").click();
