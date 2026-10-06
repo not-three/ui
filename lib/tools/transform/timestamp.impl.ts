@@ -23,6 +23,34 @@ function validCalendarDate(year: number, month: number, day: number): boolean {
   return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1]!;
 }
 
+function parseRfc(source: string): number | null {
+  const match = /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s+(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?\s+([+-]\d{4}|GMT|UT|UTC|Z|EST|EDT|CST|CDT|MST|MDT|PST|PDT)$/i.exec(source);
+  if (!match) return null;
+  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  const weekdays = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const day = Number(match[2]);
+  const month = months.indexOf(match[3]!.toLowerCase()) + 1;
+  const year = Number(match[4]);
+  const hour = Number(match[5]);
+  const minute = Number(match[6]);
+  const second = Number(match[7] ?? 0);
+  if (!validCalendarDate(year, month, day) || hour > 23 || minute > 59 || second > 59) return null;
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  date.setUTCHours(hour, minute, second, 0);
+  if (weekdays[date.getUTCDay()] !== match[1]!.toLowerCase()) return null;
+  const zone = match[8]!.toUpperCase();
+  const namedOffsets: Record<string, number> = { GMT: 0, UT: 0, UTC: 0, Z: 0, EST: -300, EDT: -240, CST: -360, CDT: -300, MST: -420, MDT: -360, PST: -480, PDT: -420 };
+  let offsetMinutes = namedOffsets[zone];
+  if (offsetMinutes === undefined) {
+    const hours = Number(zone.slice(1, 3));
+    const minutes = Number(zone.slice(3, 5));
+    if (hours > 23 || minutes > 59) return null;
+    offsetMinutes = (zone[0] === '+' ? 1 : -1) * (hours * 60 + minutes);
+  }
+  return date.getTime() - offsetMinutes * 60_000;
+}
+
 export const run: ToolRun = async (inputs, options) => {
   const source = requireText(inputs.input).trim();
   const format = String(options.format ?? 'iso');
@@ -36,19 +64,9 @@ export const run: ToolRun = async (inputs, options) => {
     const time = /T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(source);
     if (!time || Number(time[1]) > 23 || Number(time[2]) > 59 || Number(time[3] ?? 0) > 59) return errorReport('Invalid ISO time');
   }
-  const rfcDate = /^[A-Za-z]{3},\s*(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\b/.exec(source);
-  if (rfcDate) {
-    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-    const month = months.indexOf(rfcDate[2]!.toLowerCase()) + 1;
-    const year = Number(rfcDate[3]);
-    const day = Number(rfcDate[1]);
-    if (!validCalendarDate(year, month, day)) return errorReport('Invalid RFC calendar date');
-    const weekdays = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    const weekday = source.slice(0, 3).toLowerCase();
-    if (weekdays[new Date(Date.UTC(year, month - 1, day)).getUTCDay()] !== weekday) return errorReport('Invalid RFC weekday');
-  }
   const epoch = /^-?\d+(?:\.\d+)?$/.test(source) ? Number(source) * 1000
-    : /^(?:\d{4}-\d{2}-\d{2}T|[A-Za-z]{3},\s)/.test(source) ? Date.parse(source) : NaN;
+    : isoDate ? Date.parse(source)
+      : /^[A-Za-z]{3},/.test(source) ? parseRfc(source) ?? NaN : NaN;
   if (!Number.isFinite(epoch) || !Number.isFinite(new Date(epoch).getTime())) return errorReport('Invalid timestamp');
   if (format === 'unix') return { kind: 'text', text: String(Math.floor(epoch / 1000)) };
   let parts: ReturnType<typeof zonedParts>;

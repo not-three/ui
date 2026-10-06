@@ -49,6 +49,16 @@ it.each([
   ['24:00 RFC3339 time', '2024-01-01T24:00:00Z'],
   ['impossible RFC2822 day', 'Fri, 30 Feb 2024 00:00:00 GMT'],
   ['wrong RFC2822 weekday', 'Fri, 29 Feb 2024 00:00:00 GMT'],
+  ['24:00 RFC2822 time', 'Thu, 29 Feb 2024 24:00:00 GMT'],
+  ['invalid RFC2822 offset', 'Thu, 29 Feb 2024 00:00:00 +2460'],
+  ['trailing RFC2822 text', 'Thu, 29 Feb 2024 00:00:00 GMT junk'],
 ])('rejects %s', async (_name, source) => {
   expect(await convert(source, 'iso')).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
+});
+
+it.each([
+  ['numeric RFC2822 offset', 'Thu, 29 Feb 2024 00:00:00 +0100', '1709161200'],
+  ['RFC2822 without seconds', 'Thu, 29 Feb 2024 00:00 +0000', '1709164800'],
+])('accepts %s', async (_name, source, expected) => {
+  expect(await convert(source, 'unix')).toMatchObject({ kind: 'text', text: expected });
 });
