@@ -9,7 +9,7 @@
         <progress-square v-if="started" :status="progress" :total="totalChunks" class="w-full h-full" />
       </div>
     </div>
-    <div class="bg-black border-white/20 border-2 p-2 max-w-md">
+    <div class="bg-black border-white/20 border p-2 max-w-md">
       <div class="grid grid-cols-[1fr,auto] gap-4">
         <p class="truncate">{{ meta?.name }}</p>
         <p>{{ size }}</p>
@@ -17,20 +17,20 @@
       <div class="flex justify-center mt-4 gap-4">
         <button
           v-if="!started"
-          class="border-white border-2 px-2 py-1 disabled:cursor-progress"
+          class="border-white border px-2 py-1 disabled:cursor-progress"
           @click="showAlternatives"
         >
           Share alternatives
         </button>
         <button
           :disabled="started && !finished"
-          class="border-white border-2 px-2 py-1 disabled:cursor-progress"
+          class="border-white border px-2 py-1 disabled:cursor-progress"
           @click="startDownload"
         >
           {{ finished ? 'Save File' : started ? 'Downloading...' : 'Download File' }}
         </button>
         <button
-          class="border-white border-2 px-2 py-1 disabled:cursor-not-allowed"
+          class="border-white border px-2 py-1 disabled:cursor-not-allowed"
           @click="doCloseOrCancel"
         >
           {{ started && !finished ? 'Cancel' : 'Close' }}

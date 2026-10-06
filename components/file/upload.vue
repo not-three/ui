@@ -17,22 +17,22 @@
           <progress-square v-if="upload" :status="progress" :total="totalChunks" class="w-full h-full" />
         </div>
       </div>
-      <div class="bg-black border-white/20 border-2 p-2 max-w-md">
+      <div class="bg-black border-white/20 border p-2 max-w-md">
         <div class="grid grid-cols-[1fr,auto] gap-4 justify-center items-center">
           <p class="truncate">{{ fileName || 'No file selected...' }}</p>
-          <button class="border-white border-2 px-2 py-1" @click="openFileSelect">Select File</button>
+          <button class="border-white border px-2 py-1" @click="openFileSelect">Select File</button>
         </div>
         <div class="flex justify-center mt-4 gap-4">
           <button
             :disabled="!!upload || !file"
             :class="{ 'cursor-not-allowed': !file, 'cursor-progress': upload }"
-            class="border-white border-2 px-2 py-1"
+            class="border-white border px-2 py-1"
             @click="startUpload"
           >
             {{ upload ? 'Uploading...' : 'Start Upload' }}
           </button>
           <button
-            class="border-white border-2 px-2 py-1 disabled:cursor-not-allowed"
+            class="border-white border px-2 py-1 disabled:cursor-not-allowed"
             @click="doCloseOrCancel"
           >
             {{ upload ? 'Cancel' : 'Close' }}
