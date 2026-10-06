@@ -5,6 +5,7 @@ import { diff } from '~/lib/tools/transform/diff';
 
 const settings = { tools: { rememberOptions: true, lastOptions: {} as Record<string, Record<string, string | number | boolean>> } };
 vi.stubGlobal('useSettingsStore', () => settings);
+vi.mock('~/components/tools/monaco-output.vue', () => ({ default: { name: 'ToolsMonacoOutput', template: '<div />' } }));
 const { default: ToolView } = await import('~/components/tools/tool-view.vue');
 
 type Wrapper = ReturnType<typeof mount>;
