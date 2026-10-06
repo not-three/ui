@@ -118,7 +118,7 @@ export async function decodeImage(bytes: Uint8Array, name?: string, signal?: Abo
     const placeholder = await createImageBitmap(new ImageData(1, 1));
     return { kind: 'image', bitmap: placeholder, width: 0, height: 0, bytes, mimeType: codec.mimeType, name };
   }
-  if (info.width <= 0 || info.height <= 0) throw new Error(`Cannot inspect ${info.format} dimensions before decode`);
+  if ((info.width <= 0 || info.height <= 0) && info.format !== 'jxl' && info.format !== 'heic') throw new Error(`Cannot inspect ${info.format} dimensions before decode`);
   let bitmap: ImageBitmap;
   try {
     bitmap = await codec.decode(bytes, signal);
