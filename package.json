@@ -75,7 +75,7 @@
     "sql.js": "1.13.0",
     "svelte": "5.16.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9",
+    "vitest": "^4.1.11",
     "vue3-sfc-loader": "0.9.5",
     "wasmoon": "1.16.0",
     "wrangler": "^4.107.0",
