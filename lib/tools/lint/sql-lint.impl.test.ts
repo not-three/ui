@@ -26,14 +26,17 @@ test('reports SQLite parser position', async () => {
 test.each([['sqlite', 8], ['postgresql', 12]] as const)('preserves leading whitespace in %s error positions', async (dialect, column) => {
   expect(await run({ input: textInput('\nSELECT FROM;') }, { dialect }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 2, column } }] });
 });
-test('positions an error in a later SQLite statement', async () => {
-  expect(await run({ input: textInput('SELECT "FROM" AS label;\nSELECT FROM;') }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 2, column: 8 } }] });
-});
-test('locates a SQLite syntax token after the same word in a comment', async () => {
-  expect(await run({ input: textInput('-- FROM\nSELECT FROM;') }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 2, column: 8 } }] });
-});
-test('locates a SQLite syntax token after the same word in a string', async () => {
-  expect(await run({ input: textInput("SELECT 'FROM', FROM;") }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line: 1, column: 16 } }] });
+test.each([
+  ['line comment', '-- FROM\nSELECT FROM;', 2, 8],
+  ['block comment', '/* FROM */\nSELECT FROM;', 2, 8],
+  ['string literal', "SELECT 'FROM', FROM;", 1, 16],
+  ['quoted identifier', 'SELECT "FROM", FROM;', 1, 16],
+  ['earlier statement', 'SELECT "FROM" AS label;\nSELECT FROM;', 2, 8],
+  ['comment before a later statement', 'SELECT 1; -- FROM\nSELECT FROM;', 2, 8],
+  ['multiline statement', "SELECT 'FROM',\nFROM;", 2, 1],
+  ['repeated code token', 'SELECT FROM, FROM;', 1, 8],
+] as const)('locates a SQLite syntax token after %s', async (_case, source, line, column) => {
+  expect(await run({ input: textInput(source) }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error', position: { line, column } }] });
 });
 test('checks every SQLite statement without executing them', async () => {
   expect(await run({ input: textInput('SELECT 1; SELECT FROM;') }, { dialect: 'sqlite' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
