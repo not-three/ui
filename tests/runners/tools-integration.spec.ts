@@ -8,6 +8,7 @@ const categories = [...new Set(TOOLS.map(tool => tool.category))];
 test('catalogue groups all tools and searches descriptions, keywords, and categories', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t`);
   const network = await withNoNetwork(page);
+  await expect(page.getByRole('searchbox', { name: 'Search tools' })).toBeFocused();
   for (const category of categories) {
     const section = page.locator('section').filter({ has: page.getByRole('heading', { name: category, exact: true }) });
     const tools = TOOLS.filter(tool => tool.category === category);
