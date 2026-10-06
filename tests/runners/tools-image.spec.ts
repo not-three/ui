@@ -34,6 +34,34 @@ test('drop PNG, resize, export WebP and continue with another image tool', async
   network.assertNoNetwork();
 });
 
+test('continues from resize to crop and keeps numeric and dragged coordinates in pixels', async ({ page }) => {
+  await page.goto(`${APP_ORIGIN}/t/resize`);
+  const panel = page.getByRole('region', { name: 'Resize tool' });
+  await panel.getByLabel('Width').fill('80');
+  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
+  await panel.getByLabel('Image file').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: Buffer.from(await pngBytes(solidBitmap(100, 80, [255, 0, 0, 255]))) });
+  await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('80 × 64 px');
+  await panel.getByRole('button', { name: 'Continue with…' }).click();
+  await panel.getByRole('button', { name: 'Crop', exact: true }).click();
+  await expect(page).toHaveURL(`${APP_ORIGIN}/t/crop`);
+  const crop = page.getByRole('region', { name: 'Crop tool' });
+  await expect(crop.getByRole('region', { name: 'Tool output' })).toContainText('80 × 64 px');
+  await crop.getByLabel('Crop x').fill('10');
+  await crop.getByLabel('Crop y').fill('8');
+  await crop.getByLabel('Crop width').fill('20');
+  await crop.getByLabel('Crop height').fill('16');
+  await crop.getByRole('button', { name: 'Run' }).click();
+  await expect(crop.getByRole('region', { name: 'Tool output' })).toContainText('20 × 16 px');
+  const stage = crop.locator('[data-stage] [tabindex="0"]').first();
+  const bounds = await stage.boundingBox();
+  expect(bounds).toBeTruthy();
+  await crop.locator('[data-handle="se"]').first().dispatchEvent('pointerdown', { pointerId: 1, clientX: bounds!.x + 30, clientY: bounds!.y + 24 });
+  await stage.dispatchEvent('pointermove', { pointerId: 1, clientX: bounds!.x + 35, clientY: bounds!.y + 29 });
+  await stage.dispatchEvent('pointerup', { pointerId: 1 });
+  await expect(crop.getByLabel('Crop width')).toHaveValue('25');
+  await expect(crop.getByLabel('Crop height')).toHaveValue('21');
+});
+
 test('note data URL converts without persisting image bytes or copying implicitly', async ({ page }) => {
   await page.route('**/api/info', route => route.fulfill({ json: info }));
   await page.goto(`${APP_ORIGIN}/`);
