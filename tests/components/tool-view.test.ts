@@ -304,3 +304,12 @@ it('renders report items as level, position and message rows', async () => {
   expect(rows).toEqual(['error: 2:4 bad', 'info: fine']);
   wrapper.unmount();
 });
+
+it('clears the previous output when the tool changes in place', async () => {
+  const wrapper = mount(ToolView, { props: { tool: resultTool({ kind: 'text', text: 'old' }), host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true } } });
+  await wrapper.get('button[name="run"]').trigger('click');
+  await vi.waitFor(() => expect(wrapper.find('[aria-label="Tool output"]').exists()).toBe(true));
+  await wrapper.setProps({ tool: { ...resultTool({ kind: 'text', text: 'new' }), id: 'other' } });
+  expect(wrapper.find('[aria-label="Tool output"]').exists()).toBe(false);
+  wrapper.unmount();
+});
