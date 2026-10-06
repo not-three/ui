@@ -155,7 +155,7 @@ onBeforeUnmount(() => {
 async function bindCowork() {
   unbindCowork?.();
   unbindCowork = null;
-  if (!editor || !activeCowork.value) return;
+  if (!editor || !activeCowork.value?.text) return;
   const text = activeCowork.value.text;
   const unbind = await text.bindMonaco(editor.getModel()!, editor);
   if (activeCowork.value?.text === text && editor) unbindCowork = unbind;
