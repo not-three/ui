@@ -17,6 +17,7 @@ export const useSettingsStore = defineStore('settings', {
       panelWidthPct: 50,
     },
     tools: {
+      image: { exportFormat: 'webp', exportQuality: 82, checkerboard: true },
       panelWidthPct: 50,
       rememberOptions: true,
       lastOptions: {} as Record<string, Record<string, string | number | boolean>>,

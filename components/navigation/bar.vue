@@ -218,14 +218,3 @@ const entries = computed<NavigationEntry[]>(() => [
   }
 ]);
 </script>
-
-<style>
-.navigation-logo-text {
-  @apply font-bold select-none transition-all duration-200;
-  @apply max-w-0 -mr-1 overflow-hidden whitespace-pre;
-  @apply print:max-w-32 print:mr-0
-}
-#logo:hover + h1 {
-  @apply max-w-32 mr-0;
-}
-</style>

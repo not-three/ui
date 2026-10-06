@@ -1,9 +1,11 @@
 import { existsSync, statSync, readdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { VENDOR_PATHS } from "~/lib/sandbox/vendor";
 
 const vendorDir = join(__dirname, "..", "..", "..", "public", "vendor");
+const digest = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
 
 /** Total bytes of a file or directory tree. */
 function sizeOf(path: string): number {
@@ -47,6 +49,23 @@ const TOTAL_BUDGET_MB = 200;
 const CDN_HOSTS = ["cdn.jsdelivr.net", "unpkg.com", "cdnjs.cloudflare.com", "esm.sh"];
 
 describe("vendor pipeline", () => {
+  it("ships the original image wasm files and separate libheif module with licence notices", () => {
+    const assets: [string, string, string][] = [
+      ["avif", "codec/enc/avif_enc.wasm", "avif_enc.wasm"],
+      ["jxl", "codec/dec/jxl_dec.wasm", "jxl_dec.wasm"],
+      ["webp", "codec/enc/webp_enc.wasm", "webp_enc.wasm"],
+      ["png", "codec/pkg/squoosh_png_bg.wasm", "squoosh_png_bg.wasm"],
+      ["jpeg", "codec/enc/mozjpeg_enc.wasm", "mozjpeg_enc.wasm"],
+    ];
+    for (const [name, source, copied] of assets) {
+      expect(digest(join(vendorDir, "image", name, copied)))
+        .toBe(digest(join(__dirname, "..", "..", "..", "node_modules", "@jsquash", name, source)));
+      expect(existsSync(join(vendorDir, "image", name, "LICENSE"))).toBe(true);
+    }
+    expect(digest(join(vendorDir, "image", "heic", "libheif-bundle.mjs")))
+      .toBe(digest(join(__dirname, "..", "..", "..", "node_modules", "libheif-js", "libheif-wasm", "libheif-bundle.mjs")));
+    expect(existsSync(join(vendorDir, "image", "heic", "LICENSE"))).toBe(true);
+  });
   it("every VENDOR_PATHS entry exists under public/vendor (run pnpm install if this fails)", () => {
     for (const [key, rel] of Object.entries(VENDOR_PATHS)) {
       const target = join(vendorDir, rel);

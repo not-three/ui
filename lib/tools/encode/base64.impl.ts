@@ -3,6 +3,7 @@ import type { ToolRun } from '../types';
 export const run: ToolRun = async (inputs, options, context) => {
   const input = inputs.input;
   if (!input) throw new Error('Input is required');
+  if (input.kind === 'image') throw new Error('Text or bytes required');
   const bytes = input.kind === 'text' ? new TextEncoder().encode(input.text) : new Uint8Array(await new Response(input.stream).arrayBuffer());
   if (context.signal.aborted) throw new DOMException('Aborted', 'AbortError');
   if (options.mode === 'decode') {

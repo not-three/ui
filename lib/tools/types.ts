@@ -1,5 +1,7 @@
-export type ToolCategory = 'lint' | 'hash' | 'encode' | 'crypto' | 'transform' | 'generate';
-export type ToolInputKind = 'text' | 'bytes';
+import type { ImageFormat } from '../image/codecs';
+
+export type ToolCategory = 'lint' | 'hash' | 'encode' | 'crypto' | 'transform' | 'generate' | 'image';
+export type ToolInputKind = 'text' | 'bytes' | 'image';
 export type ToolSource = 'note' | 'selection' | 'file' | 'text';
 export type ToolOptionValue = string | number | boolean;
 
@@ -9,23 +11,31 @@ export interface ToolInputSpec {
   kind: ToolInputKind;
   optional?: boolean;
   defaultSource?: 'note' | 'selection' | 'empty';
+  stage?: 'crop' | 'region' | 'point';
+  /** Image inputs only: also offer a pasted-text source (data URLs). Images come from files otherwise. */
+  textSource?: boolean;
 }
 
+export interface ImageRegion { x: number; y: number; width: number; height: number }
+export interface ImagePoint { x: number; y: number }
+
 export type ToolOptionSpec =
-  | { id: string; label: string; type: 'select'; values: { value: string; label: string }[]; default: string; secret?: boolean }
+  | { id: string; label: string; type: 'select'; values: { value: string; label: string }[]; default: string; segmented?: boolean; secret?: boolean }
   | { id: string; label: string; type: 'boolean'; default: boolean; secret?: boolean }
   | { id: string; label: string; type: 'number'; default: number; min?: number; max?: number; secret?: boolean }
   | { id: string; label: string; type: 'text'; default: string; placeholder?: string; secret?: boolean };
 
 export type ToolInput =
   | { kind: 'text'; text: string; language?: string; source?: ToolSource }
-  | { kind: 'bytes'; stream: ReadableStream<Uint8Array>; size?: number; name?: string; source?: ToolSource };
+  | { kind: 'bytes'; stream: ReadableStream<Uint8Array>; size?: number; name?: string; source?: ToolSource }
+  | { kind: 'image'; bitmap: ImageBitmap; width: number; height: number; bytes: Uint8Array; mimeType: string; name?: string; region?: ImageRegion; point?: ImagePoint; firstFrameOnly?: boolean; source?: ToolSource };
 
 export interface ToolPosition { line: number; column: number; endLine?: number; endColumn?: number }
 export interface ToolReportItem { level: 'error' | 'warning' | 'info' | 'success'; message: string; position?: ToolPosition }
 export type ToolSingleOutput =
   | { kind: 'text'; text: string; language?: string; filename?: string }
   | { kind: 'bytes'; bytes: Uint8Array; text?: string; filename?: string; mimeType?: string }
+  | { kind: 'image'; blob: Blob; width: number; height: number; filename: string; exportable?: boolean; encodedQuality?: number; continueWith?: { toolId: string; label: string } }
   | { kind: 'diff'; left: string; right: string; displayLeft?: string; displayRight?: string; language?: string }
   | { kind: 'report'; items: ToolReportItem[]; text?: string; language?: string }
   | { kind: 'table'; columns: string[]; rows: (string | number | boolean | null)[][] };
@@ -33,8 +43,10 @@ export type ToolOutput = ToolSingleOutput | { kind: 'multi'; parts: { label: str
 
 export interface ToolContext {
   signal: AbortSignal;
-  reportProgress: (fraction: number) => void;
+  reportProgress: (fraction: number, detail?: ToolProgressDetail) => void;
+  imageExportFormat?: ImageFormat;
 }
+export type ToolProgressDetail = { phase: 'download'; loadedBytes: number; totalBytes: number } | { phase: 'processing' };
 export type ToolRun = (inputs: Record<string, ToolInput>, options: Record<string, ToolOptionValue>, context: ToolContext) => Promise<ToolOutput>;
 export interface ToolDefinition {
   id: string;
@@ -44,6 +56,8 @@ export interface ToolDefinition {
   category: ToolCategory;
   inputs: ToolInputSpec[];
   options: ToolOptionSpec[];
+  heavy?: boolean;
+  downloadProgress?: { totalBytes: number; endsAt: number };
   load: () => Promise<{ run: ToolRun }>;
 }
 

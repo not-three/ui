@@ -3,8 +3,9 @@ import { mount } from '@vue/test-utils';
 import type { ToolDefinition, ToolHost, ToolOutput } from '~/lib/tools/types';
 import { diff } from '~/lib/tools/transform/diff';
 
-const settings = { tools: { rememberOptions: true, lastOptions: {} as Record<string, Record<string, string | number | boolean>> } };
+const settings = { tools: { rememberOptions: true, lastOptions: {} as Record<string, Record<string, string | number | boolean>>, image: { exportFormat: 'webp', exportQuality: 82, checkerboard: true } } };
 vi.stubGlobal('useSettingsStore', () => settings);
+vi.mock('~/components/tools/monaco-output.vue', () => ({ default: { name: 'ToolsMonacoOutput', template: '<div />' } }));
 const { default: ToolView } = await import('~/components/tools/tool-view.vue');
 
 type Wrapper = ReturnType<typeof mount>;
@@ -368,5 +369,33 @@ it('clears the previous output when the tool changes in place', async () => {
   await vi.waitFor(() => expect(wrapper.find('[aria-label="Tool output"]').exists()).toBe(true));
   await wrapper.setProps({ tool: { ...resultTool({ kind: 'text', text: 'new' }), id: 'other' } });
   expect(wrapper.find('[aria-label="Tool output"]').exists()).toBe(false);
+  wrapper.unmount();
+});
+
+it('takes images from files only and accepts a clipboard image pasted anywhere', async () => {
+  const run = vi.fn(async () => ({ kind: 'text', text: 'unused' } as const));
+  const tool: ToolDefinition = { ...resultTool({ kind: 'text', text: 'unused' }), id: 'resize', category: 'image', inputs: [{ id: 'input', label: 'Image', kind: 'image' }], load: async () => ({ run }) };
+  const wrapper = mount(ToolView, { props: { tool, host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true, ToolsImageStage: true } }, attachTo: document.body });
+  expect(wrapper.find('[role="radiogroup"][aria-label="Image source"]').exists()).toBe(false);
+  expect(wrapper.text()).toContain('Choose image');
+  expect(wrapper.text()).toContain('press Ctrl+V');
+  const file = new File([new Uint8Array([137, 80, 78, 71])], 'clip.png', { type: 'image/png' });
+  const event = new Event('paste', { bubbles: true, cancelable: true }) as ClipboardEvent;
+  Object.defineProperty(event, 'clipboardData', { value: { files: [file], getData: () => '' } });
+  window.dispatchEvent(event);
+  await wrapper.vm.$nextTick();
+  expect(event.defaultPrevented).toBe(true);
+  expect(wrapper.text()).toContain('clip.png (4 bytes)');
+  wrapper.unmount();
+  const after = new Event('paste', { bubbles: true, cancelable: true }) as ClipboardEvent;
+  Object.defineProperty(after, 'clipboardData', { value: { files: [file], getData: () => '' } });
+  window.dispatchEvent(after);
+  expect(after.defaultPrevented).toBe(false);
+});
+
+it('offers a text source for image inputs only when the tool asks for it', () => {
+  const tool: ToolDefinition = { ...resultTool({ kind: 'text', text: 'unused' }), id: 'data-url', category: 'image', inputs: [{ id: 'input', label: 'Image or data URL', kind: 'image', textSource: true }] };
+  const wrapper = mount(ToolView, { props: { tool, host, noteContent: 'source' }, global: { stubs: { ToolsMonacoOutput: true, ToolsImageStage: true } } });
+  expect(wrapper.findAll('[role="radiogroup"][aria-label="Image or data URL source"] button').map(button => button.text())).toEqual(['File', 'Text']);
   wrapper.unmount();
 });

@@ -16,7 +16,7 @@ describe('tool registry', () => {
   });
 
   it('orders categories and titles and loads an implementation per definition', async () => {
-    const order = ['lint', 'hash', 'encode', 'crypto', 'transform', 'generate'];
+    const order = ['lint', 'hash', 'encode', 'crypto', 'transform', 'generate', 'image'];
     expect(TOOLS).toEqual([...TOOLS].sort((a, b) =>
       order.indexOf(a.category) - order.indexOf(b.category) || a.title.localeCompare(b.title)));
     for (const tool of TOOLS) expect((await tool.load()).run).toBeTypeOf('function');
@@ -30,7 +30,7 @@ describe('tool registry', () => {
   });
 
   it('registers every definition in the tool directories with useful catalogue metadata', () => {
-    const modules = import.meta.glob('../../../lib/tools/{lint,hash,encode,crypto,transform,generate}/*.ts');
+    const modules = import.meta.glob('../../../lib/tools/{lint,hash,encode,crypto,transform,generate,image}/*.ts');
     const definitions = Object.keys(modules)
       .filter(path => !path.endsWith('.impl.ts') && !path.endsWith('.impl.test.ts') && !path.endsWith('.d.ts'))
       .filter(path => !/(?:shared|bytes)\.ts$/.test(path));

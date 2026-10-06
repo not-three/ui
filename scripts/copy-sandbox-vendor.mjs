@@ -9,12 +9,60 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildSync } from "esbuild";
+import { build, buildSync } from "esbuild";
 import { replaceCdnUrls } from "./vendor-cdn.mjs";
+import { createHash } from "node:crypto";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const modules = join(root, "node_modules");
 const target = join(root, "public", "vendor");
+const imageLedger = join(target, "image", "LICENSES.md");
+const preservedImageLedger = existsSync(imageLedger) ? readFileSync(imageLedger) : null;
+
+const IMAGE_CODECS = [
+  { name: "avif", wasm: ["codec/enc/avif_enc.wasm", "codec/dec/avif_dec.wasm"] },
+  { name: "jxl", wasm: ["codec/enc/jxl_enc.wasm", "codec/dec/jxl_dec.wasm"] },
+  { name: "webp", wasm: ["codec/enc/webp_enc.wasm", "codec/dec/webp_dec.wasm"] },
+  { name: "png", wasm: ["codec/pkg/squoosh_png_bg.wasm"] },
+  { name: "jpeg", wasm: ["codec/enc/mozjpeg_enc.wasm", "codec/dec/mozjpeg_dec.wasm"] },
+];
+
+async function copyImageCodecs() {
+  for (const { name, wasm } of IMAGE_CODECS) {
+    const packageDir = join(modules, "@jsquash", name);
+    if (!existsSync(packageDir)) { console.warn(`[vendor] MISSING @jsquash/${name}`); continue; }
+    const destination = join(target, "image", name);
+    mkdirSync(destination, { recursive: true });
+    await build({
+      entryPoints: [join(packageDir, "index.js")],
+      bundle: true,
+      format: "esm",
+      platform: "browser",
+      target: "es2022",
+      plugins: [{
+        name: "single-thread-codecs",
+        setup(build) {
+          build.onResolve({ filter: /^wasm-feature-detect$/ }, () => ({ path: "wasm-feature-detect", namespace: "single-thread-codecs" }));
+          build.onLoad({ filter: /.*/, namespace: "single-thread-codecs" }, () => ({ contents: "export const threads = async () => false; export const simd = async () => false;", loader: "js" }));
+        },
+      }],
+      outfile: join(destination, "codec.mjs"),
+    });
+    for (const file of wasm) cpSync(join(packageDir, file), join(destination, file.split("/").at(-1)), { dereference: true });
+    cpSync(join(packageDir, "LICENSE"), join(destination, "LICENSE"), { dereference: true });
+    const codecNotice = join(packageDir, "codec", "LICENSE.codec.md");
+    if (existsSync(codecNotice)) cpSync(codecNotice, join(destination, "LICENSE.codec.md"), { dereference: true });
+    console.log(`[vendor] image/${name}: ${(sizeOf(destination) / 1048576).toFixed(2)} MB`);
+  }
+  const heifSource = join(modules, "libheif-js", "libheif-wasm", "libheif-bundle.mjs");
+  if (existsSync(heifSource)) {
+    const destination = join(target, "image", "heic");
+    mkdirSync(destination, { recursive: true });
+    cpSync(heifSource, join(destination, "libheif-bundle.mjs"), { dereference: true });
+    cpSync(join(modules, "libheif-js", "LICENSE"), join(destination, "LICENSE"), { dereference: true });
+    console.log(`[vendor] image/heic: ${(sizeOf(destination) / 1048576).toFixed(2)} MB`);
+  } else console.warn("[vendor] MISSING libheif-js wasm bundle");
+}
 
 // esm-env and clsx are transitive runtime dependencies of svelte's compiled
 // "svelte/internal/client" module graph (bare `import ... from 'esm-env'` /
@@ -226,6 +274,7 @@ function sanitizeCdnReferences(dir) {
     const original = readFileSync(full, "utf8");
     const { text, count } = replaceCdnUrls(original, CDN_HOSTS, "https://vendored.invalid");
     if (count === 0) continue;
+    if (full === join(target, "image", "heic", "libheif-bundle.mjs")) throw new Error("libheif-js bundle must remain unmodified; choose a source without CDN references");
     writeFileSync(full, text);
     console.log(`[vendor] neutralised ${count} CDN reference(s) in ${relative(root, full)}`);
     filesChanged++;
@@ -234,6 +283,10 @@ function sanitizeCdnReferences(dir) {
 }
 
 rmSync(target, { recursive: true, force: true });
+if (preservedImageLedger) {
+  mkdirSync(dirname(imageLedger), { recursive: true });
+  writeFileSync(imageLedger, preservedImageLedger);
+}
 let ok = 0;
 let missing = 0;
 for (const engine of ENGINES) {
@@ -260,6 +313,39 @@ for (const engine of ENGINES) {
   }
   ok++;
 }
+const ortFiles = [
+  "ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm",
+];
+const ortSource = join(modules, "onnxruntime-web", "dist");
+if (existsSync(ortSource)) {
+  const ortTarget = join(target, "image", "onnxruntime-web");
+  mkdirSync(ortTarget, { recursive: true });
+  for (const file of ortFiles) cpSync(join(ortSource, file), join(ortTarget, file));
+  console.log(`[vendor] onnxruntime-web ${((sizeOf(ortTarget)) / 1048576).toFixed(1)} MB`);
+} else console.warn("[vendor] MISSING onnxruntime-web runtime assets");
+
+const modelSource = "https://huggingface.co/Ko033/isnet-general-use-onnx/resolve/5349b617911fd60c619b52f32e2b593517b78df3/onnx/model_quantized.onnx";
+const modelSha256 = "5039225b9a4ac3df55f185d24b7a92d640c86cc4747002d7f23351e394de03a6";
+const modelCache = join(modules, ".cache", "not3-image", "model_quantized.onnx");
+const modelTarget = join(target, "image", "isnet-general-use", "model_quantized.onnx");
+async function copyModel() {
+  if (!existsSync(modelCache)) {
+    const response = await fetch(modelSource);
+    if (!response.ok) throw new Error(`Background model download failed: ${response.status}`);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    mkdirSync(dirname(modelCache), { recursive: true });
+    writeFileSync(modelCache, bytes);
+  }
+  const bytes = readFileSync(modelCache);
+  if (bytes.length !== 45_902_969 || createHash("sha256").update(bytes).digest("hex") !== modelSha256) {
+    rmSync(modelCache, { force: true });
+    throw new Error("Background model checksum or size mismatch");
+  }
+  mkdirSync(dirname(modelTarget), { recursive: true });
+  cpSync(modelCache, modelTarget);
+  console.log(`[vendor] isnet-general-use model ${(sizeOf(modelTarget) / 1048576).toFixed(1)} MB`);
+}
+if (existsSync(ortSource)) await copyModel();
 // One browser bundle keeps the parser, task-list plugin and common syntax
 // highlighter self-hosted while avoiding Node-style require() in the iframe.
 const markdownDir = join(target, "markdown");
@@ -303,6 +389,7 @@ window.ReactDOM = { ...ReactDOMBase, ...ReactDOMClient };`,
 });
 const markdownMb = sizeOf(markdownDir) / 1048576;
 if (markdownMb >= 2) throw new Error(`markdown vendor bundle exceeds 2 MB: ${markdownMb.toFixed(2)} MB`);
+await copyImageCodecs();
 const filesSanitized = existsSync(target) ? sanitizeCdnReferences(target) : 0;
 const mb = existsSync(target) ? sizeOf(target) / 1048576 : 0;
 console.log(`[vendor] ${ok}/${ENGINES.length} engines, ${mb.toFixed(1)} MB in public/vendor`);

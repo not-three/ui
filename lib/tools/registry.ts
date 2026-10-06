@@ -34,6 +34,19 @@ import { regex } from './transform/regex';
 import { markdownHtml } from './transform/markdown-html';
 import { textStats } from './transform/text-stats';
 import { timestamp } from './transform/timestamp';
+import { compress } from './image/compress';
+import { convert } from './image/convert';
+import { crop } from './image/crop';
+import { dataUrl } from './image/data-url';
+import { exif } from './image/exif';
+import { favicon } from './image/favicon';
+import { outline } from './image/outline';
+import { palette } from './image/palette';
+import { regionBlur } from './image/region-blur';
+import { resize } from './image/resize';
+import { rotate } from './image/rotate';
+import { removeBackground } from './image/remove-background';
+import { stripMetadata } from './image/strip-metadata';
 
 export const TOOLS: ToolDefinition[] = [
   cssLint, htmlLint, jsTsLint, jsonLint, markdownLint, sqlLint, xmlLint, yamlLint,
@@ -41,6 +54,7 @@ export const TOOLS: ToolDefinition[] = [
   not3Payload, aes, caesar, hmac, jwt, rot13,
   letterCase, csvJson, diff, escapeText, jsonYaml, markdownHtml, minify, regex, sortLines, textStats, timestamp,
   cron, keypair, lorem, password, qr, uuid,
+  regionBlur, palette, compress, convert, crop, dataUrl, exif, favicon, removeBackground, resize, rotate, outline, stripMetadata,
 ];
 
 export function getTool(id: string): ToolDefinition | undefined {
