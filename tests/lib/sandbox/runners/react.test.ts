@@ -17,8 +17,10 @@ describe("ReactRunner", () => {
     const doc = buildSrcdoc({
       ...OPTS, runner: ReactRunner, content: "function App() { return <h1>hi</h1>; }",
     });
-    expect(doc).toContain(`${ORIGIN}/vendor/react/react.production.min.js`);
-    expect(doc).toContain(`${ORIGIN}/vendor/react/react-dom.production.min.js`);
+    // React 19 ships no UMD build: one vendored IIFE bundle provides both the
+    // React and ReactDOM globals (react-dom/client included).
+    expect(doc).toContain(`${ORIGIN}/vendor/react/react.min.js`);
+    expect(doc).not.toContain("react-dom.production.min.js");
     expect(doc).toContain(`${ORIGIN}/vendor/babel/babel.min.js`);
     expect(doc).toContain("Babel.transform");
     expect(doc).toContain("ReactDOM.createRoot");

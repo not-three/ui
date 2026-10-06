@@ -159,8 +159,6 @@ const ENGINES = [
     files: ["coffeescript.js"],
   },
   { from: "@babel/standalone", to: "babel", files: ["babel.min.js"] },
-  { from: "react/umd", to: "react", files: ["react.production.min.js"] },
-  { from: "react-dom/umd", to: "react", files: ["react-dom.production.min.js"] },
   // The sandbox deliberately ships the DEV build of Vue: the prod build strips
   // ALL runtime warnings, so a note whose template references a nonexistent
   // method rendered a dead button with an empty console. Warnings are the
@@ -366,6 +364,28 @@ window.__not3Markdown = { MarkdownIt, taskLists, hljs };`,
   platform: "browser",
   format: "iife",
   outfile: join(markdownDir, "markdown.min.js"),
+});
+// React 19 no longer publishes UMD builds, so react, react-dom and
+// react-dom/client are bundled into one production IIFE that provides the
+// React and ReactDOM globals the React runner expects.
+const reactDir = join(target, "react");
+mkdirSync(reactDir, { recursive: true });
+buildSync({
+  stdin: {
+    contents: `import * as React from "react";
+import * as ReactDOMBase from "react-dom";
+import * as ReactDOMClient from "react-dom/client";
+window.React = React;
+window.ReactDOM = { ...ReactDOMBase, ...ReactDOMClient };`,
+    resolveDir: root,
+    sourcefile: "sandbox-react-entry.js",
+  },
+  bundle: true,
+  minify: true,
+  platform: "browser",
+  format: "iife",
+  define: { "process.env.NODE_ENV": '"production"' },
+  outfile: join(reactDir, "react.min.js"),
 });
 const markdownMb = sizeOf(markdownDir) / 1048576;
 if (markdownMb >= 2) throw new Error(`markdown vendor bundle exceeds 2 MB: ${markdownMb.toFixed(2)} MB`);

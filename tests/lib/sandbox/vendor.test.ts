@@ -30,7 +30,7 @@ const BUDGET_MB: Record<string, number> = {
   mermaid: 8,
   svelte: 1.6,
   typescript: 15,
-  react: 0.2,
+  react: 0.3,
   vue: 3,
   wasmoon: 0.6,
   babel: 4,
@@ -71,6 +71,16 @@ describe("vendor pipeline", () => {
       const target = join(vendorDir, rel);
       expect(existsSync(target), `${key} -> public/vendor/${rel}`).toBe(true);
     }
+  });
+
+  it("bundles React into one script exposing the React and ReactDOM globals", () => {
+    const bundle = join(vendorDir, VENDOR_PATHS.react);
+    const sandbox: Record<string, unknown> = {};
+    new Function("window", "self", "globalThis", readFileSync(bundle, "utf8"))(sandbox, sandbox, sandbox);
+    const React = sandbox.React as { createElement?: unknown; version?: string };
+    const ReactDOM = sandbox.ReactDOM as { createRoot?: unknown };
+    expect(typeof React?.createElement).toBe("function");
+    expect(typeof ReactDOM?.createRoot).toBe("function");
   });
 
   it("stays inside the per-engine size budgets", () => {
