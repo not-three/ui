@@ -23,6 +23,16 @@ it('preserves required spaces in nested calc arithmetic', async () => {
   });
 });
 
+it('preserves selector spaces before pseudo classes', async () => {
+  expect(await minify('div :hover { color: red; }', 'css')).toMatchObject({ kind: 'text', text: 'div :hover{color:red}', language: 'css' });
+});
+
+it('preserves math functions and closing parentheses inside quoted URLs', async () => {
+  expect(await minify('a { width: min(100% + 1px, 200px); background: url("a)b c.png"); }', 'css')).toMatchObject({
+    kind: 'text', text: 'a{width:min(100% + 1px, 200px);background:url("a)b c.png")}', language: 'css',
+  });
+});
+
 it('keeps meaningful HTML text spacing and pre, script and style bodies', async () => {
   const source = '<div>hello <b>world</b> friend</div><!-- remove --><pre>  a\n b </pre><script>const x = "a  b";</script><style>a { color: red; }</style>';
   const result = await minify(source, 'html');
@@ -33,4 +43,8 @@ it('keeps meaningful HTML text spacing and pre, script and style bodies', async 
   expect(result.text).toContain('<script>const x = "a  b";</script>');
   expect(result.text).toContain('<style>a { color: red; }</style>');
   expect(result.text).not.toContain('remove');
+});
+
+it('keeps literal comment text inside a textarea', async () => {
+  expect(await minify('<textarea><!-- literal text --></textarea><!-- remove -->', 'html')).toMatchObject({ kind: 'text', text: '<textarea><!-- literal text --></textarea>', language: 'html' });
 });

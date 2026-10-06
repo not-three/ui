@@ -10,7 +10,7 @@ export const run: ToolRun = async (inputs, options) => {
   let expression: RegExp;
   try { expression = new RegExp(pattern, flags); } catch (error) { return errorReport(error instanceof Error ? error.message : String(error)); }
   const items: ToolReportItem[] = [];
-  const matcher = new RegExp(expression.source, expression.flags.includes('g') ? expression.flags : expression.flags + 'g');
+  const matcher = expression;
   let scanned = 0;
   let line = 1;
   let column = 1;
@@ -25,6 +25,7 @@ export const run: ToolRun = async (inputs, options) => {
       else column++;
     }
     items.push({ level: 'info', message: match[0] ? `Match: ${match[0]}` : 'Zero-width match', position: { line, column } });
+    if (!matcher.global) break;
     if (match[0].length === 0) matcher.lastIndex += (flags.includes('u') || flags.includes('v')) && (source.codePointAt(matcher.lastIndex) ?? 0) > 0xffff ? 2 : 1;
   }
   const report = { kind: 'report' as const, items: items.length ? items : [{ level: 'info' as const, message: 'No matches' }] };

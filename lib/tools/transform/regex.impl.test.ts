@@ -14,6 +14,14 @@ it('shows replacement preview as labelled report and diff parts', async () => {
   expect(result).toMatchObject({ kind: 'multi', parts: [{ label: 'Matches', output: { kind: 'report' } }, { label: 'Replacement preview', output: { kind: 'diff', left: 'cat cat', right: 'dog dog' } }] });
 });
 
+it('reports only the replacement target when global flag is absent', async () => {
+  const result = await run({ input: textInput('cat cat') }, { pattern: 'cat', flags: '', replacement: 'dog' }, context);
+  expect(result).toMatchObject({ kind: 'multi', parts: [
+    { label: 'Matches', output: { kind: 'report', items: [{ position: { line: 1, column: 1 } }] } },
+    { label: 'Replacement preview', output: { kind: 'diff', left: 'cat cat', right: 'dog cat' } },
+  ] });
+});
+
 it('surfaces invalid patterns and terminates zero-width global matches', async () => {
   expect(await run({ input: textInput('x') }, { pattern: '[', flags: 'g', replacement: '' }, context)).toMatchObject({ kind: 'report', items: [{ level: 'error' }] });
   const result = await run({ input: textInput('ab') }, { pattern: '(?=.)', flags: 'g', replacement: '' }, context);
