@@ -1,5 +1,5 @@
 <template>
-  <section class="h-full min-h-0 flex flex-col bg-[#111] text-white text-sm" role="region" :aria-label="`${tool.title} tool`" @dragover="onDragOver" @drop="onDrop" @paste="onPaste">
+  <section class="h-full min-h-0 flex flex-col bg-[#111] text-white text-sm" role="region" :aria-label="`${tool.title} tool`" @dragover="onDragOver" @drop="onDrop">
     <header v-if="$slots.header" class="flex items-center gap-3 px-2 py-1 bg-black text-sm flex-wrap">
       <slot name="header" />
       <div class="flex-grow" />
@@ -13,6 +13,7 @@
           <div class="flex items-center gap-2 min-w-0 flex-wrap">
             <span :id="`source-${spec.id}-label`" class="tool-label">{{ spec.label }}</span>
             <tools-segmented
+              v-if="spec.kind !== 'image'"
               v-model="sources[spec.id]"
               :label="`${spec.label} source`"
               :items="[
@@ -22,10 +23,16 @@
                 { value: 'text', label: 'Text' },
               ]"
             />
+            <tools-segmented
+              v-else-if="spec.textSource"
+              v-model="sources[spec.id]"
+              :label="`${spec.label} source`"
+              :items="[{ value: 'file', label: 'File' }, { value: 'text', label: 'Text' }]"
+            />
             <template v-if="sources[spec.id] === 'file'">
-              <button type="button" name="choose-file" class="panel-btn text-xs py-0.5" @click="fileInputs[spec.id]?.click()">Choose file</button>
-              <input :ref="element => { fileInputs[spec.id] = element as HTMLInputElement | null }" type="file" class="sr-only" tabindex="-1" :aria-label="`${spec.label} file`" @change="chooseFile(spec.id, $event)">
-              <span class="text-xs text-white/60 truncate min-w-0">{{ files[spec.id] ? `${files[spec.id]?.name} (${files[spec.id]?.size} bytes)` : 'No file chosen' }}</span>
+              <button type="button" name="choose-file" class="panel-btn text-xs py-0.5" @click="fileInputs[spec.id]?.click()">{{ spec.kind === 'image' ? 'Choose image' : 'Choose file' }}</button>
+              <input :ref="element => { fileInputs[spec.id] = element as HTMLInputElement | null }" type="file" :accept="spec.kind === 'image' ? 'image/*,.heic,.heif,.jxl,.avif' : undefined" class="sr-only" tabindex="-1" :aria-label="`${spec.label} file`" @change="chooseFile(spec.id, $event)">
+              <span class="text-xs text-white/60 truncate min-w-0">{{ files[spec.id] ? `${files[spec.id]?.name} (${files[spec.id]?.size} bytes)` : spec.kind === 'image' ? 'No image yet: choose one, drop it here or press Ctrl+V' : 'No file chosen' }}</span>
             </template>
           </div>
           <textarea v-if="sources[spec.id] === 'text'" v-model="texts[spec.id]" :aria-label="`${spec.label} text`" class="panel-input font-mono min-h-24 w-full resize-y" />
@@ -42,7 +49,7 @@
         </div>
         <div v-if="state.inputImage" class="flex flex-col gap-1">
           <p v-if="state.inputImage.firstFrameOnly" class="text-white/60 text-xs">Animated image: using the first frame.</p>
-          <tools-image-stage :blob="inputPreviewBlob" :width="state.inputImage.width" :height="state.inputImage.height" :mode="imageStageMode" :aspect="stageAspect" :value="stageValue" :checkerboard="settings.tools.image.checkerboard" @update:value="stageValue = $event" @file="acceptImageFile" @paste="acceptImageText" />
+          <tools-image-stage :blob="inputPreviewBlob" :width="state.inputImage.width" :height="state.inputImage.height" :mode="imageStageMode" :aspect="stageAspect" :value="stageValue" :checkerboard="settings.tools.image.checkerboard" @update:value="stageValue = $event" @file="acceptImageFile" @text="acceptImageText" />
         </div>
       </div>
       <div v-if="!$slots.header" class="flex items-center gap-2">
@@ -60,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, reactive, shallowRef, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, shallowRef, ref, watch } from 'vue';
 import { createToolRunner, presetOptions, rememberedOptions, type ToolRunState } from '~/lib/tools/controller';
 import { EXPORT_FORMATS, getCodec, type ImageFormat } from '~/lib/image/codecs';
 import { takeHandoff } from '~/lib/tools/handoff';
@@ -144,7 +151,7 @@ function resetTool() {
   stageValue.value = undefined;
   imageExportFormat.value = settings.tools.image.exportFormat as ImageFormat;
   for (const spec of props.tool.inputs) {
-    sources[spec.id] = spec.defaultSource !== 'empty' && props.host.getSelection() ? 'selection' : spec.defaultSource !== 'empty' && props.host.getNote() ? 'note' : 'text';
+    sources[spec.id] = spec.kind === 'image' ? 'file' : spec.defaultSource !== 'empty' && props.host.getSelection() ? 'selection' : spec.defaultSource !== 'empty' && props.host.getNote() ? 'note' : 'text';
     texts[spec.id] = '';
   }
   const memory = props.tool.category !== 'image' && settings.tools.rememberOptions ? settings.tools.lastOptions[props.tool.id] ?? {} : {};
@@ -173,7 +180,12 @@ watch(options, () => {
 
 watch(() => props.noteContent, () => { stageValue.value = undefined; runner.invalidate(true); scheduleAutoRun(); });
 watch(stageValue, () => { runner.invalidate(); scheduleAutoRun(); });
-onBeforeUnmount(() => { cancelAutoRun(); runner.dispose(); });
+// Ctrl+V anywhere on the page feeds a clipboard image to the image input.
+// Text pastes stay with whatever has focus (editor, inputs), except a data URL
+// pasted outside a text field on a tool that accepts one. The listener runs in
+// the capture phase because Monaco stops paste propagation at its textarea.
+onMounted(() => window.addEventListener('paste', onWindowPaste, true));
+onBeforeUnmount(() => { window.removeEventListener('paste', onWindowPaste, true); cancelAutoRun(); runner.dispose(); });
 
 function chooseFile(id: string, event: Event) {
   files[id] = (event.target as HTMLInputElement).files?.[0];
@@ -185,9 +197,22 @@ function acceptImageFile(file: File) {
   if (!props.tool.heavy) void nextTick(() => run());
 }
 function acceptImageText(text: string) {
-  const id = props.tool.inputs.find(spec => spec.kind === 'image')?.id; if (!id) return;
-  sources[id] = 'text'; texts[id] = text; stageValue.value = undefined;
+  const spec = props.tool.inputs.find(item => item.kind === 'image'); if (!spec?.textSource) return;
+  sources[spec.id] = 'text'; texts[spec.id] = text; stageValue.value = undefined;
   scheduleAutoRun();
+}
+function clipboardImage(data: DataTransfer | null | undefined): File | undefined {
+  const files = Array.from(data?.files ?? []);
+  return files.find(file => file.type.startsWith('image/')) ?? files.find(file => /\.(heic|heif|jxl|avif)$/i.test(file.name));
+}
+function onWindowPaste(event: ClipboardEvent) {
+  if (!props.tool.inputs.some(spec => spec.kind === 'image')) return;
+  const file = clipboardImage(event.clipboardData);
+  if (file) { event.preventDefault(); acceptImageFile(file); return; }
+  const target = event.target as HTMLElement | null;
+  if (target?.closest('textarea,input,[contenteditable],.monaco-editor')) return;
+  const text = event.clipboardData?.getData('text/plain');
+  if (text && /^\s*data:image\//i.test(text)) { event.preventDefault(); acceptImageText(text); }
 }
 function onDragOver(event: DragEvent) { if (props.tool.inputs.some(spec => spec.kind === 'image')) event.preventDefault(); }
 function onDrop(event: DragEvent) {
@@ -195,12 +220,6 @@ function onDrop(event: DragEvent) {
   event.preventDefault();
   const file = event.dataTransfer?.files[0]; if (file) acceptImageFile(file);
   else { const text = event.dataTransfer?.getData('text/plain'); if (text) acceptImageText(text); }
-}
-function onPaste(event: ClipboardEvent) {
-  if (!props.tool.inputs.some(spec => spec.kind === 'image')) return;
-  if ((event.target as HTMLElement)?.closest('textarea,input')) return;
-  const file = event.clipboardData?.files[0]; if (file) { event.preventDefault(); acceptImageFile(file); return; }
-  const text = event.clipboardData?.getData('text/plain'); if (text) { event.preventDefault(); acceptImageText(text); }
 }
 function sourceValues(): Record<string, SourceValue> {
   return Object.fromEntries(props.tool.inputs.map(spec => {

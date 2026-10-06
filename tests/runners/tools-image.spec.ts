@@ -38,7 +38,6 @@ test('continues from resize to crop and keeps numeric and dragged coordinates in
   await page.goto(`${APP_ORIGIN}/t/resize`);
   const panel = page.getByRole('region', { name: 'Resize tool' });
   await panel.getByLabel('Width').fill('80');
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: Buffer.from(await pngBytes(solidBitmap(100, 80, [255, 0, 0, 255]))) });
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('80 × 64 px');
   await panel.getByRole('button', { name: 'Continue with…' }).click();
@@ -62,7 +61,7 @@ test('continues from resize to crop and keeps numeric and dragged coordinates in
   await expect(crop.getByLabel('Crop height')).toHaveValue('21');
 });
 
-test('note data URL converts without persisting image bytes or copying implicitly', async ({ page }) => {
+test('pasted image converts in the editor panel without persisting image bytes or copying implicitly', async ({ page }) => {
   await page.route('**/api/info', route => route.fulfill({ json: info }));
   await page.goto(`${APP_ORIGIN}/`);
   await expect(page.locator('.monaco-editor').first()).toBeVisible({ timeout: 30_000 });
@@ -71,16 +70,22 @@ test('note data URL converts without persisting image bytes or copying implicitl
     tracked.__imageCopies = 0;
     if (navigator.clipboard) Object.defineProperty(navigator.clipboard, 'write', { configurable: true, value: async () => { tracked.__imageCopies = (tracked.__imageCopies ?? 0) + 1; } });
   });
-  const dataUrl = `data:image/png;base64,${(await sample()).toString('base64')}`;
-  await page.locator('.monaco-editor').first().click();
-  await page.keyboard.insertText(dataUrl);
   await page.getByRole('heading', { name: 'Tools', exact: true }).click();
   await page.getByRole('button', { name: 'Image ▸' }).click();
   await page.getByRole('button', { name: 'Convert', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Convert tool' });
+  await expect(panel.getByLabel('Image source')).toHaveCount(0);
+  const bytes = await sample();
+  await page.locator('.monaco-editor').first().click();
+  await page.evaluate(array => {
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([new Uint8Array(array)], 'pasted.png', { type: 'image/png' }));
+    document.activeElement?.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }));
+  }, [...bytes]);
   await expect(panel.getByRole('region', { name: 'Tool output' })).toBeVisible();
-  expect(await page.evaluate(() => Object.entries(localStorage).filter(([key]) => /settings|history/i.test(key)).map(([, value]) => value).join(' '))).not.toContain(dataUrl);
-  expect(page.url()).not.toContain(dataUrl);
+  await expect(page.locator('.monaco-editor').first()).not.toContainText('pasted.png');
+  expect(await page.evaluate(() => Object.entries(localStorage).filter(([key]) => /settings|history/i.test(key)).map(([, value]) => value).join(' '))).not.toContain('pasted.png');
+  expect(page.url()).not.toContain('pasted');
   expect(await page.evaluate(() => (window as Window & { __imageCopies?: number }).__imageCopies)).toBe(0);
   await panel.getByRole('button', { name: 'Copy image' }).click();
   await expect.poll(() => page.evaluate(() => (window as Window & { __imageCopies?: number }).__imageCopies)).toBe(1);
@@ -90,16 +95,15 @@ test('rejects a 60 MP JPEG from its header before decoding', async ({ page }) =>
   await page.goto(`${APP_ORIGIN}/t/convert`);
   const jpeg = Buffer.from([255,216,255,192,0,17,8,0x4e,0x20,0x2e,0xe0,3,1,17,0,2,17,0,3,17,0,255,217]);
   const panel = page.getByRole('region', { name: 'Convert tool' });
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'too-large.jpg', mimeType: 'image/jpeg', buffer: jpeg });
   await expect(panel.getByRole('alert')).toContainText('50 MP');
   await expect(panel.getByRole('button', { name: 'Run' })).toBeEnabled();
 });
 
-test('rasterises SVG text without dimensions at 1024 px wide', async ({ page }) => {
+test('rasterises an SVG file without dimensions at 1024 px wide', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/convert`);
   const panel = page.getByRole('region', { name: 'Convert tool' });
-  await panel.getByLabel('Image text').fill('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 1"><rect width="2" height="1" fill="red"/></svg>');
+  await panel.getByLabel('Image file').setInputFiles({ name: 'shape.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 1"><rect width="2" height="1" fill="red"/></svg>') });
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('1024 × 512 px');
 });
 
@@ -116,7 +120,34 @@ test('applies JPEG EXIF orientation before the tool sees pixels', async ({ page 
     return [...jpeg.subarray(0, 2), ...exif, ...jpeg.subarray(2)];
   });
   const panel = page.getByRole('region', { name: 'Convert tool' });
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'oriented.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(bytes) });
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('1 × 2 px');
+});
+
+test('image inputs take files only, accept a clipboard image pasted anywhere, and zoom the stage', async ({ page }) => {
+  await page.goto(`${APP_ORIGIN}/t/region-blur`);
+  const panel = page.getByRole('region', { name: 'Blur region tool' });
+  await expect(panel.getByLabel('Image source')).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: 'Choose image' })).toBeVisible();
+  await expect(panel).toContainText('press Ctrl+V');
+  const network = await withNoNetwork(page);
+  const bytes = Buffer.from(await pngBytes(solidBitmap(40, 20, [0, 128, 255, 255])));
+  await page.evaluate(array => {
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([new Uint8Array(array)], 'clip.png', { type: 'image/png' }));
+    const event = new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true });
+    document.body.dispatchEvent(event);
+  }, [...bytes]);
+  await expect(panel).toContainText('clip.png');
+  await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText('40 × 20 px');
+  const stage = panel.locator('[data-frame]').first();
+  const fitWidth = (await stage.boundingBox())!.width;
+  await panel.getByLabel('Zoom').first().getByRole('radio', { name: '400 %' }).click();
+  const zoomed = (await stage.boundingBox())!.width;
+  expect(zoomed).toBeGreaterThan(fitWidth);
+  expect(Math.round(zoomed)).toBe(160);
+  await stage.click({ position: { x: 20, y: 20 } });
+  await expect(panel.getByLabel('Region x')).toHaveValue('5');
+  await expect(panel.getByLabel('Region y')).toHaveValue('5');
+  network.assertNoNetwork();
 });

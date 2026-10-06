@@ -17,7 +17,6 @@ test('AVIF and JXL exports round trip through vendored codecs on the app origin'
   const network = await withNoNetwork(page);
   const panel = page.getByRole('region', { name: 'Convert tool' });
   const png = Buffer.from(await pngBytes(solidBitmap(3, 2, [255, 0, 0, 255])));
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'red.png', mimeType: 'image/png', buffer: png });
   await expect(panel.getByRole('region', { name: 'Tool output' })).toBeVisible();
 
@@ -41,7 +40,6 @@ test('HEIC input decodes through the vendored libheif bundle', async ({ page }) 
   await page.goto(`${APP_ORIGIN}/t/convert`);
   const network = await withNoNetwork(page);
   const panel = page.getByRole('region', { name: 'Convert tool' });
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles(fixture);
   await expect(panel.getByRole('region', { name: 'Tool output' })).toBeVisible({ timeout: 30_000 });
   await expect(panel.getByRole('region', { name: 'Tool output' })).toContainText(/\d+ × \d+ px/);
@@ -74,7 +72,6 @@ test('unavailable vendored encoder is hidden and decode failures name the format
   await page.goto(`${APP_ORIGIN}/t/convert`);
   const panel = page.getByRole('region', { name: 'Convert tool' });
   const png = Buffer.from(await pngBytes(solidBitmap(2, 2, [0, 0, 0, 255])));
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'black.png', mimeType: 'image/png', buffer: png });
   await expect(panel.getByRole('region', { name: 'Tool output' })).toBeVisible();
   await expect(panel.getByRole('radio', { name: 'JXL' })).toHaveCount(0);

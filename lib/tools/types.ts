@@ -12,6 +12,8 @@ export interface ToolInputSpec {
   optional?: boolean;
   defaultSource?: 'note' | 'selection' | 'empty';
   stage?: 'crop' | 'region' | 'point';
+  /** Image inputs only: also offer a pasted-text source (data URLs). Images come from files otherwise. */
+  textSource?: boolean;
 }
 
 export interface ImageRegion { x: number; y: number; width: number; height: number }

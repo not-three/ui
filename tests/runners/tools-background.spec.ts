@@ -13,7 +13,6 @@ test('removes background on demand using one same-origin model fetch', async ({ 
   const panel = page.getByRole('region', { name: 'Remove background tool' });
   await expect(panel).toContainText('Downloads a 40–90 MB model once per session');
   const image = Buffer.from(await pngBytes(solidBitmap(4, 2, [255, 0, 0, 255])));
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'subject.png', mimeType: 'image/png', buffer: image });
   await expect(panel.getByRole('button', { name: 'Run' })).toBeEnabled();
   expect(modelRequests).toEqual([]);
@@ -47,7 +46,6 @@ test('cancelled download leaves no stale output', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/remove-background`);
   const panel = page.getByRole('region', { name: 'Remove background tool' });
   const image = Buffer.from(await pngBytes(solidBitmap(2, 2, [0, 0, 255, 255])));
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'subject.png', mimeType: 'image/png', buffer: image });
   await page.route('**/vendor/image/isnet-general-use/model_quantized.onnx', route => new Promise(resolve => {
     setTimeout(() => { void route.continue().finally(resolve); }, 1000);

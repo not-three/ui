@@ -14,7 +14,6 @@ test('crop keeps all six aspect choices in the segmented control and edits natur
   for (const name of ['Free', '1:1', '4:3', '16:9', '3:2', 'Custom']) await expect(aspect.getByRole('radio', { name })).toBeVisible();
   await aspect.getByRole('radio', { name: 'Custom' }).click();
   await panel.getByLabel('Custom ratio').fill('2:1');
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: await input() });
   await expect(panel.getByLabel('Crop width')).toHaveValue('100');
   await panel.getByLabel('Crop width').fill('40');
@@ -26,7 +25,6 @@ test('crop keeps all six aspect choices in the segmented control and edits natur
 test('opaque outline offers a direct background handoff with the current image', async ({ page }) => {
   await page.goto(`${APP_ORIGIN}/t/outline`);
   const panel = page.getByRole('region', { name: 'Sticker outline tool' });
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'opaque.png', mimeType: 'image/png', buffer: await input(4, 2) });
   await expect(panel.getByRole('region', { name: 'Hint' })).toContainText('Remove background first');
   await panel.getByRole('link', { name: 'Remove background first' }).click();
@@ -49,7 +47,6 @@ test('max-size compression preserves the first encoded download and changes size
   const panel = page.getByRole('region', { name: 'Compress tool' });
   await panel.getByRole('radiogroup', { name: 'Target' }).getByRole('radio', { name: 'Max size' }).click();
   await panel.getByLabel('Max size').fill('100');
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'noise.png', mimeType: 'image/png', buffer: Buffer.from(await pngBytes(bitmap)) });
   const output = panel.getByRole('region', { name: 'Compressed image' });
   await expect(output.getByRole('button', { name: 'Download' })).toBeEnabled();
@@ -79,7 +76,6 @@ test('favicon fixed outputs download with their declared names and MIME types', 
     URL.createObjectURL = blob => { state.__downloadMime = blob.type; return original(blob); };
   });
   const panel = page.getByRole('region', { name: 'Favicon set tool' });
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: await input(8, 8) });
   for (const [label, name, mime, header] of [
     ['favicon.ico', 'favicon.ico', 'image/x-icon', [0, 0, 1, 0]],
@@ -114,7 +110,6 @@ test('background model progress shows advancing bytes only after Run, then proce
   }, MODEL_BYTES);
   await page.goto(`${APP_ORIGIN}/t/remove-background`);
   const panel = page.getByRole('region', { name: 'Remove background tool' });
-  await panel.getByLabel('Image source').getByRole('radio', { name: 'File' }).click();
   await panel.getByLabel('Image file').setInputFiles({ name: 'subject.png', mimeType: 'image/png', buffer: await input(4, 2) });
   expect(await page.evaluate(() => (window as Window & { __modelFetches?: number }).__modelFetches)).toBe(0);
   await panel.getByRole('button', { name: 'Run' }).click();

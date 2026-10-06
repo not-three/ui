@@ -68,13 +68,18 @@ it('clears a crop rectangle when the image source changes', async () => {
     png.set([137, 80, 78, 71, 13, 10, 26, 10]);
     new DataView(png.buffer).setUint32(16, 4);
     new DataView(png.buffer).setUint32(20, 4);
-    const dataUrl = (suffix: string) => `data:image/png;base64,${btoa(String.fromCharCode(...png, ...new TextEncoder().encode(suffix)))}`;
-    await wrapper.get('textarea').setValue(dataUrl('first'));
+    const chooseFile = async (suffix: string) => {
+      const file = new File([png, new TextEncoder().encode(suffix)], `${suffix}.png`, { type: 'image/png' });
+      const input = wrapper.get('input[type="file"][aria-label="Image file"]');
+      Object.defineProperty(input.element, 'files', { value: [file], configurable: true });
+      await input.trigger('change');
+    };
+    await chooseFile('first');
     await wrapper.get('button[name="run"]').trigger('click');
     await vi.waitFor(() => expect(regions).toHaveLength(1));
     wrapper.findComponent({ name: 'ToolsImageStage' }).vm.$emit('update:value', { x: 1, y: 1, width: 2, height: 2 });
     await wrapper.vm.$nextTick();
-    await wrapper.get('textarea').setValue(dataUrl('second'));
+    await chooseFile('second');
     await wrapper.get('button[name="run"]').trigger('click');
     await vi.waitFor(() => expect(regions).toHaveLength(2));
     expect(regions[1]).toBeUndefined();
