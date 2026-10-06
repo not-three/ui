@@ -38,6 +38,40 @@ describe('room frames', () => {
   })
 })
 
+describe('room kind discovery', () => {
+  it('introduces itself to every channel opened before kind discovery', async () => {
+    const room = new FakeRoom()
+    const joined: string[] = []
+    const session = new CoworkSession({ makeRoom: () => room as never, seed: 'seed', kind: 'unknown', name: 'Cara' })
+    session.onPeer((id, connected) => { if (connected) joined.push(id) })
+    await session.join('room')
+    room.onPeerJoined?.('creator')
+    room.onPeerJoined?.('bob')
+    room.onMessage?.('creator', encodeFrame(0, new TextEncoder().encode(JSON.stringify({ v: 1, kind: 'draw', name: 'Alice', color: '#fff' }))).buffer as ArrayBuffer)
+    await vi.waitFor(() => expect(joined.sort()).toEqual(['bob', 'creator']))
+    expect(room.sent.map(item => item.id).sort()).toEqual(['bob', 'creator'])
+  })
+
+  it('adopts the first hello kind before replying and rejects a later conflicting kind', async () => {
+    const room = new FakeRoom()
+    const kinds: string[] = []
+    const mismatch = vi.fn()
+    const session = new CoworkSession({ makeRoom: () => room as never, seed: 'seed', kind: 'unknown', name: 'Bob', onKindResolved: kind => kinds.push(kind), onKindMismatch: mismatch })
+    await session.join('room')
+    room.onPeerJoined?.('creator')
+    expect(room.sent).toEqual([])
+    const hello = (kind: string) => encodeFrame(0, new TextEncoder().encode(JSON.stringify({ v: 1, kind, name: 'Alice', color: '#fff' }))).buffer as ArrayBuffer
+    room.onMessage?.('creator', hello('draw'))
+    await Promise.resolve()
+    expect(kinds).toEqual(['draw'])
+    expect(session.kind).toBe('draw')
+    expect(JSON.parse(new TextDecoder().decode(decodeFrame(room.sent[0]!.data).payload)).kind).toBe('draw')
+    room.onMessage?.('other', hello('text'))
+    expect(mismatch).toHaveBeenCalledOnce()
+    expect(session.status).toBe('closed')
+  })
+})
+
 describe('session membership', () => {
   it('assigns a stable palette color and removes a departed participant', async () => {
     const room = new FakeRoom()

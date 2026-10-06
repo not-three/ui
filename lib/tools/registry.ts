@@ -16,8 +16,20 @@ import { uuid } from './generate/uuid';
 import { qr } from './generate/qr';
 import { lorem } from './generate/lorem';
 import { cron } from './generate/cron';
+import { aes } from './crypto/aes';
+import { caesar } from './crypto/caesar';
+import { hmac } from './crypto/hmac';
+import { jwt } from './crypto/jwt';
+import { not3Payload } from './crypto/not3-payload';
+import { rot13 } from './crypto/rot13';
+import { keypair } from './generate/keypair';
+import { password } from './generate/password';
 
-export const TOOLS: ToolDefinition[] = [cssLint, htmlLint, jsTsLint, jsonLint, markdownLint, sqlLint, xmlLint, yamlLint, hash, base64, hex, url, diff, cron, lorem, qr, uuid];
+export const TOOLS: ToolDefinition[] = [
+  cssLint, htmlLint, jsTsLint, jsonLint, markdownLint, sqlLint, xmlLint, yamlLint,
+  hash, base64, hex, url, not3Payload, aes, caesar, hmac, jwt, rot13, diff,
+  cron, keypair, lorem, password, qr, uuid,
+];
 
 export function getTool(id: string): ToolDefinition | undefined {
   return TOOLS.find(tool => tool.id === id);
