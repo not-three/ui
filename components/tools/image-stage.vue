@@ -1,13 +1,14 @@
 <template>
   <div class="flex flex-col gap-2 text-xs">
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 flex-wrap">
       <span>{{ width }} × {{ height }} px</span>
       <div class="flex-grow" />
-      <button type="button" class="panel-btn" @click="zoom = zoom === 'fit' ? 'actual' : 'fit'">{{ zoom === 'fit' ? '100 %' : 'Fit' }}</button>
+      <span class="text-white/60">Zoom</span>
+      <tools-segmented :model-value="String(zoom)" label="Zoom" :items="ZOOM_LEVELS.map(level => ({ value: String(level), label: level === 'fit' ? 'Fit' : `${level * 100} %` }))" @update:model-value="setZoom" />
     </div>
-    <div data-stage class="overflow-auto border border-white/30 min-h-24 flex items-center justify-center" :class="checkerboard ? 'image-checkerboard' : 'bg-[#111]'" @dragover.prevent @drop.prevent.stop="onDrop" @paste.stop="onPaste">
-      <div ref="frame" class="relative inline-block touch-none select-none" :class="zoom === 'fit' ? 'max-w-full' : ''" tabindex="0" @pointerdown="pointerDown" @pointermove="pointerMove" @pointerup="pointerUp" @pointercancel="pointerUp" @keydown="onKeydown">
-        <img v-if="url" :src="url" alt="Image preview" draggable="false" class="block object-contain" :class="zoom === 'fit' ? 'max-w-full max-h-[360px]' : ''" @load="readPointColor">
+    <div data-stage class="overflow-auto border border-white/30 min-h-24 max-h-[70vh] flex" :class="[checkerboard ? 'image-checkerboard' : 'bg-[#111]', zoom === 'fit' ? 'items-center justify-center' : 'items-start justify-start']" @dragover.prevent @drop.prevent.stop="onDrop" @wheel="onWheel">
+      <div ref="frame" data-frame class="relative inline-block touch-none select-none" :class="zoom === 'fit' ? 'max-w-full' : 'flex-shrink-0'" :style="zoom === 'fit' ? undefined : { width: `${width * zoom}px`, height: `${height * zoom}px` }" tabindex="0" @pointerdown="pointerDown" @pointermove="pointerMove" @pointerup="pointerUp" @pointercancel="pointerUp" @keydown="onKeydown">
+        <img v-if="url" :src="url" alt="Image preview" draggable="false" class="block object-contain" :class="zoom === 'fit' ? 'max-w-full max-h-[360px]' : 'w-full h-full'" :style="zoom === 'fit' ? undefined : { imageRendering: zoom >= 2 ? 'pixelated' : 'auto' }" @load="readPointColor">
         <div v-if="rectangle" class="absolute border border-white bg-black/20 cursor-move" :style="rectStyle">
           <button v-for="handle in handles" :key="handle" type="button" :data-handle="handle" :aria-label="`${mode} ${handle} handle`" class="absolute w-2.5 h-2.5 bg-black border border-white" :style="handleStyle(handle)" @pointerdown.stop="pointerDown($event, handle)" />
         </div>
@@ -26,9 +27,21 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { ImagePoint, ImageRegion } from '~/lib/tools/types';
+import ToolsSegmented from './segmented.vue';
 const props = defineProps<{ blob?: Blob; bitmap?: ImageBitmap; mode: 'view' | 'crop' | 'region' | 'point'; aspect?: number; value?: ImageRegion | ImagePoint; checkerboard: boolean; width: number; height: number }>();
-const emit = defineEmits<{ 'update:value': [value: ImageRegion | ImagePoint]; file: [file: File]; paste: [text: string] }>();
-const zoom = ref<'fit' | 'actual'>('fit');
+const emit = defineEmits<{ 'update:value': [value: ImageRegion | ImagePoint]; file: [file: File]; text: [text: string] }>();
+/** Fit the stage, or a fixed scale so small regions can be picked pixel-exact. Ctrl+wheel steps through the same levels. */
+const ZOOM_LEVELS = ['fit', 1, 2, 4, 8] as const;
+type ZoomLevel = typeof ZOOM_LEVELS[number];
+const zoom = ref<ZoomLevel>('fit');
+function setZoom(value: string) { zoom.value = value === 'fit' ? 'fit' : Number(value) as ZoomLevel; }
+function onWheel(event: WheelEvent) {
+  if (!event.ctrlKey && !event.metaKey) return;
+  event.preventDefault();
+  const index = ZOOM_LEVELS.indexOf(zoom.value);
+  const next = ZOOM_LEVELS[Math.max(0, Math.min(ZOOM_LEVELS.length - 1, index + (event.deltaY < 0 ? 1 : -1)))];
+  if (next !== undefined) zoom.value = next;
+}
 const frame = ref<HTMLElement>();
 const url = ref('');
 const pointColor = ref('');
@@ -124,8 +137,7 @@ function readPointColor() {
   if (color) pointColor.value = '#' + [...color].slice(0, 3).map(value => value.toString(16).padStart(2, '0')).join('');
 }
 watch(point, readPointColor);
-function onDrop(event: DragEvent) { const file = event.dataTransfer?.files[0]; if (file) emit('file', file); else { const text = event.dataTransfer?.getData('text/plain'); if (text) emit('paste', text); } }
-function onPaste(event: ClipboardEvent) { const file = event.clipboardData?.files[0]; if (file) { event.preventDefault(); emit('file', file); } else { const text = event.clipboardData?.getData('text/plain'); if (text) { event.preventDefault(); emit('paste', text); } } }
+function onDrop(event: DragEvent) { const file = event.dataTransfer?.files[0]; if (file) emit('file', file); else { const text = event.dataTransfer?.getData('text/plain'); if (text) emit('text', text); } }
 </script>
 
 <style scoped>
