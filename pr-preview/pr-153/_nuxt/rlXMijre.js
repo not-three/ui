@@ -1,1 +1,0 @@
-import{n as e}from"./DQ_4T_PV.js";import{n as t,r as n,t as r}from"./BNRhqvUW.js";var i=async i=>{let a=t(i.input);return r(await e(a.bitmap),`${n(a.name)}.png`)};export{i as run};
