@@ -31,9 +31,9 @@
           <textarea v-if="sources[spec.id] === 'text'" v-model="texts[spec.id]" :aria-label="`${spec.label} text`" class="panel-input font-mono min-h-24 w-full resize-y" />
         </div>
         <div v-for="option in tool.options" :key="option.id" class="flex items-center gap-2 min-w-0 flex-wrap">
-          <label v-if="option.type !== 'select' || option.values.length > SEGMENTED_MAX" :for="`option-${option.id}`" class="tool-label">{{ option.label }}</label>
+          <label v-if="option.type !== 'select' || (!option.segmented && option.values.length > SEGMENTED_MAX)" :for="`option-${option.id}`" class="tool-label">{{ option.label }}</label>
           <span v-else class="tool-label">{{ option.label }}</span>
-          <tools-segmented v-if="option.type === 'select' && option.values.length <= SEGMENTED_MAX" :model-value="String(options[option.id])" :label="option.label" :items="option.values" @update:model-value="options[option.id] = $event" />
+          <tools-segmented v-if="option.type === 'select' && (option.segmented || option.values.length <= SEGMENTED_MAX)" :model-value="String(options[option.id])" :label="option.label" :items="option.values" @update:model-value="options[option.id] = $event" />
           <select v-else-if="option.type === 'select'" :id="`option-${option.id}`" v-model="options[option.id]" class="panel-select" @keydown.enter.prevent="run">
             <option v-for="value in option.values" :key="value.value" :value="value.value">{{ value.label }}</option>
           </select>
@@ -52,6 +52,7 @@
       <div v-if="state.running" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="1" :aria-valuenow="state.progress" class="h-1.5 border border-white/40 flex-shrink-0">
         <div class="h-full bg-white" :style="{ width: `${state.progress * 100}%` }" />
       </div>
+      <p v-if="state.running && tool.downloadProgress" role="status" class="text-xs text-white/60">{{ progressText }}</p>
       <p v-if="state.error" class="text-red-400 text-xs" role="alert">{{ state.error }}</p>
       <tools-output v-if="state.output" :output="state.output" :host="host" :tool-id="tool.id" :note-source="noteSource" :selection-source="selectionSource" :input-image="state.inputImage" :image-export-format="imageExportFormat" class="flex-grow" @update:image-export-format="imageExportFormat = $event" />
     </div>
@@ -91,6 +92,16 @@ const stageAspect = computed(() => {
   const ratio = choice === 'custom' ? String(options.customRatio ?? '') : choice;
   const match = ratio.match(/^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/);
   return match && Number(match[2]) > 0 ? Number(match[1]) / Number(match[2]) : undefined;
+});
+const progressText = computed(() => {
+  const spec = props.tool.downloadProgress;
+  if (!spec) return '';
+  const detail = state.value.progressDetail;
+  if (detail?.phase === 'processing' || state.value.progress > spec.endsAt) return 'Processing…';
+  const total = detail?.phase === 'download' ? detail.totalBytes : spec.totalBytes;
+  const loaded = detail?.phase === 'download' ? detail.loadedBytes : spec.endsAt ? state.value.progress / spec.endsAt * total : 0;
+  const mb = (bytes: number) => (bytes / 1_000_000).toFixed(1);
+  return `Downloading model ${Math.round(total ? loaded / total * 100 : 0)}% · ${mb(loaded)} / ${mb(total)} MB`;
 });
 const inputPreviewBlob = computed(() => state.value.inputImage ? new Blob([state.value.inputImage.bytes as BlobPart], { type: state.value.inputImage.mimeType }) : undefined);
 let runner = createToolRunner(props.tool, value => { state.value = value; });

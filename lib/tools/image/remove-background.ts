@@ -1,4 +1,5 @@
 import type { ToolDefinition } from '../types';
+import { MODEL_BYTES, MODEL_FETCH_PROGRESS_END } from '../../image/background-model';
 
 export const removeBackground: ToolDefinition = {
   id: 'remove-background', title: 'Remove background', category: 'image',
@@ -7,5 +8,6 @@ export const removeBackground: ToolDefinition = {
   inputs: [{ id: 'input', label: 'Image', kind: 'image' }],
   options: [{ id: 'feather', label: 'Feather edge (px)', type: 'number', default: 2, min: 0, max: 8 }],
   heavy: true,
+  downloadProgress: { totalBytes: MODEL_BYTES, endsAt: MODEL_FETCH_PROGRESS_END },
   load: () => import('./remove-background.impl'),
 };

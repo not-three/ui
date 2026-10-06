@@ -18,7 +18,7 @@ export interface ImageRegion { x: number; y: number; width: number; height: numb
 export interface ImagePoint { x: number; y: number }
 
 export type ToolOptionSpec =
-  | { id: string; label: string; type: 'select'; values: { value: string; label: string }[]; default: string; secret?: boolean }
+  | { id: string; label: string; type: 'select'; values: { value: string; label: string }[]; default: string; segmented?: boolean; secret?: boolean }
   | { id: string; label: string; type: 'boolean'; default: boolean; secret?: boolean }
   | { id: string; label: string; type: 'number'; default: number; min?: number; max?: number; secret?: boolean }
   | { id: string; label: string; type: 'text'; default: string; placeholder?: string; secret?: boolean };
@@ -33,7 +33,7 @@ export interface ToolReportItem { level: 'error' | 'warning' | 'info' | 'success
 export type ToolSingleOutput =
   | { kind: 'text'; text: string; language?: string; filename?: string }
   | { kind: 'bytes'; bytes: Uint8Array; text?: string; filename?: string; mimeType?: string }
-  | { kind: 'image'; blob: Blob; width: number; height: number; filename: string; exportable?: boolean }
+  | { kind: 'image'; blob: Blob; width: number; height: number; filename: string; exportable?: boolean; encodedQuality?: number; continueWith?: { toolId: string; label: string } }
   | { kind: 'diff'; left: string; right: string; displayLeft?: string; displayRight?: string; language?: string }
   | { kind: 'report'; items: ToolReportItem[]; text?: string; language?: string }
   | { kind: 'table'; columns: string[]; rows: (string | number | boolean | null)[][] };
@@ -41,9 +41,10 @@ export type ToolOutput = ToolSingleOutput | { kind: 'multi'; parts: { label: str
 
 export interface ToolContext {
   signal: AbortSignal;
-  reportProgress: (fraction: number) => void;
+  reportProgress: (fraction: number, detail?: ToolProgressDetail) => void;
   imageExportFormat?: ImageFormat;
 }
+export type ToolProgressDetail = { phase: 'download'; loadedBytes: number; totalBytes: number } | { phase: 'processing' };
 export type ToolRun = (inputs: Record<string, ToolInput>, options: Record<string, ToolOptionValue>, context: ToolContext) => Promise<ToolOutput>;
 export interface ToolDefinition {
   id: string;
@@ -54,6 +55,7 @@ export interface ToolDefinition {
   inputs: ToolInputSpec[];
   options: ToolOptionSpec[];
   heavy?: boolean;
+  downloadProgress?: { totalBytes: number; endsAt: number };
   load: () => Promise<{ run: ToolRun }>;
 }
 

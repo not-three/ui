@@ -28,7 +28,7 @@ it('uses the export-row format and shows compression report', async () => {
     const result = await run({ input: image }, { target: 'max-size', maxSize: 100, unit: 'KB' }, { signal: new AbortController().signal, reportProgress: () => {}, imageExportFormat: 'webp' });
     expect(result.kind).toBe('multi');
     if (result.kind === 'multi') {
-      expect(result.parts[0]?.output).toMatchObject({ kind: 'image', filename: 'large-compress.webp' });
+      expect(result.parts[0]?.output).toMatchObject({ kind: 'image', filename: 'large-compress.webp', encodedQuality: 51 });
       const output = result.parts[0]?.output;
       if (output?.kind === 'image') { expect(output.blob.type).toBe('image/webp'); expect(output.blob.size).toBeLessThanOrEqual(100*1024); }
       expect(result.parts[1]?.output).toMatchObject({ kind: 'text', text: expect.stringMatching(/\d+ % → .* KB, \d+ iterations/) });
