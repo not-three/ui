@@ -1,0 +1,3 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./B94J7K8a.js","./C0FnF6B9.js"])))=>i.map(i=>d[i]);
+import{R as e}from"#entry";import{n as t,r as n,t as r}from"./Cwfy0G3T.js";var i=async i=>{let{parseDocument:a}=await e(async()=>{let{parseDocument:e}=await import(`./B94J7K8a.js`);return{parseDocument:e}},__vite__mapDeps([0,1]),import.meta.url),o=a(t(i),{uniqueKeys:!0});if(!o.errors.length)return n(`Valid YAML`);let s=o.errors[0],c=s.pos[0],l=t(i).slice(0,c).split(`
+`);return r(s.message,l.length,l.at(-1).length+1)};export{i as run};

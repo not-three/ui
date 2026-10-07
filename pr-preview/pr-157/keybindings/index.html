@@ -1,0 +1,35 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>not-th.re - encrypted notes</title><script type="importmap">{"imports":{"#entry":"/pr-preview/pr-157/_nuxt/i7fVW4ne.js"}}</script><script>(() => {
+  const root = document.documentElement;
+  const colors = {"default":{"vars":{"bg":"0 0 0","fg":"255 255 255","panel":"17 17 17","accent":"255 255 255"},"surface":"30 30 30","scheme":"dark","meta":"#000000"},"monokai":{"vars":{"bg":"39 40 34","fg":"248 248 242","panel":"30 31 28","accent":"166 226 46"},"surface":"39 40 34","scheme":"dark","meta":"#272822"},"white":{"vars":{"bg":"255 255 255","fg":"0 0 0","panel":"243 243 243","accent":"0 0 0"},"surface":"243 243 243","scheme":"light","meta":"#ffffff"}};
+  let id = null;
+  try {
+    if (!localStorage.getItem('settings')) {
+      const cookie = document.cookie.split('; ').find(entry => entry.startsWith('settings='));
+      if (cookie) {
+        try {
+          const previous = decodeURIComponent(cookie.slice('settings='.length));
+          const parsed = JSON.parse(previous);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) localStorage.setItem('settings', previous);
+        } catch { /* Ignore an invalid legacy cookie. */ }
+      }
+    }
+    const stored = localStorage.getItem('settings');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      id = parsed && typeof parsed === 'object' ? parsed.theme : null;
+    }
+  } catch {
+    try { localStorage.removeItem('settings'); } catch { /* Storage may be denied. */ }
+    id = 'default';
+  }
+  if (id === null || id === 'custom') return;
+  if (!Object.prototype.hasOwnProperty.call(colors, id)) id = 'default';
+  const values = colors[id];
+  for (const [name, value] of Object.entries(values.vars)) root.style.setProperty('--not3-' + name, value);
+  root.style.setProperty('--not3-surface', values.surface);
+  root.style.colorScheme = values.scheme;
+  root.dataset.theme = id;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', values.meta);
+  root.setAttribute('data-theme-ready', '');
+})();</script><style>:root { --not3-bg: 0 0 0; --not3-fg: 255 255 255; --not3-panel: 17 17 17; --not3-accent: 255 255 255; --not3-surface: 30 30 30; color-scheme: dark; } body { background-color: rgb(var(--not3-bg)); color: rgb(var(--not3-fg)); } html:not([data-theme-ready]) body { visibility: hidden; }</style><link rel="stylesheet" href="/pr-preview/pr-157/_nuxt/entry.tTshw80w.css" crossorigin><link rel="modulepreload" as="script" crossorigin href="/pr-preview/pr-157/_nuxt/i7fVW4ne.js"><link rel="modulepreload" as="script" crossorigin href="/pr-preview/pr-157/_nuxt/C0FnF6B9.js"><link rel="modulepreload" as="script" crossorigin href="/pr-preview/pr-157/_nuxt/Ds35S7nH.js"><link rel="modulepreload" as="script" crossorigin href="/pr-preview/pr-157/_nuxt/UvaGZenI.js"><link rel="modulepreload" as="script" crossorigin href="/pr-preview/pr-157/_nuxt/Drwx9hz-.js"><script type="module" src="/pr-preview/pr-157/_nuxt/i7fVW4ne.js" crossorigin></script><link rel="prefetch" as="script" crossorigin href="/pr-preview/pr-157/_nuxt/CfTzlVqi.js"><meta name="description" content="Simple client-side encrypted notes paired with the known monaco editor. Open source and free."><meta name="format-detection" content="telephone=no"><meta name="msapplication-TileColor" content="#000000"><meta name="theme-color" content="#000000"></head><body><div id="__nuxt"></div><div id="teleports"></div><script>window.__NUXT__={};window.__NUXT__.config={public:{uiBaseURL:"/pr-preview/pr-157/",piniaPluginPersistedstate:{storage:"localStorage"}},app:{baseURL:"/pr-preview/pr-157/",buildId:"113587a8-d751-4b88-a0e4-677eb94ac23f",buildAssetsDir:"/_nuxt/",cdnURL:""}}</script><script type="application/json" data-nuxt-data="nuxt-app" data-ssr="false" id="__NUXT_DATA__">[{"prerenderedAt":1,"serverRendered":2},1791331787149,false]</script></body></html>
