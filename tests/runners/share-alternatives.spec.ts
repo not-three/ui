@@ -50,8 +50,8 @@ test('a CBC note offers six rows and copies the exact SDK value from a legacy de
 
 for (const [theme, background, foreground] of [
   ['default', 'rgb(0, 0, 0)', 'rgb(255, 255, 255)'],
-  ['monokai', 'rgb(39, 40, 34)', 'rgb(248, 248, 242)'],
-  ['white', 'rgb(255, 255, 255)', 'rgb(0, 0, 0)'],
+  ['monokai', 'rgb(22, 23, 18)', 'rgb(248, 248, 242)'],
+  ['white', 'rgb(228, 228, 228)', 'rgb(0, 0, 0)'],
 ] as const) {
   test(`share alternatives dialog follows ${theme} colors and metro borders`, async ({ page }) => {
     await page.addInitScript(id => localStorage.setItem('settings', JSON.stringify({ version: 4, theme: id })), theme);

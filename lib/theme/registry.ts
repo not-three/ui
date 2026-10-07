@@ -13,10 +13,14 @@ export interface ThemeDefinition {
   surface: string;
 }
 
+// `bg` paints the application frame (title bar, menus, dialogs, inputs), `panel`
+// the side panels, and `surface` the editor itself. Every theme keeps the frame
+// visibly darker than the surface so the title bar never merges with the editor;
+// `surface` must match the Monaco theme's `editor.background`.
 export const THEMES: readonly ThemeDefinition[] = [
   { id: 'default', label: 'Default', scheme: 'dark', monacoTheme: 'custom-dark', vars: { bg: '0 0 0', fg: '255 255 255', panel: '17 17 17', accent: '255 255 255' }, surface: '30 30 30' },
-  { id: 'monokai', label: 'Monokai', scheme: 'dark', monacoTheme: 'not3-monokai', vars: { bg: '39 40 34', fg: '248 248 242', panel: '30 31 28', accent: '166 226 46' }, surface: '39 40 34' },
-  { id: 'white', label: 'White', scheme: 'light', monacoTheme: 'not3-light', vars: { bg: '255 255 255', fg: '0 0 0', panel: '243 243 243', accent: '0 0 0' }, surface: '243 243 243' },
+  { id: 'monokai', label: 'Monokai', scheme: 'dark', monacoTheme: 'not3-monokai', vars: { bg: '22 23 18', fg: '248 248 242', panel: '30 31 28', accent: '166 226 46' }, surface: '39 40 34' },
+  { id: 'white', label: 'White', scheme: 'light', monacoTheme: 'not3-light', vars: { bg: '228 228 228', fg: '0 0 0', panel: '242 242 242', accent: '0 0 0' }, surface: '255 255 255' },
   { id: 'custom', label: 'Custom', scheme: 'dark', monacoTheme: 'custom-dark', vars: { bg: '0 0 0', fg: '255 255 255', panel: '17 17 17', accent: '255 255 255' }, surface: '30 30 30' },
 ];
 const active = shallowRef<ThemeDefinition>(THEMES[0]!);

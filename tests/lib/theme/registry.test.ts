@@ -37,8 +37,8 @@ describe('applyTheme', () => {
 
   it.each([
     ['default', 'dark', '0 0 0', '255 255 255', '17 17 17', '255 255 255', '#000000'],
-    ['monokai', 'dark', '39 40 34', '248 248 242', '30 31 28', '166 226 46', '#272822'],
-    ['white', 'light', '255 255 255', '0 0 0', '243 243 243', '0 0 0', '#ffffff'],
+    ['monokai', 'dark', '22 23 18', '248 248 242', '30 31 28', '166 226 46', '#161712'],
+    ['white', 'light', '228 228 228', '0 0 0', '242 242 242', '0 0 0', '#e4e4e4'],
   ])('sets %s DOM theme and semantic colors', (id, scheme, bg, fg, panel, accent, meta) => {
     applyTheme(byId(id));
     const root = document.documentElement;
@@ -62,4 +62,19 @@ describe('applyTheme', () => {
     }
     expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#000000');
   });
+});
+
+describe('palette contrast', () => {
+  const luminance = (channels: string) => channels.split(' ').map(Number).reduce((sum, value) => sum + value, 0) / 3;
+
+  it.each(THEMES.filter(theme => theme.id !== 'custom').map(theme => [theme.id, theme] as const))(
+    '%s frames the editor with a darker title bar and a distinct side panel',
+    (_id, theme) => {
+      // The title bar, menus and dialogs paint with `bg`; the editor sits on
+      // `surface`. Without a visible step between them the frame disappears.
+      expect(luminance(theme.vars.bg)).toBeLessThan(luminance(theme.surface) - 10);
+      expect(luminance(theme.vars.panel)).toBeGreaterThan(luminance(theme.vars.bg));
+      expect(luminance(theme.vars.panel)).toBeLessThan(luminance(theme.surface));
+    },
+  );
 });

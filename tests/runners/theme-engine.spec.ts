@@ -26,7 +26,7 @@ test('persisted Monokai colors the body by DOMContentLoaded', async ({ page }) =
     });
   });
   await app(page);
-  expect(await page.evaluate(() => (window as Window & { __bodyAtDOMContentLoaded?: string }).__bodyAtDOMContentLoaded)).toBe('rgb(39, 40, 34)');
+  expect(await page.evaluate(() => (window as Window & { __bodyAtDOMContentLoaded?: string }).__bodyAtDOMContentLoaded)).toBe('rgb(22, 23, 18)');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'monokai');
 });
 
@@ -43,7 +43,7 @@ test('first visible application paint uses operator White', async ({ page }) => 
     });
   });
   await app(page);
-  expect(await page.evaluate(() => (window as Window & { __firstVisibleColor?: string }).__firstVisibleColor)).toBe('rgb(255, 255, 255)');
+  expect(await page.evaluate(() => (window as Window & { __firstVisibleColor?: string }).__firstVisibleColor)).toBe('rgb(228, 228, 228)');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'white');
 });
 
@@ -51,7 +51,8 @@ test('switching to White updates the page and Monaco', async ({ page }) => {
   await app(page);
   await selectTheme(page, 'white');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'white');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  // The frame stays a step darker than the editor so the title bar remains visible.
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(228, 228, 228)');
   await expect(page.locator('.monaco-editor').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 });
 
