@@ -25,16 +25,19 @@ const close = () => store.dialog = null;
 
 <style>
 .dialog-content {
-  @apply bg-black border-white/20 border-2 p-4 min-w-[20vw] max-w-md;
+  @apply bg-black border-white/20 border p-4 min-w-[20vw] max-w-md;
 }
 .dialog-content button {
-  @apply border-white border-2 px-2 py-1;
+  @apply border-white border px-2 py-1;
 }
 .dialog-content input {
-  @apply bg-black border-white border-2 p-1;
+  @apply bg-black border-white border p-1;
   @apply focus:outline-none;
 }
 .dialog-content.share-dialog-content {
   @apply w-[calc(100vw-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto;
+}
+html[data-theme='default'] .dialog-content input[type='range'] {
+  color-scheme: normal;
 }
 </style>

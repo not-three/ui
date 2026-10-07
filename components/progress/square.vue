@@ -4,6 +4,10 @@
 
 <script lang="ts" setup>
 import type { FileUploadProgress, FileUploadState  } from "@not3/sdk";
+import { activeTheme } from '~/lib/theme/registry';
+import { progressColors } from '~/lib/theme/progress-colors';
+import { CUSTOM_CSS_LOADED_EVENT } from '~/lib/theme/custom-css';
+import { onBeforeUnmount } from 'vue';
 
 const props = defineProps<{
   status: FileUploadProgress|number;
@@ -11,14 +15,6 @@ const props = defineProps<{
 }>();
 
 const PIXEL_SIZE = 16;
-const COLOR_MAP = new Map<FileUploadState, string>([
-  ["read", "#333"],
-  ["crypto", "#666"],
-  ["upload", "#aaa"],
-  ["done", "#fff"],
-  ["error", "#f00"],
-]);
-
 const canvas = ref<HTMLCanvasElement | null>(null);
 
 const draw = () => {
@@ -31,6 +27,7 @@ const draw = () => {
   ctx.canvas.width = width;
   ctx.canvas.height = height;
   ctx.clearRect(0, 0, width, height);
+  const colors = progressColors();
   const widthInPixels = Math.floor(width / PIXEL_SIZE);
   const heightInPixels = Math.floor(height / PIXEL_SIZE);
   const totalPixels = widthInPixels * heightInPixels;
@@ -38,10 +35,10 @@ const draw = () => {
     const id = Math.floor((p / totalPixels) * props.total);
     let color = "rgba(0,0,0,0)";
     if (typeof props.status === "number") {
-      if (id < props.status) color = "#fff";
+      if (id < props.status) color = colors.done;
     } else {
       const status = props.status[id];
-      if (status) color = COLOR_MAP.get(status.state) || "#000";
+      if (status) color = colors[status.state as FileUploadState] || colors.read;
     }
     ctx.fillStyle = color;
     const x = p % widthInPixels;
@@ -52,5 +49,10 @@ const draw = () => {
 
 watch(() => props.status, draw, { deep: true });
 watch(() => props.total, draw);
-onMounted(draw);
+watch(activeTheme, draw);
+onMounted(() => {
+  draw();
+  window.addEventListener(CUSTOM_CSS_LOADED_EVENT, draw);
+});
+onBeforeUnmount(() => window.removeEventListener(CUSTOM_CSS_LOADED_EVENT, draw));
 </script>

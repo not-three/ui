@@ -62,7 +62,9 @@ onMounted(async () => {
   // keepContent marks the readonly->editable handoff; keep the run/preview
   // panel open across it (the user explicitly opened it for this content).
   const keepSandbox = store.keepContent && store.sandbox;
+  const initialConfig = store.config;
   store.$reset();
+  store.config = initialConfig;
   store.content = lastContent;
   store.sandbox = keepSandbox;
   store.id = props.openNote || "";
@@ -232,7 +234,7 @@ console.warn(
 
 <style>
 .base-container {
-  @apply w-screen h-screen bg-[#1e1e1e] overflow-hidden flex flex-col;
+  @apply w-screen h-screen bg-[rgb(var(--not3-surface))] overflow-hidden flex flex-col;
 }
 button {
   @apply select-none;

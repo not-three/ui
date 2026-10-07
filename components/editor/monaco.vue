@@ -25,6 +25,7 @@ import { registerFormatEditor } from "~/lib/actions/format";
 import { registerToolEditor } from '~/lib/tools/hosts';
 import { canFormatNote } from "~/lib/format/availability";
 import * as monaco from "monaco-editor";
+import { activeTheme } from '~/lib/theme/registry';
 
 const store = useAppStore();
 const settings = useSettingsStore();
@@ -107,7 +108,7 @@ onMounted(async () => {
 
   editor = monaco.editor.create(container.value, {
     model,
-    theme: "vs-dark",
+    theme: activeTheme.value.monacoTheme,
     readOnly: store.readonly,
     automaticLayout: true,
     scrollBeyondLastLine: false,

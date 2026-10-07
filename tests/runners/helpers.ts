@@ -24,7 +24,7 @@ export async function withNoNetwork(page: Page) {
   const unexpected: string[] = [];
   await page.route('**/*', async route => {
     const url = new URL(route.request().url());
-    if (url.origin === APP_ORIGIN && (url.pathname.startsWith('/_nuxt/') || url.pathname.startsWith('/assets/') || url.pathname.startsWith('/vendor/'))) {
+    if (url.origin === APP_ORIGIN && (url.pathname.startsWith('/_nuxt/') || url.pathname.startsWith('/assets/') || url.pathname.startsWith('/vendor/') || url.pathname.endsWith('/config.json'))) {
       await route.continue();
       return;
     }

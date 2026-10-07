@@ -15,6 +15,9 @@ type UiConfig = {
   drawURL?: string
   termsURL?: string
   pullRequest?: string
+  theme?: string
+  customCSS?: string
+  customCSSURL?: string
 }
 
 const useAppStoreBase = defineStore('app', {
