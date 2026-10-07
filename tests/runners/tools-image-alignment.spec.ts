@@ -110,6 +110,7 @@ test('background model progress shows advancing bytes only after Run, then proce
       }), { headers: { 'content-length': String(modelBytes) } }));
     };
   }, MODEL_BYTES);
+  await page.route('**/model_quantized.onnx.parts.json', route => route.fulfill({ status: 404 }));
   await page.goto(`${APP_ORIGIN}/t/remove-background`);
   const panel = page.getByRole('region', { name: 'Remove background tool' });
   await panel.getByLabel('Image file').setInputFiles({ name: 'subject.png', mimeType: 'image/png', buffer: await input(4, 2) });

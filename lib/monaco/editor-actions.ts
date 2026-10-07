@@ -19,7 +19,7 @@ export const EDITOR_ACTIONS: EditorActionDefinition[] = [
   { id: "not3.download", label: "!3: Download note as file", run: Actions.DOWNLOAD },
   { id: "not3.format", label: "!3: Format note", run: Actions.FORMAT },
   { id: "not3.shareLink", label: "!3: Share link", run: Actions.SHARE_LINK },
-  { id: "not3.shareCurl", label: "!3: Share cURL command", run: Actions.SHARE_CURL },
+  { id: "not3.shareCurl", label: "!3: Share alternatives", run: Actions.SHARE_CURL },
   { id: "not3.openSettings", label: "!3: Open settings", run: Actions.OPEN_SETTINGS },
   { id: "not3.fileTransfer", label: "!3: File transfer", run: Actions.OPEN_FILE_TRANSFER },
   { id: "not3.excalidraw", label: "!3: Open excalidraw", run: Actions.OPEN_EXCALIDRAW },

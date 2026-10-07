@@ -42,7 +42,7 @@
                 >▸</span>
               </button>
               <div v-if="entry.entries && openSubmenu === entry.name" :role="entry.entries.some(child => child.checked !== undefined) ? 'radiogroup' : undefined" :aria-label="entry.name" class="pl-3 border-l border-white/30">
-                <button v-for="child in entry.entries" :key="child.name" :role="child.checked === undefined ? undefined : 'radio'" :aria-checked="child.checked" class="w-full text-left whitespace-nowrap bg-white/5 my-1 px-2 py-1 hover:bg-white/10" @click="execFunction(child.onClick)"><span v-if="child.checked !== undefined" aria-hidden="true" class="inline-block w-5">{{ child.checked ? '●' : '' }}</span>{{ child.name }}</button>
+                <button v-for="child in entry.entries" :key="child.name" :role="child.checked === undefined ? undefined : 'radio'" :aria-checked="child.checked" class="w-full text-left whitespace-nowrap bg-white/5 my-1 px-2 py-1 hover:bg-white/10" @click="execFunction(child.onClick)"><span v-if="child.checked !== undefined" aria-hidden="true" class="inline-block w-5 text-accent">{{ child.checked ? '●' : '' }}</span>{{ child.name }}</button>
               </div>
             </div>
           </div>
