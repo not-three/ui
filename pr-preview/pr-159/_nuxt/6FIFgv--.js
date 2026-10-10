@@ -1,0 +1,1 @@
+import{u as e}from"./CoAMjMXv.js";import{P as t,lt as n,u as r,y as i}from"./F2w3tvRH.js";import{t as a}from"./D5pAdAIA.js";var o=i({__name:`[id]`,setup(i){let o=e().params.id;return(e,i)=>{let s=a;return t(),r(s,{"open-note":n(o)},null,8,[`open-note`])}}});export{o as default};
