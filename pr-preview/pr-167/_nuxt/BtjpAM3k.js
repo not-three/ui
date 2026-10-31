@@ -1,0 +1,1 @@
+import{P as e,u as t}from"./Dk2jHm9l.js";import{n}from"#entry";import{t as r}from"./B9Oa-Uie.js";var i={};function a(n,i){let a=r;return e(),t(a,{"open-settings":!0})}var o=n(i,[[`render`,a]]);export{o as default};
