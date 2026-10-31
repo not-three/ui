@@ -1,1 +1,0 @@
-import{u as e}from"./McYJEetm.js";import{P as t,dt as n,u as r,y as i}from"./BdGBei07.js";import{t as a}from"./2SLFtNDA.js";var o=i({__name:`[id]`,setup(i){let o=e().params.id;return(e,i)=>{let s=a;return t(),r(s,{"open-file":n(o)},null,8,[`open-file`])}}});export{o as default};
