@@ -1,1 +1,0 @@
-var e=async(e,t)=>{let n=e.input;if(!n||n.kind!==`text`)throw Error(`Text input is required`);let r=t.scope!==`url`;try{return{kind:`text`,text:t.mode===`decode`?r?decodeURIComponent(n.text):decodeURI(n.text):r?encodeURIComponent(n.text):encodeURI(n.text),language:`plaintext`}}catch{throw Error(`Invalid URL escape sequence`)}};export{e as run};
