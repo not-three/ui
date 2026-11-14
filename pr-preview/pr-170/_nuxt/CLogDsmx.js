@@ -1,0 +1,1 @@
+import{t as e}from"./YKBZg7IW.js";import{P as t,u as n}from"./DXrHwFYX.js";import{n as r}from"#entry";var i={};function a(r,i){let a=e;return t(),n(a,{"open-settings":!0})}var o=r(i,[[`render`,a]]);export{o as default};
