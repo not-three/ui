@@ -6,7 +6,7 @@
       <span class="text-white/60">Zoom</span>
       <tools-segmented :model-value="String(zoom)" label="Zoom" :items="ZOOM_LEVELS.map(level => ({ value: String(level), label: level === 'fit' ? 'Fit' : `${level * 100} %` }))" @update:model-value="setZoom" />
     </div>
-    <div data-stage class="overflow-auto border border-white/30 min-h-24 max-h-[70vh] flex" :class="[checkerboard ? 'image-checkerboard' : 'bg-[#111]', zoom === 'fit' ? 'items-center justify-center' : 'items-start justify-start']" @dragover.prevent @drop.prevent.stop="onDrop" @wheel="onWheel">
+    <div data-stage class="overflow-auto border border-white/30 min-h-24 max-h-[70vh] flex" :class="[checkerboard ? 'image-checkerboard' : 'bg-panel', zoom === 'fit' ? 'items-center justify-center' : 'items-start justify-start']" @dragover.prevent @drop.prevent.stop="onDrop" @wheel="onWheel">
       <div ref="frame" data-frame class="relative inline-block touch-none select-none" :class="zoom === 'fit' ? 'max-w-full' : 'flex-shrink-0'" :style="zoom === 'fit' ? undefined : { width: `${width * zoom}px`, height: `${height * zoom}px` }" tabindex="0" @pointerdown="pointerDown" @pointermove="pointerMove" @pointerup="pointerUp" @pointercancel="pointerUp" @keydown="onKeydown">
         <img v-if="url" :src="url" alt="Image preview" draggable="false" class="block object-contain" :class="zoom === 'fit' ? 'max-w-full max-h-[360px]' : 'w-full h-full'" :style="zoom === 'fit' ? undefined : { imageRendering: zoom >= 2 ? 'pixelated' : 'auto' }" @load="readPointColor">
         <div v-if="rectangle" class="absolute border border-white bg-black/20 cursor-move" :style="rectStyle">

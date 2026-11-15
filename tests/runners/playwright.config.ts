@@ -11,7 +11,8 @@ import { drawCheckout } from "./draw-path.mjs";
 import { runnerPorts } from "./ports.mjs";
 
 const workerOverride = process.env.NOT3_RUNNER_WORKERS;
-const workers = workerOverride === undefined ? 2 : Number(workerOverride);
+// Model-backed image tools saturate browser resources when run beside other pages.
+const workers = workerOverride === undefined ? 1 : Number(workerOverride);
 if (workerOverride !== undefined && (!/^[1-9]\d*$/.test(workerOverride) || !Number.isSafeInteger(workers))) {
   throw new Error("NOT3_RUNNER_WORKERS must be a positive integer");
 }

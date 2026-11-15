@@ -1,6 +1,6 @@
 <template>
   <misc-overlay-container class="z-30">
-    <div class="bg-black border-2 border-white/20 p-5 w-[90vw] max-w-md text-white space-y-4">
+    <div class="bg-black border border-white/20 p-5 w-[90vw] max-w-md text-white space-y-4">
       <h2 class="text-xl font-bold">Receive P2P file</h2>
       <p v-if="meta" class="break-all">{{ meta.name }} ({{ formatBytes(meta.size) }})</p>
       <template v-if="phase === 'consent'">

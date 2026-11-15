@@ -4,6 +4,7 @@
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import type * as Monaco from 'monaco-editor';
 import type { ToolOutput } from '~/lib/tools/types';
+import { activeTheme } from '~/lib/theme/registry';
 
 const props = defineProps<{ output: Extract<ToolOutput, { kind: 'text' | 'diff' }> }>();
 const container = ref<HTMLDivElement>();
@@ -23,13 +24,13 @@ async function render() {
     const original = monaco.editor.createModel(props.output.displayLeft ?? props.output.left, language);
     const modified = monaco.editor.createModel(props.output.displayRight ?? props.output.right, language);
     models = [original, modified];
-    const diffEditor = monaco.editor.createDiffEditor(container.value, { theme: 'vs-dark', readOnly: true, originalEditable: false, automaticLayout: true });
+    const diffEditor = monaco.editor.createDiffEditor(container.value, { theme: activeTheme.value.monacoTheme, readOnly: true, originalEditable: false, automaticLayout: true });
     diffEditor.setModel({ original, modified });
     editor = diffEditor;
   } else {
     const model = monaco.editor.createModel(props.output.text, language);
     models = [model];
-    editor = monaco.editor.create(container.value, { model, theme: 'vs-dark', readOnly: true, automaticLayout: true, minimap: { enabled: false } });
+    editor = monaco.editor.create(container.value, { model, theme: activeTheme.value.monacoTheme, readOnly: true, automaticLayout: true, minimap: { enabled: false } });
   }
 }
 onMounted(async () => { const { setupMonaco } = await import('~/lib/monaco/setup'); await setupMonaco(); await render(); });

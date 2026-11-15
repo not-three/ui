@@ -1,9 +1,11 @@
 import { migrateSettings } from "~/lib/settings-migration";
 import type { KeybindingEntry } from "~/lib/keybindings/compile";
+import type { ThemeId } from "~/lib/theme/registry";
 
 export const useSettingsStore = defineStore('settings', {
   state: () => ({
     version: 4,
+    theme: null as ThemeId | null,
     // VS Code keybindings.json entries. Later entries override earlier ones.
     // Prefix a command with "-" to remove its default binding.
     keybindings: [] as KeybindingEntry[],

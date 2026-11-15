@@ -26,7 +26,7 @@
       </div>
       <div class="overflow-auto flex-grow min-h-0">
         <table class="border-collapse w-full">
-          <thead class="sticky top-0 bg-[#111]">
+          <thead class="sticky top-0 bg-panel">
             <tr>
               <th
                 v-for="col in columns"

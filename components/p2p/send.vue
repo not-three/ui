@@ -1,7 +1,7 @@
 <template>
   <transition-fade>
     <misc-overlay-container v-if="store.p2pSend" class="z-30" :file-drop="phase === 'pick'" @file-drop="selectFiles">
-      <div class="bg-black border-2 border-white/20 p-5 w-[90vw] max-w-lg text-white space-y-4">
+      <div class="bg-black border border-white/20 p-5 w-[90vw] max-w-lg text-white space-y-4">
         <h2 class="text-xl font-bold">P2P file transfer</h2>
         <template v-if="phase === 'pick'">
           <p>Choose or drop one file. Keep this tab open while sharing it.</p>
@@ -17,7 +17,8 @@
           <template v-else>
             <p class="break-all select-all">{{ link }}</p>
             <button class="border border-white px-3 py-1" @click="copyLink">Copy link</button>
-            <canvas ref="qrCanvas" class="bg-white p-2 max-w-full" aria-label="Transfer QR code" />
+            <button v-if="link" class="border border-white px-3 py-1" @click="shareAlternatives">Share alternatives</button>
+            <canvas ref="qrCanvas" class="bg-[rgb(255_255_255)] p-2 max-w-full" aria-label="Transfer QR code" />
             <p v-if="phase === 'waiting'">Waiting for the receiver — keep this tab open.</p>
             <template v-else>
               <progress-bar :status="bytesSent" :total="file?.size || 0" class="w-full h-4" />
@@ -36,9 +37,10 @@
 </template>
 
 <script setup lang="ts">
-import { FragmentData, P2PSender, P2PCancelledError } from '@not3/sdk';
+import { P2PSender, P2PCancelledError } from '@not3/sdk';
 import QRCode from 'qrcode';
-import { OkDialog } from '~/lib/dialog';
+import { OkDialog, ShareAlternativesDialog } from '~/lib/dialog';
+import { createShareAlternatives } from '~/lib/share-alternatives';
 import { describeTransferError } from '~/lib/transfer/errors';
 import { p2pApiFor } from '~/lib/transfer/p2p';
 
@@ -89,16 +91,24 @@ async function cancel() {
 
 async function showLink() {
   if (!sender || link.value) return;
-  const base = store.api.getOptions().baseUrl;
-  const fragment = new FragmentData({
-    seed: sender.getSeed(),
-    p2p: true,
-    cryptoMode: 'gcm',
-    server: base === store.config.baseURL ? undefined : base,
-  });
-  link.value = `${window.location.origin}/f/${sender.getSessionId()}#${fragment.toString()}`;
+  link.value = alternatives()[0].value;
   await nextTick();
   if (qrCanvas.value) await QRCode.toCanvas(qrCanvas.value, link.value, { margin: 1 });
+}
+
+function alternatives() {
+  if (!sender) return [];
+  return createShareAlternatives(
+    { kind: 'p2p', id: sender.getSessionId(), seed: sender.getSeed() },
+    store.api.getOptions().baseUrl,
+    store.config.baseURL,
+    useRuntimeConfig().public.uiBaseURL || '/',
+    window.location.origin,
+  );
+}
+
+function shareAlternatives() {
+  if (link.value) store.dialog = new ShareAlternativesDialog(alternatives());
 }
 
 async function startSend() {

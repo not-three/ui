@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import { buildConfig } from "./config.mjs";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -7,12 +8,7 @@ const publicDir = path.join("/app/public");
 
 // Serve dynamic config.json
 app.get("/config.json", (_, res) => {
-  const config = {
-    baseURL: process.env.API_URL || "/api/",
-    drawURL: process.env.DRAW_URL || "/api/draw/",
-    termsURL: process.env.TERMS_OF_SERVICE_URL,
-  };
-  res.json(config);
+  res.json(buildConfig(process.env));
 });
 
 // The note-runner "Run / Preview" panel executes note code inside an

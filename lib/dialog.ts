@@ -1,9 +1,12 @@
+import type { ShareAlternative } from '@not3/sdk';
+
 export enum DialogType {
   YesNo,
   Ok,
   TextInput,
   TextOutput,
   Time,
+  ShareAlternatives,
 }
 
 export class DialogBase {
@@ -65,4 +68,11 @@ export class TimeDialog extends DialogBase {
   ) { super(); }
 }
 
-export type Dialog = YesNoDialog | OkDialog | TextInputDialog | TextOutputDialog | TimeDialog;
+export class ShareAlternativesDialog extends DialogBase {
+  public readonly type = DialogType.ShareAlternatives;
+  public readonly title = 'Share';
+  public readonly text = '';
+  constructor(public readonly alternatives: ShareAlternative[]) { super(); }
+}
+
+export type Dialog = YesNoDialog | OkDialog | TextInputDialog | TextOutputDialog | TimeDialog | ShareAlternativesDialog;

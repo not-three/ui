@@ -1,6 +1,6 @@
 * {
-  --sb-track-color: #000;
-  --sb-thumb-color: #fff;
+  --sb-track-color: rgb(var(--not3-bg));
+  --sb-thumb-color: rgb(var(--not3-fg));
   --sb-size: 8px;
 }
 

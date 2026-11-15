@@ -9,7 +9,7 @@
         <progress-square v-if="started" :status="progress" :total="totalChunks" class="w-full h-full" />
       </div>
     </div>
-    <div class="bg-black border-white/20 border-2 p-2 max-w-md">
+    <div class="bg-black border-white/20 border p-2 max-w-md">
       <div class="grid grid-cols-[1fr,auto] gap-4">
         <p class="truncate">{{ meta?.name }}</p>
         <p>{{ size }}</p>
@@ -17,20 +17,20 @@
       <div class="flex justify-center mt-4 gap-4">
         <button
           v-if="!started"
-          class="border-white border-2 px-2 py-1 disabled:cursor-progress"
-          @click="showCurl"
+          class="border-white border px-2 py-1 disabled:cursor-progress"
+          @click="showAlternatives"
         >
-          Show cURL Command
+          Share alternatives
         </button>
         <button
           :disabled="started && !finished"
-          class="border-white border-2 px-2 py-1 disabled:cursor-progress"
+          class="border-white border px-2 py-1 disabled:cursor-progress"
           @click="startDownload"
         >
           {{ finished ? 'Save File' : started ? 'Downloading...' : 'Download File' }}
         </button>
         <button
-          class="border-white border-2 px-2 py-1 disabled:cursor-not-allowed"
+          class="border-white border px-2 py-1 disabled:cursor-not-allowed"
           @click="doCloseOrCancel"
         >
           {{ started && !finished ? 'Cancel' : 'Close' }}
@@ -42,9 +42,10 @@
 
 <script lang="ts" setup>
 import type { FileGetResponse } from '@not3/sdk';
-import { Not3Client, FileDownload, FragmentData, ShareGenerator } from '@not3/sdk';
+import { Not3Client, FileDownload, FragmentData } from '@not3/sdk';
 import { AxiosError } from 'axios';
-import { OkDialog, TextOutputDialog, YesNoDialog } from '~/lib/dialog';
+import { OkDialog, ShareAlternativesDialog, YesNoDialog } from '~/lib/dialog';
+import { createShareAlternatives } from '~/lib/share-alternatives';
 import { DownloadDb } from '~/lib/download';
 import { runDownload } from '~/lib/transfer/download-runner';
 import { describeTransferError } from '~/lib/transfer/errors';
@@ -69,8 +70,7 @@ const totalChunks = ref(0);
 const progress = ref(0);
 let canceled = false;
 let blobDownloadUrl: string|null = null;
-let apiUrl = "";
-let seed = "";
+let shareFragment: FragmentData | null = null;
 
 onMounted(async () => {
   let errorMsg = "";
@@ -78,13 +78,9 @@ onMounted(async () => {
     store.loading = true;
     errorMsg = "Could not load cryptographic data from URL.";
     const fragment = FragmentData.fromURL(window.location.href);
-    seed = fragment.seed;
+    shareFragment = fragment;
     errorMsg = "Could not load file data from the server.";
     const api = fragment.server ? new Not3Client({ baseUrl: fragment.server }) : store.api;
-    apiUrl = api.getOptions().baseUrl;
-    if (!apiUrl.toLowerCase().startsWith("http")) {
-      apiUrl = window.location.origin + apiUrl;
-    }
     download.value = new FileDownload(api.files(), props.file, fragment.seed);
     await download.value.prepare();
     meta.value = download.value.getFileMetadata();
@@ -197,20 +193,14 @@ async function startDownload() {
   }
 }
 
-function showCurl() {
-  const url = new ShareGenerator({apiUrl}).fileCurl(
-    props.file,
-    seed,
-    meta.value?.name || "file",
-  );
-  store.dialog = new TextOutputDialog(
-    "cURL Command",
-    [
-      "This command will download the file on the command line,",
-      "using openssl, curl, base64, xxd, head and tail to decrypt it.",
-    ].join(" "),
-    url,
-  );
-  navigator.clipboard.writeText(url);
+function showAlternatives() {
+  if (!shareFragment || !meta.value) return;
+  store.dialog = new ShareAlternativesDialog(createShareAlternatives(
+    { kind: 'file', id: props.file, seed: shareFragment.seed, fileName: meta.value.name },
+    shareFragment.server || store.config.baseURL,
+    store.config.baseURL,
+    useRuntimeConfig().public.uiBaseURL || '/',
+    window.location.origin,
+  ));
 }
 </script>

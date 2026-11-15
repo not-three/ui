@@ -7,10 +7,10 @@ afterEach(() => {
   vi.resetModules();
 });
 
-it('defaults the browser suite to two workers', async () => {
+it('defaults the browser suite to one worker for large local models', async () => {
   vi.stubEnv('NOT3_RUNNER_WORKERS', undefined);
   vi.resetModules();
-  expect((await import('./playwright.config')).default.workers).toBe(2);
+  expect((await import('./playwright.config')).default.workers).toBe(1);
 });
 
 it('accepts a positive integer worker override', async () => {

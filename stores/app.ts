@@ -15,6 +15,9 @@ type UiConfig = {
   drawURL?: string
   termsURL?: string
   pullRequest?: string
+  theme?: string
+  customCSS?: string
+  customCSSURL?: string
 }
 
 const useAppStoreBase = defineStore('app', {
@@ -53,7 +56,7 @@ const useAppStoreBase = defineStore('app', {
     sandboxEngineId: '',
   }),
   actions: {
-    async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean, openShareDialog?: 'url' | 'curl') {
+    async saveEncryptedNote(expiresIn?: number, selfDestruct?: boolean, openShareDialog?: 'url' | 'alternatives') {
       if (this.settings) try {
         const parsed = JSON.parse(this.content);
         const settingsStore = useSettingsStore();

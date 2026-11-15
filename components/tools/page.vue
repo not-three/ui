@@ -1,5 +1,5 @@
 <template>
-  <main class="h-dvh bg-[#1e1e1e] text-white flex flex-col">
+  <main class="h-dvh bg-[rgb(var(--not3-surface))] text-white flex flex-col">
     <tools-chrome>
       <NuxtLink to="/t" class="flex-shrink-0 hover:underline underline-offset-2 focus:outline-none focus-visible:underline">Tools</NuxtLink>
       <span class="text-white/40 select-none" aria-hidden="true">/</span>

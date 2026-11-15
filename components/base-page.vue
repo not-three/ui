@@ -62,7 +62,9 @@ onMounted(async () => {
   // keepContent marks the readonly->editable handoff; keep the run/preview
   // panel open across it (the user explicitly opened it for this content).
   const keepSandbox = store.keepContent && store.sandbox;
+  const initialConfig = store.config;
   store.$reset();
+  store.config = initialConfig;
   store.content = lastContent;
   store.sandbox = keepSandbox;
   store.id = props.openNote || "";
@@ -108,7 +110,7 @@ onMounted(async () => {
     errorMsg = "Could not load cryptographic data from URL.";
     const fragment = FragmentData.fromURL(window.location.href);
     errorMsg = "Could not generate cryptographic key.";
-    const key = await Crypto.generateKey(fragment.seed);
+    const key = await Crypto.generateKey(fragment.seed, fragment.cryptoMode);
     errorMsg = "Could not load note data from the server.";
     const api = fragment.server ? new Not3Client({ baseUrl: fragment.server }) : store.api;
     if (
@@ -145,7 +147,7 @@ onMounted(async () => {
     }
     const note = await api.notes().get(props.openNote);
     errorMsg = "Decryption failed.";
-    store.content = await Crypto.decrypt(note.content, key);
+    store.content = await Crypto.decrypt(note.content, key, fragment.cryptoMode);
     store.readonly = true;
     store.expires = new Date(note.expiresAt * 1000);
 
@@ -170,6 +172,7 @@ onMounted(async () => {
       const map = {
         'url': Actions.SHARE_LINK,
         'curl': Actions.SHARE_CURL,
+        'alternatives': Actions.SHARE_CURL,
       } as Record<string, () => void>;
       if (map[share]) map[share]();
     }
@@ -231,7 +234,7 @@ console.warn(
 
 <style>
 .base-container {
-  @apply w-screen h-screen bg-[#1e1e1e] overflow-hidden flex flex-col;
+  @apply w-screen h-screen bg-[rgb(var(--not3-surface))] overflow-hidden flex flex-col;
 }
 button {
   @apply select-none;

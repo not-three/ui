@@ -26,7 +26,7 @@ const store = useNotificationStore();
   @apply flex flex-col items-end z-50 pt-12 translate-x-1;
 }
 .notification-container {
-  @apply max-w-md bg-black border-white border-2 px-8 py-4;
+  @apply max-w-md bg-black border-white border px-8 py-4;
   @apply relative mr-4;
 }
 </style>
