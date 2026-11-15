@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { build, buildSync } from "esbuild";
 import { replaceCdnUrls } from "./vendor-cdn.mjs";
 import { PART_LIMIT, splitLargeFiles } from "./vendor-split.mjs";
+import { esmImportGraph } from "./vendor-esm-graph.mjs";
 import { createHash } from "node:crypto";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -132,22 +133,16 @@ const ENGINES = [
   { from: "papaparse", to: "papaparse", files: ["papaparse.min.js"] },
   // pglite/dist also ships ~150 optional Postgres extension .tar.gz files and
   // contrib/fs/live/vector/worker/ subtrees (extra build variants). Only the
-  // core engine that `new PGlite()` loads is copied: the ESM entry, its seven
-  // chunk-*.js dependencies (verified via static import graph), and the
-  // Postgres + initdb wasm binaries and preload data it fetches by relative
-  // URL.
+  // core engine that `new PGlite()` loads is copied: the ESM entry, the
+  // chunk-*.js files it statically imports (their hashed names change between
+  // releases, so they are resolved from the import graph, never listed by
+  // hand), and the Postgres + initdb wasm binaries and preload data it
+  // fetches by relative URL.
   {
     from: "@electric-sql/pglite/dist",
     to: "pglite",
     files: [
-      "index.js",
-      "chunk-2BOC2OMW.js",
-      "chunk-DDJLRBDX.js",
-      "chunk-F4GETNPB.js",
-      "chunk-JDT7TZ73.js",
-      "chunk-NNS5RQRF.js",
-      "chunk-QY3QWFKW.js",
-      "chunk-RYDTTX3G.js",
+      ...esmImportGraph(join(modules, "@electric-sql/pglite/dist"), "index.js"),
       "pglite.wasm",
       "pglite.data",
       "initdb.wasm",

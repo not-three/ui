@@ -135,6 +135,26 @@ describe("vendor pipeline", () => {
     expect(junk, `remove these from the copy list:\n${junk.join("\n")}`).toEqual([]);
   });
 
+  it("ships every chunk the vendored pglite entry statically imports (chunk names change between releases)", () => {
+    const dir = join(vendorDir, "pglite");
+    if (!existsSync(dir)) return;
+    const missing: string[] = [];
+    const seen = new Set<string>();
+    const visit = (file: string) => {
+      if (seen.has(file)) return;
+      seen.add(file);
+      const path = join(dir, file);
+      if (!existsSync(path)) {
+        missing.push(file);
+        return;
+      }
+      const source = readFileSync(path, "utf8");
+      for (const match of source.matchAll(/(?:from|import)\s*\(?\s*["']\.\/([^"']+\.js)["']/g)) visit(match[1]);
+    };
+    visit("index.js");
+    expect(missing, `pglite chunks missing from public/vendor/pglite:\n${missing.join("\n")}`).toEqual([]);
+  });
+
   it("ships no hardcoded CDN URLs (the app must load everything from its own origin)", () => {
     const offenders: string[] = [];
     const walk = (dir: string) => {
