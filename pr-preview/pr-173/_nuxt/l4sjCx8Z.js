@@ -1,0 +1,1 @@
+var e=new URL(`group1-shard1of1.BvLH5HIN.bin`,import.meta.url).href;export{e as default};
