@@ -1,1 +1,0 @@
-import{a as e}from"./CC64XZ_6.js";var t=async t=>({kind:`text`,text:e(t.input,`Input`).replace(/[A-Za-z]/g,e=>String.fromCharCode(e.charCodeAt(0)+(e.toLowerCase()<=`m`?13:-13))),language:`plaintext`});export{t as run};

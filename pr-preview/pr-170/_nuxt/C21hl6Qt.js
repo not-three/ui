@@ -1,3 +1,0 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./fE_RbtwO.js","./BCiCTKAo.js"])))=>i.map(i=>d[i]);
-import{n as e,r as t,t as n}from"./Cwfy0G3T.js";import{L as r}from"#entry";var i=async i=>{let{parseDocument:a}=await r(async()=>{let{parseDocument:e}=await import(`./fE_RbtwO.js`);return{parseDocument:e}},__vite__mapDeps([0,1]),import.meta.url),o=a(e(i),{uniqueKeys:!0});if(!o.errors.length)return t(`Valid YAML`);let s=o.errors[0],c=s.pos[0],l=e(i).slice(0,c).split(`
-`);return n(s.message,l.length,l.at(-1).length+1)};export{i as run};

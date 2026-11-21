@@ -1,2 +1,0 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./kwjMAdIa.js","./BCiCTKAo.js"])))=>i.map(i=>d[i]);
-import{r as e}from"./BQuo0PKa.js";import{L as t}from"#entry";var n=async n=>{let r=e(n.input),{default:i}=await t(async()=>{let{default:e}=await import(`./kwjMAdIa.js`);return{default:e}},__vite__mapDeps([0,1]),import.meta.url);return{kind:`text`,text:new i({html:!1,linkify:!0}).render(r),language:`html`,filename:`converted.html`}};export{n as run};

@@ -1,1 +1,0 @@
-var e=async(e,t)=>{let n=e.left,r=e.right;if(!n||n.kind!==`text`||!r||r.kind!==`text`)throw Error(`Two text inputs are required`);let i=t.ignoreWhitespace?{displayLeft:n.text.replace(/\s+/g,` `).trim(),displayRight:r.text.replace(/\s+/g,` `).trim()}:{};return{kind:`diff`,left:n.text,right:r.text,...i,language:n.language||r.language}};export{e as run};

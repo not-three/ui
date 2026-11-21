@@ -1,2 +1,0 @@
-import{r as e}from"./BQuo0PKa.js";var t=async t=>{let n=e(t.input),r=n.match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu)?.length??0;return{kind:`table`,columns:[`Metric`,`Value`],rows:[[`Characters`,[...n].length],[`Words`,r],[`Lines`,n?n.split(`
-`).length:0],[`UTF-8 bytes`,new TextEncoder().encode(n).byteLength],[`Reading time (minutes)`,Math.round(r/200*100)/100]]}};export{t as run};
