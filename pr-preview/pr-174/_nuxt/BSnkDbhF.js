@@ -1,0 +1,1 @@
+import{t as e}from"./CNXkVaNA.js";import{u as t}from"./DoGll0R1.js";import{P as n,ft as r,u as i,y as a}from"./DXrHwFYX.js";var o=a({__name:`[id]`,setup(a){let o=t();return(t,a)=>{let s=e;return n(),i(s,{"cowork-room":String(r(o).params.id)},null,8,[`cowork-room`])}}});export{o as default};
